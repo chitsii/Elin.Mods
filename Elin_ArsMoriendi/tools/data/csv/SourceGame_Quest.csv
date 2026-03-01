@@ -1,0 +1,330 @@
+id,name_JP,name,type,drama,idZone,group,tags,money,chance,minFame,detail_JP,detail,talkProgress_JP,talkProgress,talkComplete_JP,talkComplete
+string,string,string,string,string[],string,string,string[],int,int,int,string,string,string,string,string,string
+main,メインクエスト,Main Quest,QuestMain,,,,,,,,あなたは長旅を経てノースティリスにたどり着いた。この新天地に何が待ち構えているかはまだわからない。当面は生活を築き維持することが目標になるだろう。,"You've traveled far to North Tyris. You have no idea what awaits you in this unfamiliar land. For now, your goal is to establish your life and persist.",,,,
+home,新天地,New Home,QuestHome,,,,,,,,エイシュランドから受け取った土地の権利書を呼んで、土地を獲得しよう。,Let's claim the land by reading the deed obtained from Ashland.,,,,
+home1,,,,,,,,,,,あなたは権利書を読み土地を手に入れた。エイシュランドに報告しよう。,You’ve claimed land with a deed of land. You are ready to report to Ashland.,,,,
+home2,ミシリアの復興,Mysilia Reconstruction,,,,,,,,,ミシリアは復興と存続のために盟友を必要としている。新天地の発展を進めれば、ミシリアから報せが届くかもしれない。,Mysilia needs a strong ally to reconstruct and survive. You are to proceed with working on your new land and wait for news from Mysilia.,,,,
+curry,至高の味の謎,Last Spice,QuestCurry,,,,,,,,気ままな傭兵ティケに、「竜と香辛料」のカレーの味の秘密を探るよう頼まれた。ドーガ遺跡の地下に何か手がかりがあるかもしれない。,Tyche asked you to uncover the secret behind the flavor of “Dragons and Spices” curry. There might be a clue hidden beneath the Doga Ruins.,,,,
+curry1,,,,,,,,,,,ドーガ遺跡の地下で機械工場を見つけ、工場長を破壊した。ティケに報告しよう。,You discovered a mechanical factory in the depths of the ruins and destroyed its chief. Time to report back to Tyche.,,,,
+nasu,伝説の鞄の謎を追え！,Seeking the Legendary Bag!,QuestNasu,,,,,,,,妖精のナナスを連れ、スペクウィングの北西にある「帰らずの森」を探索しよう。,"Accompany Nanasu and explore the “Forest of the Lost Way,” located northwest of Specwing.",,,,
+nasu1,,,,,,,,,,,帰らずの森の最奥でナナスのライバルのライナとポイナが待ち受けていた。生意気な妖精たちを駆除しよう。,"
+At the deepest part of the forest, Nanasu’s rivals, Raina and Poina, await you. Eliminate the insolent fairies.",,,,
+nasu2,,,,,,,,,,,あなたはナナスが欲しがっていた不思議な鞄を見つけた。ナナスに話しかけ、鞄を渡そう。,"
+You have found the mysterious bag that Nanasu desired. Speak to her and hand it over.",,,,
+melilith,ホーンテッドマンション,Haunted Manor,QuestCursedManor,,,,,,,,古びた洋館に住む謎の少女メリリスから「宝探し」のゲームに参加するよう頼まれた。洋館の地下深くへと潜り、隠された宝を手に入れなければならない。ただし、「持ち帰っていい宝は一つだけ」とメリリスに忠告された。,"You have been invited by Melilith, a mysterious girl living in an old mansion, to participate in a treasure hunt. You must delve deep into the basement of the mansion to find the hidden treasure. However, She has warned you that ""only one treasure may be taken back with you.""",,,,
+melilith1,,,,,,,,,,,古びた洋館の地下深くで「宝」を手に入れた。地上に戻りメリリスに報告しよう。,"You have obtained the ""treasure"" deep in the basement of the old mansion. Now, return to the surface and report back to Melilith.",,,,
+fiama1,ホットクリムのレシピ,A recipe of hot crim,QuestCraft,,,,,,,,病み上がりでまだふらふらしている様子ね。疲労によく効くホットクリムを飲むといいわ。クリムの実は採取も簡単で、色々な料理や薬の材料としても使える。作り方を教えるから私のもとにクリムの実を3つ集めて持ってきなさい。わからないことがあったらアッシュに聞いて。|クリムの実は揃ったようね。あなたの足元に水を置いた。ホットクリムの制作に必要なものはクリムの実と水と熱源。アッシュの側の焚き火で温めて作ることができるはずよ。ホットクリムが無事完成したら持ってきなさい。ご褒美をあげる。,You still look a little dizzy. Take some hot crim to recover your fatigue. Crimberries are easy-to-spot ingredients favorably used for many meals and medicines. Gather 3 crimberries so I can teah you the recipe. Ask Ash if you need some guidance.|So you've returned. Here's a pot of water for you. The ingredients for hot crim are just the crimberries and the water. You'll also need fire source to cook it so go stand near the bonfire when you craft. Bring the hot crim to me once it's done.  ,,,うん、特に問題はないようね。疲れているみたいだから早速飲んでみたらどう？それと、これは約束のご褒美。,"Yes, looks like you've got it right. Why don't you go sit by the fire and drink it? Oh, and here's something for you."
+fiama2,調教,Taming,QuestCraft,,,,,,,,調教クエ,taming quest,,,complete jp,complete
+trial_siege,襲撃,Siege,,,,,,,,,あと#1日で襲撃。|襲撃中。,"Dear #player#, did you forget again?",,,,
+nerun_gift,お近づきの印,Token of our meeting,,,,,,,,,ちょっときて。,Come here.,,,,
+lumiest,謎の穴,Unknown Crater,QuestLumiest,,lumiest,,,,,,あなー,hole,,,,
+companion,仲間を求めて,Search for Companions,QuestCompanion,ashland,,,,,,,何をするにも人手がもっと必要だな。|住人を一人リクルートしよう。,,,,,
+companion1,,,,ashland,,,,,,,|住人を十人リクルートしよう。,,,,,
+companion2,,,,ashland,,,,,,,,,,,,
+sharedContainer,拠点に欠かせないモノ,Essential Equipment,QuestSharedContainer,ashland,,,,,,,"大切なことを君に教えておきたい。|インベントリのコンテナをミドルクリック（もしくはRキー）して手に持ち、地面を右クリックして設置しよう。
+
+コンテナを開き、右側に表示される錠前のアイコンをクリックすることで、コンテナの権限を変更することができる。全て完了したら、エイシュランドに報告しよう。","You need to learn this to run your base. |Middle-click (or R key) to hold the container from your inventory, then right-click on the ground to place it.
+
+Open the container, and click on the lock icon on the right side to change its permissions. Once everything is done, report back to Ashland.",,,,
+sharedContainer1,,,,ashland,,,,,,,,,,,,
+defense,戦闘訓練,Defense Training,QuestDefense,ashland,,,,,,,こんな時世だ、戦闘の訓練もしておいたほうがいいかもしれない。|拘束されたパンクを殴り殺してエイシュランドに報告しよう。,"In times like this, you might as well train for combat. | Let's beat the bound punk to death and report back to Ashland.",,,,
+defense1,,,,ashland,,,,,,,|遠隔武器やアイテムを駆使して拘束されたイノシシを撃破しよう。,|Defeat the bound boar by using ranged weapons and items.,,,,
+defense2,,,,ashland,,,,,,,|どんな敵でもいいので100体倒してエイシュランドに報告しよう。,|Kill 100 of any enemy and report back to Ashland.,,,,
+defense3,,,,ashland,,,,,,,,,,,,
+fiama_lock,フィアマの手ほどき,Fiama's Lecture,QuestFiamaLock,fiama,,,,,,,教えたいことがあるの。|フィアマに宝箱を開けてみるよう指示された。宝箱を開けてフィアマに報告しよう。,I'll teach you.|Fiama instructed you to try opening the treasure chest. Let's open it and report back to Fiama.,,,,
+fiama_lock1,,,,fiama,,,,,,,,,,,,
+fiama_reward,フィアマの予感,Fiama's Feeling,QuestDialog,fiama,,,,,,,ちょっと来て。,Come here.,,,,
+fiama_starter_gift,今後の目標,Vision for the Future ,QuestDialog,fiama,,,,,,,ちょっと来て。,Come here.,,,,
+puppy,仔犬の捜索願い,Lost Puppy,QuestPuppy,fiama,,,,,,,仔犬を捜してきて欲しいの。|フィアマから行方不明の仔犬を捜して来るよう頼まれた。仔犬は、ホーム北西の「仔犬の洞窟」に迷い込んだという。,"I want you to look for a puppy.|You have been requested by Fiama to find a lost puppy. Apparently, the puppy has strayed into 'Puppy's Cave' located northwest of your home.""",,,,
+puppy1,,,,,,,,,,,|あなたはフィアマが捜していた仔犬を保護した。無事彼女の元まで仔犬を連れ帰して報告する必要がある。,|You have rescued the puppy Fiama was searching for. You need to safely deliver the puppy to her and report.,,,,
+puppy2,,,,fiama,,,,,,,,,,,,
+crafter,クラフトの道,Way of Crafter,QuestCrafter,ashland,,,,,,,家の一軒でも建てられるようになれば君も一人前の職人だ。|樹木から丸太を採取して、「簡易製作」のアビリティを使い「作業台」を製作する必要がある。作業台を地面に設置したらエイシュランドに報告しよう。,"Learn the art of craftsmanship and build a house. |You need to gather logs from trees and use the ""Quick Craft"" ability to create a ""workbench"". Report back to Ashland once you have built and installed the workbench.",,,,
+crafter1,,,,ashland,,,,,,,|「作業台」から「松明」をクラフトして、光源スロットに装備し、エイシュランドに報告しよう。,"|Craft a ""torch"" at the ""workbench"", equip it in your light source slot and report back to Ashland.",,,,
+crafter2,,,,ashland,,,,,,,|ホームに最初の家を建設するという目標をエイシュランドから与えられた。適当な広さの空間を壁で囲み、扉を設置すれば家は建設できる。「作業台」で壁と扉を作成し、立派な家を建ててエイシュランドに報告しよう。,"|You have given a goal to build a first house in your homeland. A house can be built by enclosing a space with walls and installing a door. Craft walls and a door at the ""workbench"", build a nice house and report back to Ashland.",,,,
+crafter3,,,,ashland,,,,,,,,,,,,
+tax,納税の義務,Tax Liability,QuestTax,ashland,,,,,,,言いにくいことがあるのだが…|あなたは納税の義務について学んだ。まずは税金の請求書が送られてくるまで待たなければならない。,I hate to tell you but...| You have learned about your tax obligations. First you have to wait until you receive your tax bill.,,,,
+tax1,,,,ashland,,,,,,,|あなたは税金の請求書を受け取った。街道を南東に進んだ先にあるミシリアの役所で納税することができる。,| You have received your tax bill. You can pay the tax at the town hall in Mysilia which is located southeast of the city road.,,,,
+tax2,,,,ashland,,,,,,,,,,,,
+council,ティリス議会,Tyris Council,QuestCouncil,ashland,,,,,,,ティリス議会について君に教えよう。|ノースティリスでは毎月ティリス連盟による評議会が開催される。まずは複数の議員と実際に話し面識を広げるよう助言された。,"Have you ever heard of the Tyris Council? |In North Tyris, the Tyris Union holds a monthly council meeting. you were advised to talk to several council members first to get to know them better.",,,,
+council1,,,,ashland,,,,,,,,,,,,
+exploration,新たな地へ,To the New Lands,QuestExploration,ashland,,,,,,,周辺の探索に出かけてみないか？|エイシュランドにナイミールの調査を頼まれた。ナイミールはホームの南東に存在する。,Feel like exploring? |Ashland asked you to investigate a cave called Nymelle. Nymelle is located southeast from your home.,,,,
+exploration1,,,,,,,,,,,|ナイミールでファリスと名乗る唄い手と出会った。ホームで彼女に話しかければ何か情報が得られそうだ。,"|You met Farris, a talesinger while exploring Nymelle. You may get some information from her if you talk to her in your home.
+",,,,
+exploration2,,,,,,,,,,,|ナイミールの奥深くに潜れば何かが見つかるかもしれない。,|Dive deep into Nymelle and you might find something.,,,,
+exploration3,,,,,,,,,,,|ナイミールの深層で行く手を阻む帝国の部隊を撃破した。先へと進みナイミールの秘密を確かめよう。,|You've defeated the Imperial troops blocking your way in the depths of Nymelle. Let's go on and find out the secret of Nymelle.,,,,
+exploration4,,,,,,,,,,,|ナイミールの深層で行く手を阻む帝国の部隊を撃破した。先へと進みナイミールの秘密を確かめよう。,|You've defeated the Imperial troops blocking your way in the depths of Nymelle. Let's go on and find out the secret of Nymelle.,,,,
+exploration5,,,,,,,,,,,|ナイミールの最奥には魔石が存在していた。ホームに戻りエイシュランドに報告しなければならない。,|You found fossilized trees and the crystal at the deepest layer of Nymelle. You must return to your home and report to Ashland,,,,
+exploration6,,,,ashland,,,,,,,,,,,,
+introInspector,開拓監査官,Frontier Inspector,QuestIntroInspector,ashland,,,,,,,君に紹介したい人物がいる。|,There's someone I want you to meet.|,,,,
+shippingChest,はじめての出荷箱,First Shipping Box,QuestShippingChest,loytel,,,,,,,金を稼ぐぞ。|ロイテルに出荷箱を作成するよう頼まれた。彼から渡された素材を使って出荷箱を製作し、地面に設置してからロイテルに報告しよう。出荷箱には必ずパルルの木材を使う必要がある。,"Time to make money.|You have been asked by Loytel to create a shipping chest. Use the materials he provided to build the chest, place it on the ground, and then report back to Loytel. Remember to use palulu wood for the shipping chest.",,,,
+shippingChest1,,,,loytel,,,,,,,,,,,,
+loytel_farm,開拓の心構え,Pioneer Spirit,QuestLoytelFarm,loytel,,,,,,,ちょっと来てくれ。|ロイテルにクワとショベルを持ってくるように指示された。二つの農具を製作して、ロイテルに話しかけよう。,"Come over here for a moment. | You've been instructed by Loytel to bring a hoe and a shovel. Craft these two farming tools, and report to Loytel.",,,,
+loytel_farm1,,,,loytel,,,,,,,,,,,,
+greatDebt,ミシリアからの知らせ,News from Mysilia,QuestDialog,loytel,,,,,,,アッシュ達が何か話しているな。,What are Ash and Fiama talking about?,,,,
+farris_tulip,唄い手の心遣い,Talesinger's Consideration,QuestDialog,loytel,,,,,,,空が綺麗だな。,The sky is beautiful.,,,,
+kettle_join,放浪の錬金術師,Wandering Alchemist,QuestDialog,loytel,,,,,,,誰かが訪ねてきたようだ。,It looks like someone has arrived.,,,,
+quru_morning,朝の一時,An Hour in the Morning,QuestDialog,loytel,,,,,,,美味しそうな匂いがするな。,What is this delicious smell?,,,,
+quru_sing,花と少女,A Flower and a Girl,QuestDialog,quru,,,,,,,ふんふん♪,Hmm-hmm♪,,,,
+quru_past1,災眼の少女,Ill-Eyed Girl,QuestDialog,kettle,,,,,,,浮かない顔をしているね。,What's with the long face?,,,,
+quru_past2,噂をすれば,Speaking of the Devil,QuestDialog,farris,,,,,,,（ひそひそ）,(whispering),,,,
+vernis_gold,炭鉱に眠る黄金,Gold Beneath,QuestVernis,loytel,,,,,,,ケトル殿なら何か知っているだろうか？|ケトルからヴェルニースの地下に眠る黄金の話を聞いた。ヴェルニースを開拓する準備を整えて、ロイテルに話しかけよう。,I wonder if Master Kettle knows something?|You heard about the gold sleeping beneath Vernis from Kettle. Speak to Loytel when you are ready to develop Vernis.,,,,
+vernis_gold1,,,,loytel,,,,,,,最初の拠点から北にしばらく行った場所にヴェルニースはある。ヴェルニースに到着したら、現地で待っているロイテルに報告しよう。,"Vernis is located a bit north from the first base. Once you arrive in Vernis, report to Loytel who will be waiting there.",,,,
+vernis_gold2,,,,loytel,,,,,,,開拓の準備が整ったらロイテルに話しかけよう。,Talk to Loytel when you're ready to start developing Vernis.,,,,
+vernis_gold3,,,,loytel,,,,,,,ロイテルはあなたに手製爆弾「フラム」のレシピを渡した。爆弾を使って巨大な岩を全て破壊し、ヴェルニースでロイテルに報告しなければならない。,"Loytel gave you a recipe for a homemade bomb called ""Flam"". Use the bomb to destroy all the huge rocks in Vernis and then report back to Loytel.",,,,
+vernis_gold4,,,,loytel,,,,,,,ロイテルから「土地の権利書」を受け取った。ヴェルニースの土地の権利を獲得し、ロイテルに話しかけよう。,"Loytel gave you a ""Land Deed"". Talk to Loytel once you have claimed the rights to the land.",,,,
+vernis_gold5,,,,loytel,,,,,,,ヴェルニースの開拓が始まった。ヴェルニースの盟約の石を成長させ、ロイテルに報告しなければならない。石の成長の方法がわからない場合は、ロイテルに相談しよう。また、依頼掲示板でクルイツゥア達との会話を進行させる必要がある。,"The development of Vernis has begun. Grow the Hearth Stone in Vernis and report it to Loytel. Ask Loytel if you're unsure how to grow the Hearth Stone. Also, you need to continue conversations with your companions on the quest board. ",,,,
+vernis_gold6,,,,loytel,,,,,,,ヴェルニースの地下に竜が出現した。竜退治の心構えができたらロイテルに話しかけよう。,A dragon has appeared in the underground of Vernis. Talk to Loytel once you are ready to confront it.,,,,
+vernis_gold7,,,,loytel,,,,,,,ヴェルニースを守るために鋼鉄竜コルゴンの討伐を頼まれた。炭鉱の地下深くに赴き、竜を退治しなければならない。,You are tasked with defeating the Steel Dragon Corgon to protect Vernis. Head deep into the mine of Vernis and slay the dragon.,,,,
+vernis_gold8,,,,loytel,,,,,,,炭鉱の地下には古の魔物テフラが待ち構えていた。先に進むためにこの魔物を倒さなければならない。,You encountered an ancient monster Tephra in the depths of the Vernis mine. You must defeat this creature to advance.,,,,
+vernis_gold9,,,,loytel,,,,,,,炭鉱の地下深くに巣食う竜の正体は、今は亡き鋼鉄竜コルゴンの忘れ形見だった。ヴェルニースの地上に戻り、ロイテルに報告しよう。,The true identity of the dragon nesting deep in the mine turns out to be the progeny of the now deceased Steel Dragon Corgon. Return to the surface and talk to Loytel in Vernis.,,,,
+vernis_gold10,,,,loytel,,,,,,,,3,,,,
+vernis_gold11,,,,,,,,,,,,3,,,,
+after_vernis,冒険者,Adventurer,QuestDialog,loytel,,,,,,,おほん…ちょっとこっちに来い。,"Ahem, come here.",,,,
+mokyu,竜言語の教え,Dragonic Language Lesson,QuestDialog,corgon,,,,,,,もきゅ。,Mokyu.,,,,
+pre_debt,絶望の果てに,Beyond Despair,QuestDialog,farris,,,,,,,#pc様、来てください。,"Please come, #pc.",,,,
+pre_debt_runaway,行方不明の監査官,Missing Inspector,QuestDialog,loytel,,,,,,,行方不明になったロイテルを探すようファリスに頼まれた。オルヴィナのワインをもう一度飲みたいと、ロイテルはいつも言っていたが…,Farris asked you to find Loytel who has gone missing. He always said he wanted to drink Olvina's wine one more time...,,,,
+debt,そして伝説へ,And Thus Into Legend,QuestDebt,,,,,,,,|ロイテルの二千万オレンの借金の返済の手助けを約束した。ロイテルから借金の返済書をもらい、納税箱に納めよう。,"|You promised to help Loytel pay off his 20 million oren debt. Get debt bills from Loytel, and submit them to tax chest.",,,,
+debt1,,,,,,,,,,,1|2,,,,,
+exile_meet,運命の鼓動,Whispers of Fate,QuestDialog,quru,,,,,,,なでなで。,"Pat, pat, pat.",,,,
+exile_quru,長い夜,Long Night,QuestDialog,quru,,,,,,,眠れない。,I can't sleep.,,,,
+exile_kettle,忍び寄る影,Creeping Shadow,QuestDialog,kettle,,,,,,,静かな夜だ。,The night is quiet.,,,,
+exile_whisper,噂の人物,Hot Topic ,QuestDialog,farris,,,,,,,（ひそひそ）,(whispering),,,,
+exile_voice,陰に潜む声,Voice in the Shadow,QuestDialog,loytel,,,,,,,さっきから、後ろに何かいる気がするんだ。,I feel like there's someone behind me.,,,,
+into_darkness,闇へ,Into Darkness,QuestIntoDarkness,kettle,,,,,,,みんな、集まってくれないか？|イスシズルに対処するための方法を考えなければならない。,"Everyone, gather up, please.|You need to find a way to deal with Issizzle.",,,,
+into_darkness1,,,,kettle,,,,,,,|ケトルの帰りを待とう。,|Let's wait for Kettle to return.,,,,
+into_darkness2,,,,kettle,,,,,,,|ケトルの帰りを待とう。,|Let's wait for Kettle to return.,,,,
+into_darkness3,,,,kettle,,,,,,,|ケトルの帰りを待とう。,|Let's wait for Kettle to return.,,,,
+into_darkness4,,,,kettle,,,,,,,|死者の洞窟の最奥にある「淀み」に、何らかの液体を投げ入れなければならないようだ。,"|It seems that you must throw some kind of liquid into the ""Stagnation"" at the farthest depth of the Crypt of the Damned.",,,,
+into_darkness5,,,,kettle,,,,,,,|アズラシズルを倒せ！,|Defeat Azrasizzle!,,,,
+into_darkness6,,,,kettle,,,,,,,|死者の洞窟での用は終わった。拠点でケトルに話しかけよう。,|Your business in the Crypt of the Damned is done. Time to return to your base and talk to Kettle.,,,,
+into_darkness7,,,,kettle,,,,,,,|死者の洞窟での用は終わった。拠点でイスシズルからの報せを待とう。,|Your business in the Crypt of the Damned is done. Time to return to your base and await Issizzle's visit.,,,,
+negotiation_darkness,闇との対話,Negotiation with Darkness,QuestNegotiationDarkness,loytel,,,,,,,ケトルを見なかったか？|デミタスから追放者の村の結界を解く腕輪を受け取った。ミシリアの東に位置する追放者の村を訪ねてみよう。,Have you seen Kettle?|You received a bracelet from Demitas to break the barrier around the Exile's Village. Let's head to the village located east of Mysilia.,,,,
+negotiation_darkness1,,,,,,,,,,,|追放者の村に辿り着いた。追放者の長のビチェリンに話しかけよう。,"|You arrived at the Exile's Village. Let's speak to Bicerin, the village elder.",,,,
+negotiation_darkness2,,,,,,,,,,,|ルーリエ海底神殿からデュポンヌを連れ帰るよう、追放者の長ビチェリンに依頼された。,"|Bicerin, the elder of the exiles, entrusted you with the mission to return Duponne from the Sunken Temple of Lurie.",,,,
+negotiation_darkness3,,,,,,,,,,,|ルーリエ海底神殿の最奥でドラゴンへと成長したデュポンヌを見つけた。このままでは連れ帰ることは難しそうだが、何か手があるだろうか？,"|You found Duponne, now grown into a dragon, deep within the Sunken Temple of Lurie. To bring her back seems beyond reach now, unless there is another way.",,,,
+negotiation_darkness4,,,,,,,,,,,|ビチェリンの依頼を達成した。贖罪の村に戻り、ビチェリンに報告しなければならない。,|The mission given by Bicerin has been fulfilled. Time to return to the Village of Atonement and inform him.,,,,
+negotiation_darkness5,,,,,,,,,,,|贖罪の村での用事を終えた。ケトルの帰りを待とう。（続く）,|You have finished your business in the Village of Atonement. Let's wait for Kettle to return. (To be continued),,,,
+demitas_spellwriter,魔法書作家,Spellwriter,QuestDialog,demitas,,,,,,,汝に魔術のたしなみはあるか？,Dost thou possess knowledge of the arcane?,,,,
+mokyu2,テスト,test,QuestDialog,corgon,,,debug,,,,もきゅ。,Mokyu.,,,,
+mokyu3,テスト,test,QuestDialog,corgon,,,debug,,,,もきゅ。,Mokyu.,,,,
+farrisSister,妹を訪ねて,Visiting Little Sister,QuestFarrisSister,farris,,,,,,,お話ししたいことがあります。|リサナスの情報について、ファリスは妹のシオルシアを訪ねてみるようあなたに助言した。シオルシアはホームから南西に位置するオルヴィナという村に滞在しているらしい。,,,,,
+dummy,ダミー,Dummy,QuestDummy,,,,,,,,もきゅ。,Mokyu.,,,,
+order_fighter,ギルドオーダー(戦士),Guild Order(Fighter),QuestGuildOrderFighter,,,,,,,,|,|,,,,
+order_mage,ギルドオーダー(魔術師),Guild Order(Mage),QuestGuildOrderMage,,,,,,,,|,|,,,,
+order_thief,ギルドオーダー(盗賊),Guild Order(Thief),QuestGuildOrderThief,,,,,,,,|,|,,,,
+order_merchant,ギルドオーダー(商人),Guild Order(Merchant),QuestGuildOrderMerchant,,,,,,,,|,|,,,,
+guild_fighter,戦士ギルドの一員に,Joining Fighters Guild,QuestGuildFighter,,,,,,,,戦士ギルドの番人から、入団試験の内容を伝えられた。試験に合格するには、複数のイークを倒さなければならない。,The watchman of the Fighters Guild told you the details of the trial. You need to defeat several Yeeks to pass the trial.,,,,
+guild_fighter1,,,,,,,,,,,戦士ギルドの入団試験を完遂した。ギルドの番人に報告しよう。,You have completed the trial of the Fighters Guild. Let's report to the watchman.,,,,
+guild_fighter10,戦士ギルド,Fighters Guild,,,,,,,,,あなたは戦士ギルドの一員として、ギルドに貢献しなければならない。タスクを達成することで、ギルドの貢献度が獲得できる。貢献度が最大まで達したら、昇進するためにギルドの受付嬢に話しかけよう。,"As a member of the Fighters Guild, you must contribute to the guild. Completing tasks earns you contribution points. Once you've maxed out your contribution, talk to the guild clerk to get promoted.",,,,
+guild_mage,魔術師ギルドの一員に,Joining Mages Guild,QuestGuildMage,,,,,,,,魔術師ギルドの番人によれば、アカデミーに入学するには魔術師ギルドのメンバーの推薦状が必要だという。推薦状は店でも購入できるらしい。,"According to the watchman of the Mages Guild, a letter of recommendation from a member of the Mages Guild is required to enter the academy. The letter can be also purchased from a sales-magician.",,,,
+guild_mage1,,,,,,,,,,,魔術師ギルドの入団試験を完遂した。ギルドの番人に報告しよう。,You have completed the trial of the Mages Guild. Let's report to the watchman.,,,,
+guild_mage10,魔術師ギルド,Mages Guild,,,,,,,,,あなたは魔術師ギルドの一員として、ギルドに貢献しなければならない。タスクを達成することで、ギルドの貢献度が獲得できる。貢献度が最大まで達したら、昇進するためにギルドの受付嬢に話しかけよう。,"As a member of the Mages Guild, you must contribute to the guild. Completing tasks earns you contribution points. Once you've maxed out your contribution, talk to the guild clerk to get promoted.",,,,
+guild_thief,盗賊ギルドの一員に,Joining Thieves Guild,QuestGuildThief,,,,,,,,盗賊ギルドの番人から、入団試験の内容を伝えられた。試験に合格するには、犯罪を積み重ねなければならない。,The maiden of the Night told you the details of the Thieves Guild trial. You need to break laws and rack up a record of crimes to pass the trial.,,,,
+guild_thief1,,,,,,,,,,,盗賊ギルドの入団試験を完遂した。ギルドの番人に報告しよう。,You have completed the trial of the Thieves Guild. Let's report to the watchman.,,,,
+guild_thief10,盗賊ギルド,Thieves Guild,,,,,,,,,あなたは盗賊ギルドの一員として、ギルドに貢献しなければならない。タスクを達成することで、ギルドの貢献度が獲得できる。貢献度が最大まで達したら、昇進するためにギルドの受付嬢に話しかけよう。,"As a member of the Thieves Guild, you must contribute to the guild. Completing tasks earns you contribution points. Once you've maxed out your contribution, talk to the guild clerk to get promoted.",,,,
+guild_merchant,商人ギルドの一員に,Joining Merchants Guild,QuestGuildMerchant,,,,,,,,商人ギルドのマリアンから、入団試験の内容を伝えられた。試験に合格するには、街中でチラシを配らなければならない。チラシは受付嬢から購入できる。,Lady Marian told you the details of the Merchants Guild trial. You need to hand out flyers in a town to pass the trial. Flyers can be purchased from the guild clerk.,,,,
+guild_merchant1,,,,,,,,,,,商人ギルドの入団試験を完遂した。マリアンに報告しよう。,You have completed the trial of the Merchants Guild. Let's report to Lady Marian.,,,,
+guild_merchant10,商人ギルド,Merchants Guild,,,,,,,,,あなたは商人ギルドの一員として、ギルドに貢献しなければならない。タスクを達成することで、ギルドの貢献度が獲得できる。貢献度が最大まで達したら、昇進するためにギルドの受付嬢に話しかけよう。,"As a member of the Merchants Guild, you must contribute to the guild. Completing tasks earns you contribution points. Once you've maxed out your contribution, talk to the guild clerk to get promoted.",,,,
+deliver,"ついでの用事
+熱狂に沸く街
+配達
+お祝いの品
+珍品の配達
+廃品回収
+野望への一歩
+返却依頼
+友情の証","Small errand
+The city in a frenzy
+Delivery request
+Celebration gift
+Rare delivery
+Waste collector
+A step toward ambition
+Return request
+Token of friendship",QuestDeliver,,,random,"deliver,needDestZone",150,200,,"#3に行く用事はある{か}？久しく会っていない[qFriend]に、#2をついでに届けてもらえるとありがたい{のだ}。もちろんお礼はする{よ}。
+君は知っていた{か}？#3では今#2フィーバーが起こって街中が熱狂しているそう{だ}。#2が手に入らなくて{ね}、[qFriend]に泣きつかれて困っている{のだ}。私の代わりに#3までこの荷物を届けて{くれ}。
+#3まで#2を配達して{くれ}。期限内に無事に届ければ、配達先で報酬の#1を払{う}。
+[qFriend]が#3に家を建てたので、お祝いに#2をプレゼントしようと思{う}。#1で届けてくれない{か}？
+配達の依頼{だ}。なんに使うのか知らない{が}、[qClient]が#2を買い取りたいそう{だ}。#3まで配達してくれれば#1を払{う}。
+知っていた{かな}？ #3に住む[qClient]が廃品を回収しているらしい{のだ}。#2を送ろうと思う{が}、面倒なので代わりに持っていって{くれ}。
+#3に住む新進気鋭の[qClient]が、#2を研究しているそう{だ}。この#2を無事届けてくれれば、報酬として#1を払{う}。
+#3に住む[qFriend]に、借りていた#2を届けてくれない{か}。報酬は#1{だ}。
+長年の友好の証として、[qFriend]に#2を送ろうと思ってい{る}。#3まで運んでもらえない{か}？","Have you any plan to visit #3 by chance? I have my [qFriend] there I haven't seen in a long time. Can you deliver #2 for me?
+Have you heard the news? The #2 fever is gripping the town of #3 and people are boiling with enthusiasm! My [qFriend] is crying and begging me to send one. Can you goto #3 and deliver this package for me?
+Please deliver #2 to #3. If you manage to deliver it safely, you shall recieve the payment.
+My [qFriend] has built a house in #3, so I'd like to send #2 as a celebratory gift. Could you deliver it for me?
+I don't know what it will be used for, but some [qClient] wants to purchase my #2. If you deliver it to #3, you will be paid #1.
+Some [qClient] who lives in #3 seems to be collecting waste. I'm thinking of sending shit load of my #2, but it's too much hassle for me. Can you take it there for me?
+A promising [qClient] in #3 is researching #2. If you safely deliver this #2, you will be paid a reward of #1.
+Could you deliver the #2 I borrowed back to my [qFriend] in #3? Your reward will be #1.
+As a token of our longstanding friendship, I'm thinking of sending #2 to my [qFriend]. Could you transport it to #3 for me?",,,,
+supply,"趣味の収集品
+急ぎの品
+贈り物
+自分へのプレゼント
+子供の誕生日
+研究の素材
+コレクターの要望
+アイテムの納入","My hobby collection
+Urgent request
+Gift for a lover
+Gift for myself
+Child's birthday
+Research material
+Collector's request
+Supply",QuestSupply,,,random,supply,80,200,,"君に理解できるかはわからない{が}、私は#2に目がなくて{ね}、ゆくゆくは世界中の#2を収集したいという野望を持ってい{る}。まずは手始めに、なんでもかまわないので適当なのをもってきてくれない{か}？
+おお、いいところに来てくれ{た}！[qFriend]が突然私の家を訪れることになって{ね}、至急#2が必要な{のだ}。すみやかに調達してきて{くれ}。
+愛する[qFriend] へのプレゼントはなにがいい{か}？とりあえず報酬に#1を払うので、#2を調達してきて{くれ}。
+最近ちょっといいことがあったので、自分に#2をプレゼントしたい{のだ}。報酬は、#1でどう{か}？
+子供の誕生日プレゼントに#2がいる{のだ}。至急もってきて{くれ}。
+#2の研究をしてい{る}。研究用のストックが尽きたので、調達して来てもらえない{か}？
+私のコレクションに#2が必要{だ}。どうか調達してきて{くれ}！
+ちょっとした用事で、#2が必要になった{のだ}。期限内に納入してくれれば#1を払{う}。","I don't know if you can understand this but I have a thing for #2 and I have an ambition to eventually collect #2 from all over the world. For starters, can you go out and bring me one? I don't care about quality or rarity!
+You couldn't have come at a better time! My [qFriend] suddenly decided to visit my home. I need #2 right away. You think you can get it for me?
+I'm wondering what would make a good gift for my beloved [qFriend]. For now, I'll pay you #1 if you bring me #2.
+I've had some good fortune recently, so I want to treat myself to #2. How about #1 as payment?
+I need #2 for my child's birthday present. Bring it to me and the reward is yours.
+I'm conducting research on #2 and I've run out of stock. Could you procure some more?
+My collection needs #2. Please accept this task for a reward of #1!
+I need #2 for a small errand. If you can deliver it within the deadline, I will pay #1.",,,,
+supplyBulk_resource,"念願のマイホーム
+調達依頼","A dream home
+Procurement request",QuestSupplyBulkResource,,,random,"supply,bulk",100,250,,"近々、[qFriend]と一緒に暮らすことになって{な}、#3に新居を建設中な{のだ}。大量の資材が必要なので、#4の#2を至急調達してきて{くれ}。
+君も知っての通り、#3では今#2が圧倒的に不足してい{る}。報酬をはずむから、#4の#2をどこからか集めてきてくれない{か}？","I'm about to start living with my [qFriend] and we are currently building our new home in #3. We need a large amount of materials, so please deliver #4 of #2 for us.
+As you know, there is a critical shortage of #2 in #3 right now. I'll pay you well if you can bring me #4 of #2.",,,,
+supplyBulk_junk,"熱狂の果てに
+珍しいコレクション
+最悪の事態","The end of a craze
+My rare collection
+An absolute nightmare",QuestSupplyBulkJunk,,,random,"supply,bulk",100,250,,"#3で一時期熱狂的なブームになっていた#2集めだが、今では人気がなくなって、街のいたるところに捨てられている{のだ}。報酬を払うから、#2を大量に集めてきてくれない{か}？そう{だな}、#4ぐらいもって来て{くれ}。
+私は#2の収集家{だ}。なぜそんなものを集めているかは聞かないで{くれ}。[qFriend]の冷たい目だけで十分{だ}。ともかく、#4の#2を集めてきて{くれ}。
+大変{だ}！家に帰ったら、私の大切な#2が全て[qFriend]に捨てられていた{のだ}！至急、#2を#4集めてきて{くれ}！","There was a time when collecting #2 was all the rage in #3, but now that the popularity has waned, they're abandoned everywhere. I need you to gather #4 of #2 to clean up the streets.
+I am a collector of #2. Please don't ask why I collect such things. My [qFriend]'s cold stares are enough for me. Anyway, can you bring me #4 of #2? I'll pay you well.
+Oh no! When I got home today, I found out that my [qFriend] had thrown away all of my precious #2! Please, gather #4 of #2 for me, urgently!",,,,
+hunt,"迷惑なモンスター
+定期巡回
+ちょっとした善行","Troublesome monsters
+Regular patrol
+A little good deed",QuestHunt,,,random,monster,50,100,,"最近街の周りにモンスターが出没して困ってい{る}。報酬は払うから#3体ほど駆除してきて{くれ}。
+私たちは定期的に街の郊外を見回って危険なモンスターを駆除してい{る}。最近は物騒になって少し人手不足で{ね}、冒険者に巡回を依頼したいと思っている{のだ}。今回のノルマは#3匹程度{だが}、引き受けてくれる{か}？
+この世界を少しでも住みやすい場所にしたくはない{か}？なに、簡単なこと{だ}、見かけた魔物どもを#3体ほど、片っ端から退治して{くれ}。","Several monsters have been sighted around the town recently. Can you go out and get rid of them? #3 kills will be enough.
+We regularly patrol the outskirts of the town to remove dangerous monsters. Things have gotten a little rowdy lately and we're looking for adventurers to take over patrolling. Our quota this time is about #3. Are you interested?
+Don't you want to make the world a slightly better place to live? It's simple, just kill about #3 monsters you come across.",,,,
+huntRace,嫌な種族,Foul race!,QuestHuntRace,,,random,,300,100,,#2っていうのは、ほんとにどうしようもなく嫌らしい種族{だ}！ちょっと#3体ほど殺してきて{くれ}。,"I cannot stand any more of this insolent, disgusting race of #2! I beg you to kill #3 of them for me.",,,,
+defenseGame,戦争だ！,We're at war!,QuestDefenseGame,,,random,war,400,50,1000,大変{だ}！#3の貴重な#1を巡って、戦争が勃発してしまった{のだ}！すぐに戦場に赴いて敵の進行をくい止めて{くれ}！,"Dire news! A war has broken out over the #1 we hold dear in #3! Please, head to the battlefield immediately and halt the enemy's advance!",,,,
+defenseGame2,魔物の巣窟,Monster's den ,QuestDefenseGame2,,,random,war,400,50,1000,どこかの馬鹿が#3近郊の魔物の巣から#1を盗み出して{ね}、怒り狂った魔物どもが際限なく湧いてくる{のだ}。頼むから退治してきて{くれ}。,Some fool stole the #1 from a monster's lair near our town and the enraged monsters are now swarming without end. Please take care of them for the sake of #3!,,,,
+harvest,"農作業の手伝い
+代わりに収穫して
+収穫期","Farm worker wanted
+Harvest for me
+Harvest season",QuestHarvest,,,random,farm,50,100,,"そろそろ畑に植えた作物も育っている頃{だ}。#3付近にある畑まで行って、重さ#2ほどの作物を掘ってきて{くれ}。報酬は#1を払{う}。
+この時期になると、なんだか気が重くなる{よ}。畑に育った作物を、どっさりと掘らなきゃならない{のだ}。私の代わりに、#2ぐらいの量を収穫して来てくれない{か}！
+いよいよ待ちに待った収穫期の到来{だ}！とてもじゃないが一人では無理なので、畑仕事を手伝ってもらえない{か}？そう{だな}、君の担当は重さにして#2ほど{だ}。","The crops we planted in the field near #3 are likely grown by now. Go there and dig up about #2 worth of crops. I'll pay you #1 as a reward.
+I'm a bit overwhelmed looking at the whole lot of crops grown in my farm field. Can you harvest about #2 worth of crops for me?
+At last, the harvest time has come. It is by no means a job that I alone can handle. Hey, can you help me out and gather crops weighing about #2?",,,,
+music,"ベイベー！
+セレブパーティー
+代替芸人募集","Baby!
+Celebrity party
+Performer wanted",QuestMusic,,,random,music,0,100,,"ベイベーのってる{か}！イェーイ、私は凄くハイテンション{だ}！君も私のパーティーに来て{くれ}。報酬？そんな野暮なものはない{よ}！{が}！芸で#2得点記録すればいいものをプレゼントする{よ}！イェーイ！
+私の名前を知らない？世間知らずの人間もいるもの{だ}。私は泣く子も黙るトップセレブなの{だ}。近く開くパーティーの席で客を楽しませてくれる芸人を募集中{だ}。#2得点以上のパフォーマンスを出せたら、ボーナスを払{う}。
+ああ、だれか{たのむ}、私の代わりにパーティーで芸を披露して{くれ}。聴衆の反応が怖くてとても舞台にあがれない{のだ}！どうにか#2得点を稼いでくれれば、お礼に粗品をあげ{る}。","Are you feeling it, baby? I'm super pumped! Come join my party and play some songs. If you score more than #2 music points, I'll gift you something nice! Yay!
+I'm throwing a big party today. Many celebrities are going to attend the party so I need someone to keep them entertained. If you successfully score #2 music points, I'll give you a nice gift.
+Oh, please, someone take my place and perform at the party for me. I'm too scared of the audience! If you can somehow score #2 music points, I'll give you a bonus gift as thanks.",,,,
+subdue,"魔物駆除の依頼
+魔物退治
+家の周りのモンスター","Monster extermination
+Monster hunting
+Troubled home",QuestSubdue,,,random,monster,200,100,,"#3では今大量の魔物が繁殖していて{な}、報酬を出すから駆除してくれない{か}？
+#1を報酬として払{う}。ある場所の魔物どもを、速やかに退治してもらいたい{のだ}。
+自宅の近辺にモンスターが出没して困っている{のだ}。退治してくれるなら、報酬として#1を払{う}。","A large number of monsters are currently breeding in #3, and we are offering a reward for their extermination. Can you help?
+We will pay a reward for quickly exterminating the monsters in a certain location. Will you accept?
+I'm having trouble with monsters appearing around my home. If you can get rid of them, I will pay you #1.",,,,
+meal_meat,"肉！
+おもてなし","Meat!
+A reception",QuestMeal_meat,,,random,food,50,15,,"どうしようもなく肉が食べたい{のだ}！#2がいい{のだ}！早く{たのむ}！
+今日は大切な[qFriend]と会う予定{だ}。ゴージャスな肉料理をふるまいたいので、#2を料理して{くれ}。","I desperately want to eat meat! I want #2 now! Please hurry!
+We will be hosting this very important reception tonight. The guests must be satisfied and made to feel gorgeous. I want you to prepare #2 and #1 are yours.",,,,
+meal_fish,"健康食を
+魚を食べさせたい","Healthy eating
+Fish for children ",QuestMeal_fish,,,random,food,50,15,,"魚は身体に非常に良いそう{だ}。#2を料理して納入してくれるなら、#1を払{う}。
+子供に魚を食べさせたいの{だが}、好き嫌いが激しくなかなか食べない{のだ}。#2なら食べられるかもしないので、料理を依頼したい{のだ}。","Fish is said to be very good for the body. Cook #2 and deliver it to me, and I will pay #1.
+My children won't eat fish. It's killing me. I'm gonna give #1 to anyone that makes #2 delicious enough to sweep their fuss!",,,,
+meal_vegi,"ダイエット食
+好き嫌いの改善","On a diet
+Overcoming picky eating",QuestMeal_vegi,,,random,food,50,15,,"野菜がダイエットにいいのは常識{だな}。#2を料理して来て{くれ}。代金は#1{だ}。
+[qFriend]がどうしても野菜を食べないので困ってい{る}！#2なら食べるかも知れないので料理してきて{くれ}。","Vegetables are essential parts of a healthy diet. Cook #2 for me. Your rewards are #1.
+My [qFriend] just won’t eat vegetables, and I'm at my wits' end! Maybe she'll eat if you prepare #2.",,,,
+meal_fruit,"ディナーのデザート
+フルーツ料理","Fruit dessert 
+Cocktail party!",QuestMeal_fruit,,,random,food,50,15,,"今晩のディナーのデザートに#2が食べたくなったので、配達をお願いする{よ}。
+パーティーでフルーツ料理をふるまいたい{のだ}。#2を用意してくれれば、#1を払{う}。","I want #2 for tonight's dessert. Please deliver it.
+Run a small errand for us and earn #1. We need a wicked relish for our cocktail party. Say, #2 sounds decent.",,,,
+meal_bread,"パン党
+ピクニックのお供","Bread enthusiast
+Going on a picnic",QuestMeal_bread,,,random,food,50,15,,"君はパン党？それともご飯党{か}？私は断然パンがいい{な}！#1と引き換えに#2を料理して{くれ}。
+報酬は#1、これ以上は出せない{よ}。明日のピクニックに#2を持って行きたいので、よろしく{たのむ}！","Are you a bread person or a rice person? I definitely prefer bread. Cook #2 for me, will you?
+First off, the rewards are no more than #1, ok? My [qFriend] needs #2 for a picnic tomorrow. Please hurry.",,,,
+meal_noodle,"麺マニア
+喉ごしがたまらない","Noodle mania
+I love noodles!",QuestMeal_noodle,,,random,food,50,15,,"パスター、ラーメン、蕎麦…麺類をこよなく愛する私に#2を食べさせて{くれ}！
+つるんと食べられる#2を食べたい{な}。#1を払うので、配達して{くれ}。","Pasta, ramen, soba... I adore noodles! Please let me taste #2!
+I love noodles! I love noodles! Is there anyone that hates noodles? I want to eat #2 now!",,,,
+meal_cake,"甘党のお好み
+子供のおやつ","Sweet sweet
+Snack for children",QuestMeal_cake,,,random,food,50,15,,"甘～いお菓子を食べたい{のだ}！#2を持ってきてくれれば#1をあげ{る}。
+今日のおやつに#2を出そうと思っている{のだ}。子供たちがお腹を空かして泣き出す前に持ってきて{くれ}。","I prefer cakes and candies to alcoholic drinks. You want #1? Gimme #2!
+I'm thinking of giving #2 as a snack for my kids. Bring it to me before they start crying.",,,,
+meal_cookie,"甘党のお好み
+子供のおやつ","Sweet sweet
+Snack for children",QuestMeal_cookie,,,random,food,50,15,,"甘～いお菓子を食べたい{のだ}！#2を持ってきてくれれば#1をあげ{る}。
+今日のおやつに#2を出そうと思っている{のだ}。子供たちが泣き出す前に持ってきて{くれ}。","I prefer cakes and candies to alcoholic drinks. You want #1? Gimme #2!
+I'm thinking of giving #2 as a snack for my kids. Bring it to me before they start crying.",,,,
+meal_egg,"魅惑の卵料理
+最高の朝食","Enchanting eggs
+The best breakfast",QuestMeal_egg,,,random,food,50,15,,"卵を割った瞬間、キッチンには無限の可能性が生まれる{のだ}。わかる{な}？ そう、#2を私の元に届けて{くれ}。
+朝から元気に過ごすために、栄養たっぷりの卵料理を食べたい{のだ}。#2を作って持ってきてくれない{か}？","The moment an egg is cracked, infinite possibilities arise in the kitchen. You understand, right? Yes, please bring the #2 to me.
+To start the day fresh, I always eat a nutritious egg dish. Can you make #2 for me?",,,,
+meal_rice,"冒険飯！
+お腹いっぱいになるまで","Adventure meals!
+Until I burst",QuestMeal_rice,,,random,food,50,15,,"冒険の疲れには美味しいご飯が一番{だ}！明日の長旅に備えて、ほかほかの#2を用意して{くれ}。
+ご飯が…ご飯が無性に食べたい{のだ}。{たのむ}、#2を食べさせて{くれ}！","Nothing beats a delicious meal after a day of adventure! Prepare some warm #2 for me to get ready for tomorrow's long journey.
+I just can't stop craving rice... Please, let me eat #2 until I'm full!",,,,
+meal_soup,"熱いスープの夜！
+お見舞いの一品","Hot soup night!
+Get well dish",QuestMeal_soup,,,random,food,50,15,,"今宵の[qFriend]とのディナーには、何と言ってもホットな#2が必要{だ}。美味しいスープをお願いする{よ}！
+体調がすぐれない[qFriend]に、温かい#2を届けてあげたい{のだ}。#1をあげるから、心をこめて作って{くれ}。","For tonight's dinner with my [qFriend], a hot #2 is absolutely necessary. Please prepare a delicious soup!
+I want to deliver warm #2 to my [qFriend] who isn't feeling well. I'll give you #1, so please make it with love.",,,,
+meal_cat,"料理家の野望
+美味しいものが食べたい","A new recipe!
+My stomach!",QuestMeal_cat,,,random,food,50,50,,"新しい料理を研究している{のだ}。参考にする料理として、#1と引き換えに、#2を持ってきて{くれ}。
+#2が食べたくなった{よ}。料理を届けてくれれば、報酬として#1を払{う}。","As in the capacity of a cooking master, I'm always eager to learn a new recipe. Bring me #2 for my research.
+My stomach growls like I'm starving to death habitually. Will you bring a piece to this beast? Maybe #2 will do the job. I can give you #1 as a reward.",,,,
+escort,"護衛求む！
+観光客の案内
+簡単な護衛 ","Escort requested!
+Tourist guide
+Simple Escort",QuestEscort,,,random,"escort,needDestZone",200,100,,"わけあって#3まで護衛して欲しいという方がいる{のだ}。特に狙われるようなこともないと思う{が}、成功すれば#1を払{う}。冒険者にとっては、簡単な依頼{だな}？
+何だか変な観光客に付きまとわれて、困っている{のだ}！手間賃として#1を払うから、やっこさんを#3あたりまで案内してやって{くれ}。
+私の大の仲良しの親戚が#3に行きたがってい{る}。生憎今は手を離せないので、期限内に無事送ってもらえれば、お礼に#1を払{う}。","For reasons I cannot disclose, someone needs to be escorted to #3. I don’t think they're specifically targeted, but if you succeed, I’ll pay #1. Should be an easy job for an adventurer, right?
+I’m being bothered by this peculiar tourist! I'll pay you #1 if you could guide them to #3.
+A close relative of mine wants to go to #3. I'm tied up and can't help, so if you can safely deliver them within the deadline, I'll pay you #1.",,,,
+escort2,"使者の護衛
+美しすぎる人
+暗殺を防げ","Messenger's escort
+Beauty too grand
+Prevent an assassination",QuestEscort,,,random,"escort,needDestZone",200,100,,"あまり大きな声ではいえない{が}、重要な使者を#3まで無事届ける必要が{ある}。私の首がかかってい{る}。絶対にしくじらないで{くれ}！
+美しすぎるのも罪なもの{だな}。さる麗人が、以前交際を断った変質者に狙われて困っている{のだ}。危険な旅になるだろう{が}、#3まで無事に護衛して{くれ}。
+あの方が、命を狙われているのは知っている{か}？これは危険な依頼{だ}。#3に到着するまで護衛を全うしてくれれば、報酬を払{う}。","It's a sensitive matter, but we need to ensure the safe arrival of a crucial messenger to #3. The reward is #1. My own neck is on the line here. Do not fail me!
+Being too beautiful can be a curse indeed. A lady of rare beauty is being harassed by a stalker she once rejected. It might be a perilous journey, but in exchange for #1, please escort her safely to #3.
+You know they are after his life, right? This is a dangerous request. If you can protect him until we reach #3, I will reward you with #1.",,,,
+escort3,"急ぎの護衛
+死ぬ前に一度だけ
+手遅れにならないうちに","Urgent escort
+Once before dying
+Before it's too late",QuestEscort,,,random,"escort,needDestZone",200,100,,"とにかく大至急#3まで送ってもらいたい人がいる{のだ}。報酬は#1{だ}。くれぐれも期限を過ぎないよう注意して{くれ}。
+言わなくてもわかっている{な}？そう、あの人がもうすぐ病気で死んでしまう{のだ}。#3に、最後に思い出の街#3に連れて行ってやりたい{のだ}！どうか引き受けて{くれ}。
+大変{だ}！私の親父がもの凄い猛毒に冒されてしまった{のだ}！{たのむ}、#3に住むといわれる名医まで、大至急連れて行って{くれ}！私の全財産ともいうべき#1を謝礼に用意して{ある}！","There’s someone who urgently needs to be taken to #3. The reward is #1. Make sure you don’t miss the deadline.
+You know what I'm talking about, don't you? Yes, my dearest is soon to die of an illness. I want to take her to the memorable city of #3 one last time! Please take on this task for #1.
+Disaster! My father has been stricken with a severe poison! I beg you, hurry and take him to the famed doctor living in #3. I have prepared my entire fortune, #1, as a reward!",,,,
+track_craft,クラフトヘルパー,Craft Helper,QuestTrackCraft,,,,,,,,クラフト素材のトラック。,Track craft ingredients.,,,,

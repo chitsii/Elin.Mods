@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Meta>
+  <title>My Mod Name</title>
+  <id>yourname.elin_mod_template</id>
+  <loadPriority>100</loadPriority>
+  <author>YourName</author>
+  <version>0.23.252</version>
+  <tags>General</tags>
+  <description>
+Short description of your mod.
+  </description>
+  <builtin>false</builtin>
+</Meta>

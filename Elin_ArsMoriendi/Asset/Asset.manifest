@@ -1,0 +1,7 @@
+ManifestFileVersion: 0
+CRC: 1915554280
+AssetBundleManifest:
+  AssetBundleInfos:
+    Info_0:
+      Name: ars_spell_particle
+      Dependencies: {}

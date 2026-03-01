@@ -1,0 +1,486 @@
+id,group,name_JP,name
+int,string,string,string
+100,adv,抜け殻の,wrecked
+101,adv,不具の,maimed
+102,adv,世間知らずの,innocent
+103,adv,無神論者の,atheist
+104,adv,なまけ者の,sloth
+105,adv,絶滅種の,extinct
+106,adv,浮気者の,cheater
+107,adv,片端の,crippled
+108,adv,お人好しの,virtuous
+109,adv,腑抜けの,coward
+110,adv,うっかり者の,mucker
+111,adv,異端,heretical
+112,adv,冷血漢の,cold-blooded
+113,adv,薬漬けの,drunkard
+114,adv,くそったれの,shit
+115,adv,変態,pervert
+116,adv,綺麗な,attractive
+117,adv,有名な,"celebrity,famous"
+118,adv,あばずれの,"whore,bitch"
+119,adv,異形の,strange
+120,adv,駄目な,useless
+121,adv,美しい,beautiful
+122,adv,切れ者の,cunning
+123,adv,狂った,mad
+124,adv,すごい,"great,grand"
+125,adv,汚れた,"dirty,filthy,black"
+126,adv,清楚な,clean
+127,adv,"悟りを開いた,悟った",awaken
+128,adv,荒れ狂う,raging
+129,adv,まっさらな,"brand new,new"
+130,adv,汚れなき,"pure,white"
+131,adv,気高い,noble
+132,adv,名も無き,nameless
+133,adv,病んだ,sick
+134,adv,朗らかな,cheerful
+135,adv,慈悲深い,merciful
+136,adv,死んだ目の,dying
+137,adv,光の,righteous
+138,adv,闇の,dark
+139,adv,狡猾な,clever
+140,adv,天使のような,angelic
+141,adv,屈強な,tough
+142,adv,嫉妬深い,jealous
+143,adv,陰湿な,spiteful
+144,adv,誇り高き,proud
+145,adv,優しい,kind
+146,adv,悲しみの,sad
+147,adv,絶望した,despaired
+148,adv,おっとりした,quiet
+149,adv,憂鬱な,melancholic
+150,adv,自虐的な,masochistic
+151,adv,残酷な,cruel
+152,adv,横暴な,aggressive
+153,adv,自信家の,narcissistic
+154,adv,"悪い,悪しき",evil
+155,adv,"善い,善き",good
+156,adv,紳士的な,gentle
+157,adv,自惚れた,arrogant
+158,adv,深淵なる,deep
+159,adv,復讐に燃える,vengeful
+160,adv,愛に目覚めた,loving
+161,adv,物静かな,tranquil
+162,adv,穏やかな,calm
+163,adv,落ち着いた,serene
+164,adv,温かい,friendly
+165,adv,かわいい,cute
+166,adv,素直な,straight
+167,adv,甘い,sweet
+168,adv,青い,blue
+169,adv,燃える,burning
+170,adv,荘厳な,solemn
+171,adv,老いた,old
+172,adv,追放された,exiled
+173,adv,団結した,united
+174,adv,攻撃的な,offending
+175,adv,満ち足りた,filled
+176,adv,"癒される,癒しの",healing
+177,adv,輝く,shining
+178,adv,堕ちた,corrupt
+179,adv,発狂した,crazy
+180,adv,聡明な,intelligent
+181,adv,餓えた,hungry
+182,adv,救いの,helpful
+183,adv,おちゃめな,charming
+184,adv,誠実な,honest
+185,adv,愛らしい,amiable
+186,adv,凶暴な,berserk
+187,adv,威厳ある,august
+188,adv,赤い,red
+189,adv,黒い,black
+190,adv,緑の,green
+191,adv,白い,white
+192,adv,紫の,purple
+193,adv,凍てつく,freezing
+194,adv,危ない,dangerous
+195,adv,勇敢な,brave
+196,adv,さすらいの,wandering
+197,adv,どこにでもいる,typical
+198,adv,腐った,rotten
+199,adv,野望を抱く,ambitious
+200,adv,希望に満ちた,hopeful
+201,adv,はしたない,lustful
+202,adv,頑固な,stubborn
+203,adv,水も滴る,breathtaking
+204,adv,切れ者の,able
+205,adv,依存する,dependent
+206,adv,神々しい,divine
+207,adv,"盛りのついた,興奮した","breeding,excited"
+208,adv,むっちりした,chubby
+209,adv,ふわふわな,soft
+210,adv,尊い,precious
+211,adv,だるそうな,listless
+212,adv,退屈した,bored
+213,adv,古の,ancient
+214,adv,無表情な,poker-faced
+215,adv,やんちゃな,mischievous
+216,adv,触手の生えた,tentacle
+217,adv,壊れた,broken
+218,adv,愚かな,stupid
+219,adv,元,former
+220,adv,もふもふの,fluffy
+221,adv,元外資系,ex-global firm
+222,adv,生意気な,cheeky
+223,adv,ひよった,nervous
+224,adv,"壁ドンする,壁ドンされた",cornered
+225,adv,モンスター,monstrous
+226,adv,頑張った,hardworking 
+227,adv,恋に落ちた,love-struck
+228,adv,賢い,wise
+229,adv,腹黒い,scheming
+230,adv,母性溢れる,motherly
+231,adv,"押しの強い,押しに弱い","pushy,easily persuaded"
+232,adv,気の弱い,weak-willed
+233,adv,誘う,tempting
+234,adv,自己犠牲的な,self-sacrificing
+235,adv,"騙された,ちょろい","deceived,tricked"
+236,adv,救いがたい,hopeless
+237,adv,"寝取られた,寝取らせたい","cuckold,cheated"
+238,adv,"美声の,歌う",singing
+300,parent,貴族,noble
+301,parent,農民,"peasant,farmer"
+302,parent,白痴,idiot
+303,parent,善人,fellow
+304,parent,冒険者,adventurer
+305,parent,放浪者,wanderer
+306,parent,旅人,traveler
+307,parent,罪人,criminal
+308,parent,咎人,sinner
+309,parent,乞食,begger
+310,parent,世捨て人,hermit
+311,parent,賢人,sage
+312,parent,獣,animal
+313,parent,魔物,monster
+314,parent,病人,sufferer
+315,parent,詐欺師,scum
+316,parent,娼婦,"bitch,whore"
+317,parent,聖人,saint
+318,parent,幽霊,ghost
+319,parent,精霊,spirit
+320,parent,開拓者,settler
+321,parent,淑女,lady
+322,parent,幼女,little girl
+323,parent,司祭,priest
+324,parent,救世主,saviour
+325,parent,少女,young girl
+326,parent,少年,young boy
+327,parent,唄い手,poet
+328,parent,踊り子,dancer
+329,parent,癒し手,healer
+330,parent,植物,plant
+331,parent,学者,scholar
+332,parent,石ころ,pebble
+333,parent,一般人,civilian
+334,parent,酔っぱらい,drunkard
+335,parent,戦士,warrior
+336,parent,騎士,knight
+337,parent,刺客,spy
+338,parent,暗殺者,assassin
+339,parent,奴隷,slave
+340,parent,魔術師,wizard
+341,parent,魔女,witch
+342,parent,盗賊,thief
+343,parent,悪漢,rogue
+344,parent,吟遊詩人,bard
+345,parent,狂戦士,berserker
+346,parent,鉱夫,miner
+347,parent,勇者,hero
+348,parent,英雄,champion
+349,parent,狩人,hunter
+350,parent,僧侶,monk
+351,parent,海賊,pirate
+352,parent,探求者,seeker
+353,parent,傭兵,mercenary
+354,parent,防衛者,defender
+355,parent,簒奪者,usurper
+356,parent,錬金術師,alchemist
+357,parent,蛮人,barbarian
+358,parent,預言者,prophet
+359,parent,斥候,scout
+360,parent,裏切者,traitor
+361,parent,商人,merchant
+362,parent,羊飼い,shepherd
+363,parent,聖騎士,paladin
+364,parent,野伏,ranger
+365,parent,死霊使い,necromancer
+366,parent,教授,professor
+367,parent,天使,angel
+368,parent,悪魔,"demon,devil"
+369,parent,追放者,exile
+370,parent,射手,archer
+371,parent,決闘士,duelist
+372,parent,異端者,heretic
+373,parent,剣士,swordsman
+374,parent,職人,smith
+375,parent,水夫,sailor
+376,parent,兵士,soldier
+377,parent,機械,machine
+378,parent,ダーリン,darling
+379,parent,未亡人,widow
+380,parent,考古学者,archaeologist
+381,parent,おじさん,man
+382,parent,おばさん,woman
+383,parent,吸血鬼,vampire
+384,parent,聖女,maiden
+385,parent,魔道具,magic device
+386,parent,クズ,bastard
+387,parent,美少年,boy
+388,parent,美少女,girl
+500,home,エウダーナ,Eulderna
+501,home,すくつ,the void
+502,home,イエル,Yerl
+503,home,どこか,somewhere
+504,home,メイルーン,Mayroon
+505,home,深い森,a deep forest
+506,home,山奥,a mountain
+507,home,寂れた村,a sad village
+508,home,楽園,a paradise
+509,home,辺境,a rural area
+510,home,孤立した村,an isolated village
+511,home,見捨てられた地,an abandoned land
+512,home,忘れられた地,a forgotten land
+513,home,荒野,a wasteland
+514,home,禁断の地,a forbidden place
+515,home,嘆きの谷,the Valley of Grief
+516,home,ノースティリス,North Tyris
+517,home,サウスティリス,South Tyris
+518,home,異国,a foreign land
+519,home,東方,the east
+520,home,西方,the west
+521,home,賑やかな街,a lively town
+700,loc,穴ぐら,cave
+701,loc,教会,church
+702,loc,民家,house
+703,loc,廃屋,deserted house
+704,loc,道端,street
+705,loc,ゴミ溜め,garbage area
+706,loc,宿屋,inn
+707,loc,川辺,riverside
+708,loc,酒場,bar
+709,loc,地下,basement
+710,loc,暗がり,dark place
+711,loc,倉庫,warehouse
+712,loc,墓場,graveyard
+713,loc,納屋,barn
+714,loc,井戸の底,well
+715,loc,樽の中,barrel
+716,loc,厠,toilet
+717,loc,牢屋,jail
+718,loc,公園,park
+719,loc,港,port
+720,loc,木陰,tree shade
+721,loc,売春宿,brothel
+722,loc,路地裏,back alley
+723,loc,茂み,bush
+724,loc,お花畑,garden
+725,loc,塔,tower
+726,loc,鳥の巣,bird nest
+727,loc,藁の上,straw bed
+728,loc,魔法陣の上,magic square
+729,loc,工房,workshop
+730,loc,実験室,laboratory
+731,loc,見世物小屋,circus
+732,loc,遺跡,ruin
+733,loc,焼け跡,ashes
+734,loc,広場,plaza
+735,loc,屠殺場,slaughterhouse
+736,loc,祭壇の上,altar
+737,loc,絞首台,gallows
+738,loc,下水道,sewer
+739,loc,病院,hospital
+740,loc,収容所,prison
+741,loc,孤児院,asylum
+742,loc,別荘,villa
+743,loc,保護施設,shelter
+744,loc,死体置き場,morgue
+745,loc,隠れ家,hideout
+746,loc,奥の方,abyss
+747,loc,怖い場所,scary place
+748,loc,危ない場所,dangerous place
+749,loc,観光名所,historical site
+750,loc,修道院,monastery
+751,loc,礼拝堂,chapel
+900,faction,"宿,宿屋","inn,tavern"
+901,faction,"国,王国,帝国","kingdom,empire,nation"
+902,faction,"集い,集まり","followers,gathering"
+903,faction,村,village
+904,faction,街,town
+905,faction,"炉端,炉辺,囲炉裏",hearth
+906,faction,"園,庭",garden
+907,faction,"会,円環,輪",circle
+908,faction,"一族,一家","clan,family"
+909,faction,"家,館,住み家",home
+910,faction,"故郷,田園,里",homeland
+911,faction,"地,巣","ground,nest"
+912,faction,"空間,異次元","dimension,domain"
+913,faction,"団,劇団,軍団,楽団,一座","army,troupe,company"
+914,faction,"寄せ木,宿り木","estate,district"
+915,faction,"王朝,皇国,公国","dukedom,dynasty,republic"
+916,faction,"城,砦,宮殿","castle,tower,keep"
+917,faction,"楽園,生息地,巣,巣窟,魔窟","heaven,den,brothel,habitat"
+918,faction,"禁猟区,保護区","wonderland,eden,zion"
+919,faction,"基地,秘密基地","basement,hideout"
+920,faction,"隠れ家,穴ぐら",hideout
+921,faction,"工房,酒場","atelier,pub"
+922,faction,"繁殖地,養殖池,狩猟区,沼,池","pond,lake,swamp"
+923,faction,国,"country,kingdom"
+924,faction,"王国,王朝",realm
+925,faction,"実験場,秘密基地","farm,field"
+926,faction,"帝国,神国","federation,union"
+927,faction,"サークル,クラブ,サロン","club,salon,circle"
+928,faction,"コミューン,オアシス,コロニー,ゲシュタルト","colony,commune,oasis"
+929,faction,アカデミア,academy
+930,faction,"メッカ,コロニー,植民地","mecca,sanctum"
+931,faction,"一味,寄せ集め,寄り合い","gang,robbers,pack"
+932,faction,"団体,パーティー,フレンズ","party,band"
+933,faction,"共同体,結社,秘密結社","hole,lodge,house"
+934,faction,"聖域,聖地",sanctuary
+935,faction,"宴,夜会","roost,dwelling,haunt"
+936,faction,"世界,区画,場,宇宙","world,land,society"
+937,faction,"研究会,同好会","retreat,burrow,villa"
+938,faction,"絆,灯,光,翼","abode,den,wings,feather,hearth,candle"
+939,faction,"闇,希望","hope,light"
+940,faction,仲間,"friend,troop,swarm"
+941,faction,むれ,"horde,herd,flock"
+942,faction,"暴徒,凶徒,残党,逆徒","mob,remnants,survivors"
+943,faction,部屋,"room,class"
+944,faction,"血筋,血脈,血統","lineage,descent,descendant"
+945,faction,"誓い,誓約","oath,vow"
+946,faction,"同胞,兄弟,友,義兄弟","brotherhood,brothers,sisters"
+947,faction,民,"people,children"
+948,faction,"教え,教団,教理,真理","cult,order,teaching"
+949,faction,ギルド,guild
+950,faction,"布教団,宣教団,僧団","missionaries,cult,cultists"
+951,faction,"陣,班,党","faction,group,squad"
+952,faction,"騎兵隊,盗賊団,突撃隊,戦隊","cavalry,armed force"
+953,faction,騎士,knights
+954,faction,"守り手,防衛者,守り人,唄い手","defenders,singers"
+955,faction,"修道院,教会,寺院","temple,church,monastery"
+956,faction,"隠宅,隠所,潜窟,根城,牙城","refuge,resort,covert"
+957,faction,"避難所,収容所,収容施設,アジト","haven,camp,asylum"
+958,faction,"互助会,シェルター",shelter
+959,faction,"別荘,避暑地","chateau,mansion,manor"
+960,faction,"テロ組織,革命軍,独立軍,反乱軍,抵抗軍,抵抗","terrorists,rebel,resistance"
+961,faction,"秘境,魔境","region,secret,arcadia,paradise"
+962,faction,"パラダイス,夢の国,理想郷,おとぎの国,メルヘンランド,ホテル","paradise,heaven,dream land,hotel,fairy land"
+963,faction,宿,inn
+964,faction,"法,ルール,掟,戒め",law
+965,faction,"封印,禁忌,秘め事,玩具","doom,torment"
+966,faction,"料亭,飯屋,レストラン,厨房,処刑地,流刑地",restaurant
+967,faction,"飼育場,放牧地","pasture,feedlot"
+968,faction,"誇り,呪い,罪","pride,curse,sin,valor"
+969,faction,"父,母,娘,息子,子","father,mother,son,daughter,children,child"
+970,faction,"伝説,伝承","legend,tails"
+971,faction,"絆,約束,契約,涙","bond,promise,contract,tears"
+972,faction,"谷,草原,森,丘","valley,forest,hill"
+973,faction,"風,流れ,嵐","wind,stream,tempest,storm"
+974,faction,"寄せ集め,るつぼ,ごった煮","pack,swarm,crowd,flock,horde,mob,nest"
+1100,title,主,Master
+1101,title,お兄,Brother
+1102,title,お姉,Sister
+1103,title,おやじ,Old crab
+1104,title,お袋,
+1105,title,姫,Princess
+1106,title,王子,Prince
+1107,title,マスター,Owner
+1108,title,ご主人,Mister
+1109,title,女将,Miss
+1110,title,王,King
+1111,title,女王,Queen
+1112,title,我が君,Your Majesty
+1113,title,豚野郎,Filthy pig
+1114,title,アニキ,Bro
+1115,title,アネキ,Sis
+1116,title,先生,Teacher
+1117,title,教授,Professor
+1118,title,プロデューサー,Producer
+1119,title,大将,Chief
+1120,title,審神者,Saniwa
+1121,title,啓示者,
+1122,title,館長,Director
+1123,title,艦長,Skipper
+1124,title,団長,Leader
+1125,title,ぬし,
+1126,title,ボス,Boss
+1127,title,エル・プレジデンテ,El Presidente
+1128,title,ファーザー,Father
+1129,title,マザー,Mother
+1130,title,マダム,Madame
+1131,title,あばずれ,Bitch
+1132,title,たわけ,Worm
+1133,title,ヘボ,Loser
+1134,title,へたれ,Chicken
+1135,title,ポンコツ,Piece of junk
+1136,title,変態,Pervert
+1137,title,皇帝,Emperor
+1138,title,天子,
+1139,title,伯爵,Count
+1140,title,公爵,Duke
+1141,title,天帝,
+1142,title,お頭,
+1143,title,ドン,Don
+1144,title,社長,President
+1145,title,殿,Lord
+1146,title,お嬢,Lady
+1147,title,勇者,The brave
+1148,title,先輩,Senior
+1149,title,旦那,Sir
+1150,title,貴族,Noble
+1151,title,将軍,General
+1152,title,お館,Ruler
+1153,title,司令官,Commander
+1154,title,提督,Admiral
+1155,title,クソ提督,Shit admiral
+1156,title,殿下,Your Highness
+1157,title,師匠,Mentor
+1158,title,キャプテン,Captain
+1159,title,パパ,Papa
+1160,title,ママ,Mama
+1161,title,ダディ,Daddy
+1162,title,ママン,Maman
+1163,title,じーじ,Grandpa
+1164,title,ばーば,Grandma
+1165,title,爺,Old man
+1166,title,婆,Hag
+1167,title,いとしいしと,My precious
+1168,title,殲滅者,Annihilator
+1169,title,光の戦士,Hero of light
+1170,title,選ばれし者,Choosen one
+1171,title,騎空士,Sky farer
+1172,title,きくうし,The sky farer
+1173,title,ハンター,Hunter
+1174,title,嫁,Wife
+1175,title,夫,Hubby
+1176,title,スノウ,Snow
+1177,title,ロガ,Rogga
+1178,title,ソールサバイバー,Sole surviver
+1179,title,ローンワンダラー,Lone wanderer
+1180,title,クーリア,Courier
+1181,title,メッセンジャー,Messenger
+1182,title,預言者,Prophet
+1183,title,偽りの予言者,False prophet
+1184,title,悪魔,Devil
+1185,title,魔王,Satan
+1186,title,魔女,Witch
+1187,title,ぬこ,Kitty
+1188,title,にゃんこ,Kitten
+1189,title,わんこ,Puppy
+1190,title,犬ころ,Dog
+1191,title,人間のくず,Scum
+1192,title,下等生物,Degenerate
+1193,title,けだもの,Beast
+1194,title,トマト,Tomato
+1300,god,エリン,Elin
+1301,god,クミロミ,Kumiromi
+1302,god,エヘカトル,Ehekatl
+1303,god,イツパロトル,Itzpaltol
+1304,god,オパートス,Opatos
+1305,god,マニ,Mani
+1306,god,ルルウィ,Lulwy
+1307,god,ジュア,Jure
+1500,ranch,牧場,ranch
+1501,ranch,放牧地,pasture
+1502,ranch,"養殖所,繁殖所","farm,breeding house"
+1503,ranch,酪農場,dairy

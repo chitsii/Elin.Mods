@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Meta>
+  <title>Quest Mod Skeleton</title>
+  <id>yourname.elin_quest_mod</id>
+  <loadPriority>100</loadPriority>
+  <author>YourName</author>
+  <version>0.23.267</version>
+  <tags>Quest,ModSkeleton</tags>
+  <description>
+Minimal quest mod template with runtime smoke coverage.
+  </description>
+  <builtin>false</builtin>
+</Meta>

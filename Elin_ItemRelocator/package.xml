@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Meta>
+  <title>Item Relocator - アイテム検索Mod</title>
+  <id>tishi.elin.item_relocator</id>
+  <loadPriority>100</loadPriority>
+  <author>chitsii</author>
+  <version>0.23.252</version>
+  <tags>General,QoL,Utility</tags>
+  <description>
+(Scroll down for English.)
+
+### 概要
+個別アイテムを見ての整理、目がシバシバしてへん？
+整理はもう、冒険合間の「労働」やなくて、「快感」に変えてしまいましょう。
+**「欲しいものだけコンテナへ一瞬でシュゥゥゥーッ！！」**
+こんな「あるある」を一発で解決するで！
+
+* 「魔法強化」付き装備を強度順に並べたい、あるいは「高品質以下」を一括処分したい！
+* 「手スロット」を持ってて、かつ「消費FP20以下」の遺伝子……持ってたっけ？
+* 「ダークマター素材」や「ビーチボール」以外のジャンクをまとめて出荷！
+* 「呪われた装備」や「盗品」だけを抽出して隔離したい。
+
+
+### こだわり機能
+
+* 保存できるプリセット： 複雑な検索条件もサイドバーに保存して、いつでも呼び出せるで。
+* 爆速ライブプレビュー： 条件をいじるとリアルタイムに結果を表示。プレビュー上のアイテムはマウスオーバーで詳細確認も、クリックで個別転送も可能やで。
+* 条件ビルダー： AND/ORを組み合わせて「自分専用の選別ルール」を構築可能。「AかつB」や「（AかつB）あるいはC」みたいなワガママな条件を作れるで。
+* 多彩なソート機能： 価値、重量、生成順、エンチャ強度、DNAコスト……プレビュー画面を好きな順番で並べ替えてな。
+
+ただし、UIがちょっとパンパンになってしもてな……。
+画面サイズは**1920x1080以上**で広々と使ってくれると嬉しいわ。
+転送できる数は、送り先のコンテナの空き容量までやから、そこだけは気をつけてな！
+あと、お気に入りのアイテムを失くすと嫌やから、検索には引っかからんようにしてるで。
+
+## 使い方
+
+1. ゲーム内で任意のプレイヤー所有のコンテナを開きます。
+2. ウィンドウ右部に追加される「★」ボタンを押すと、検索UIが開きます。
+3. 左側のウィンドウで検索条件を作ると、右側にリアルタイムに検索結果がプレビューされます
+  * アイテムにマウスオーバー：詳細（ツールチップ）を表示
+  * アイテムをクリック：そのアイテムだけを個別に移動
+  *「全て転送」ボタン：条件に合うアイテムを一括で移動
+4. 左側のウィンドウのサイドバーの＋ボタンを押すと、現在の条件を新しいプリセットに保存します。
+   以降、サイドバーから保存したプリセットを呼び出せます。
+
+## アンインストール
+いつでも削除可能です。セーブデータには影響しません。
+
+---
+
+### **Description**
+
+**Tired of squinting at your inventory to sort loot?**
+Stop treating organization like a chore between adventures. Let's make it satisfying.
+**"WHOOSH! Instantly vacuum exactly what you want into a container!"**
+
+This mod is perfect for when you need to:
+
+* Sort "Magic Enhancement" gear by power, or dump everything "High Quality or lower."
+* Hoard only "Unidentified" items that are "Miracle rarity or better."
+* Check: "Do I have any 'Hand Slot' genes that cost '20 FP or less'?"
+* Bulk ship all junk *except* specific materials like "Dark Matter" or "Beach Balls."
+* Isolate "Cursed" or "Stolen" items into a separate chest.
+
+### **Key Features**
+
+* **Presets:** Save your complex search filters to the sidebar and load them up anytime.
+* **Live Preview:** See search results update in real-time as you build your conditions. Hover for tooltips, or click to transfer items individually.
+* **Condition Builder:** Create your own ultimate sorting logic.
+* Combine multiple conditions for **AND** searches.
+* Create multiple rules sets for **OR** searches.
+* **Flexible Sorting:** Sort your preview list by Value, Weight, Spawn Time, Enchant Strength, DNA Cost, and more.
+
+**Heads Up:**
+I packed a lot of features into this interface!
+For the best experience (and to keep the UI from feeling too cramped), a resolution of **1920x1080 or higher** is highly recommended.
+*Note: You can only transfer as many items as the target container has free slots.*
+
+## **How to Use**
+
+1. Open any container in the game.
+2. Click the "**★**" button that appears on the right side of the window. This opens the Search UI.
+3. Build your search filters in the left pane. Results will appear in the **Live Preview** on the right.
+* **Hover** over an item to see details.
+* **Click** an item to transfer just that one.
+* Click **"Transfer All"** to move everything that matches your filters.
+4. Click the **"+"** button on the left sidebar to save your current setup as a **Preset**.
+* You can quickly load these later from the sidebar list.
+
+## **Uninstall**
+Safe to remove at any time. This mod does not affect your save data structure.
+
+  </description>
+<builtin>false</builtin>
+</Meta>

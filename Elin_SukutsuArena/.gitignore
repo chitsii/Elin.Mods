@@ -1,0 +1,37 @@
+_obj/*
+_bin/*
+elin_link/*
+# tmp/*
+obj/*
+bin/*
+tools/**/bin/
+tools/**/obj/
+
+__pycache__
+tools/.excel_backup/
+
+**/.claude/*
+
+tmp/*
+temp/*
+
+tests/Elin_SukutsuArena.Tests/obj
+tests/Elin_SukutsuArena.Tests/bin
+
+# Temporary investigation tools
+tools/extract_rpgvx_text.py
+tools/extract_rvdata_text.rb
+tools/rgss2a_extractor.py
+tools/rgss2a_ruby_extract.rb
+tools/rvdata_reader.py
+
+
+.work
+
+# MP3 master sources (large; .ogg files are used in production)
+*.mp3
+
+# Build-generated files (deterministically reproduced by build.bat)
+LangMod/**/*.xlsx
+LangMod/**/*.tsv
+LangMod/**/Data/

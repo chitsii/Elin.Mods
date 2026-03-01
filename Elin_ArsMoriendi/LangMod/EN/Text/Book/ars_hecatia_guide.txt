@@ -1,0 +1,169 @@
+A Strategic Guide for Necromancers,Hecatia
+{p}
+{center}
+-- Overview --
+{/center}
+
+In the current combat meta, martial arts and offensive magic dominate. Both remove enemies through direct force and rely heavily on the personal output of the caster.
+
+Necromancy is fundamentally different. A necromancer has no direct finishing tool. No fireball that deletes a target in one cast, no blade art that cleaves steel.
+
+Yet through three pillars -- indirect control, servant command, and corpse economy -- necromancy reaches tactical potential equal to, and at times beyond, those systems in long fights. The longer the battle and the more corpses accumulate, the stronger necromancy becomes. That scaling is its unique advantage.
+
+This guide systematically explains all 21 necromancy spells: their effects, practical operation, and combinations.
+
+{p}
+{center}
+-- 1. Introduction --
+{/center}
+
+Necromancy in combat can be reduced to three pillars.
+
+First: speed denial. Strip enemy tempo, apply silence, and weaken core stats with curses to seize initiative. A necromancer does not win by killing first, but by making enemies unable to fight.
+
+Second: numerical advantage. Necromancers fight with undead servants. Permanent servants do not consume pet slots and can be revived repeatedly while the caster survives. Temporary summons fill gaps and keep frontline numbers stable.
+
+Third: corpse reuse. For other systems, corpses are residue. For necromancers, they are fuel: detonate them, heal allies from them, and recycle them into future forces.
+
+{p}
+
+From these pillars, the base formation is clear. The caster commands from the rear while servants hold the front. The caster does not duel directly. Instead, they debuff enemies, buff servants, and rotate battlefield corpses as resources. If the commander falls, the army collapses. Caster survival is therefore top priority.
+
+From Chapter 2 to Chapter 7, this doctrine is broken down by tactical role.
+
+{p}
+{center}
+-- 2. Securing Materials --
+{/center}
+
+All necromancy runs on two materials: souls and corpses. Spell learning consumes souls. Servant revival consumes both. A necromancer without materials is an archer without arrows.
+
+"Preserve Soul" is a single-target mark spell. Enemies who die while marked drop soul crystals. It is the foundation spell and the start point of all operations. Soul quality scales with target vitality and is divided into four tiers: Weak, Normal, Strong, and Legendary.
+
+"Soul Snare" is the area deployment of Preserve Soul. It applies the mark to all enemies around the caster at once. In large battles, one cast turns the whole field into a harvesting zone. Use single-target marking for small encounters and area marking for large engagements.
+
+{p}
+"Preserve Corpse" is a self-buff. While active, enemies killed by you or your servants are guaranteed to leave corpses. Normally that drop is chance-based; this spell turns it into certainty. It is essential for Corpse Chain Burst ammunition and ritual corpse collection.
+
+Casting Preserve Soul (or Soul Snare) plus Preserve Corpse before engagement is standard necromancy procedure.
+
+{p}
+{center}
+-- 3. Legion Operation --
+{/center}
+
+Servants are the true frontline of necromancy. This chapter covers spells for reinforcement, protection, and replenishment.
+
+"Funeral March" is the core spell that defines necromantic formation. It slows the caster but greatly boosts all servants' speed, strength, and endurance. The caster anchors; the servants surge. This self-sacrificial command style is the center of necromantic doctrine. Its duration is long enough to cover most of a fight.
+
+"Wall of Skeleton" grants defense to the caster and all servants. It provides both one-time lethal protection and multi-turn damage reduction. Use it as a pre-charge bulwark or an emergency stabilizer for a collapsing line.
+
+{p}
+{center}
+-- 4. Field Control --
+{/center}
+
+Because necromancers lack direct burst kills, battlefield control must be achieved indirectly. This chapter covers spells that lock actions, cut combat capability, and grind enemy forces down.
+
+"Grave Quagmire" deploys a moving area field that follows the caster. Enemies inside take heavy speed reduction every turn, plus silence or suppression. Its main role is to slow fast elites into a pace servants can catch. Because the field moves with the caster, control pressure can be maintained across the map.
+
+"Terror" inflicts fear on one target. A feared enemy loses normal action flow. In group fights, it is the selective shutdown tool for the most dangerous unit -- healer, ranged threat, or elite melee core.
+
+{p}
+"Plague Touch" plants a toxic plague. Infected targets take periodic poison damage and may spread infection to adjacent enemies. In dense packs this can scale rapidly, though each spread halves power and prevents infinite expansion.
+
+"Curse of Weakness" heavily reduces Strength and Dexterity, directly lowering enemy physical lethality.
+
+"Curse of Frailty" is the stronger curse that lowers Endurance, Perception, and Speed. Layered with Curse of Weakness, it collapses enemy combat stats across the board.
+
+Each spell is useful alone, but combinations unlock full value: stop feet with Grave Quagmire, remove damage with curses, and maintain attrition with Plague Touch. Enemies cannot move, cannot fight, and slowly break while servants finish the job.
+
+{p}
+{center}
+-- 5. Corpse Conversion --
+{/center}
+
+As battle progresses, corpses accumulate. For most systems this is aftermath. For necromancy, this is the main phase.
+
+"Corpse Chain Burst" is arguably the most destructive spell in the toolkit. It sequentially detonates every visible corpse.
+
+Each blast deals area damage and confusion. The confusion ignores resistance, so it still works on enemies that normally reject status control. Blasts also break fragile walls near each center.
+
+In addition, every detonation heals the caster and all servants and grants brief survival protection. More corpses mean longer chains and higher total recovery.
+
+{p}
+In short, Corpse Chain Burst is a compound spell: offense, disruption, healing, and defense in one action. Its value scales directly with corpse count, so Preserve Corpse is the prerequisite that feeds it.
+
+Without corpses, it fails. Artillery without shells does not exist.
+
+{p}
+{center}
+-- 6. Sustain and Reorganization --
+{/center}
+
+Necromancy peaks in long fights. The longer combat lasts, the more corpses accumulate, the more often servants can be rebuilt, and the stronger your structural advantage becomes. This chapter covers the sustain engine.
+
+"Death Zone" creates a fixed-radius field centered on the caster. Every turn, enemies inside take continuous damage while allies recover. It is an attack-defense hybrid. Combined with Grave Quagmire, slowed enemies are kept inside and worn down over time.
+
+"Soul Recall" revives fallen servants in combat and immediately returns them to the frontline. Returned servants re-enter at half health with brief survival protection. Higher spell power increases how many can be restored at once. Its tactical value is simple: one cast can rebuild a broken line.
+
+{p}
+"Grave Exile" teleports a selected servant and nearby enemy cluster to a distant location. It supports two main lines: defensive displacement of dangerous clusters away from the caster, and offensive insertion of a servant into enemy concentration. In both cases, it is a strategic repositioning spell that rewrites formation geometry.
+
+{p}
+{center}
+-- 7. Caster Survival --
+{/center}
+
+In necromancy, the caster's death is army collapse. Servants function under command continuity. Lose the commander, lose the war.
+
+"Soul Bind" is the final lethal insurance. While active, if the caster takes lethal damage, one servant dies in their place and the caster survives with partial health. The sacrifice is auto-selected from the weakest servant. Activation is single-use.
+
+The key property is this: right after Soul Bind triggers, the caster gains brief invulnerability. That creates a casting window after the lethal event.
+
+If Soul Bind is recast inside that window, the same survival chain can occur again on the next lethal hit. In theory, this loop is repeatable as long as servants and mana remain.
+
+{p}
+In practice, it is not infinite. If servants are wiped out, no sacrifice target remains. If mana is exhausted, recast fails. If hard action denial -- such as bind or stupor -- overlaps the window, the cast opportunity is lost.
+
+Even so, the theoretical survivability ceiling under proper conditions is beyond what most other combat systems can reach.
+
+"Unholy Vigor" converts mana into HP and stamina. Necromancers spend large mana on servant upkeep and spell rotation; converting surplus mana into survival resources sustains combat when conventional healing is gone. Conversion efficiency scales with spell power.
+
+"Life Drain," "Stamina Drain," and "Mana Drain" siphon HP, stamina, and mana from enemies. They function as frontline sustain tools, especially in extended fights. Combined with Unholy Vigor, they enable loops such as draining mana and converting it into health.
+
+{p}
+{center}
+-- Conclusion --
+{/center}
+The 21 spells in this guide form a five-step combat flow.
+
+Step 1: Pre-battle setup. Cast Preserve Soul (or Soul Snare) and Preserve Corpse to prepare material intake.
+
+Step 2: Legion deployment. Cast Funeral March to empower servants, then Wall of Skeleton to protect them before engagement.
+
+Step 3: Field control. Use Grave Quagmire to take speed, Terror to disable priority targets, and curses to cut combat stats. Apply Plague Touch to dense groups for sustained attrition.
+
+Step 4: Counteroffensive. Ignite accumulated corpses with Corpse Chain Burst. Chain blasts clear weakened enemies, inflict confusion, and restore allies. More corpses mean stronger output.
+
+Step 5: Reorganization. Restore fallen servants with Soul Recall, maintain pressure with Death Zone, split enemy clusters with Grave Exile, and secure caster survival with Soul Bind plus Unholy Vigor.
+
+{p}
+These five steps are not rigid. Repeat, skip, or reorder them based on battlefield state. The key is understanding the structural truth: the longer the fight, the better necromancy performs -- and planning the route to that state.
+
+Necromancy is not a system of instant kills. But as long as servants and souls remain, the caster is theoretically unbroken. Erode the enemy, collapse their formation, and finally control the battlefield itself. That is the essence of necromancy, and the conclusion of this guide.
+
+{p}
+{center}
+-- References --
+{/center}
+
+[1] Sauronius, "On Rings of Dominion and Subjugation," Numenor University Classical Series (orig. text: Middle Morgoth Dynasty).
+
+[2] Mani-Marcus, "Cadaver Preservation of the Worm King," Nefia Academic Reports, Vol.12, No.4, pp.417-433.
+
+[3] D. Scarmilio, "The Intersection of Soil and Undeath," Zanan Institute Press, Issue 21.
+
+[4] Heinz Ul Gown, "Efficient Use of Human Resources in Organizational Operations [SKL-045]," Palmia Court Bureau of Magecraft.
+
+[5] Hecatia, "A Millennium Record on the Structure of Soul Crystals," unpublished.

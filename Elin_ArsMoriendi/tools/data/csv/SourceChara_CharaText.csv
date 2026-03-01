@@ -1,0 +1,1366 @@
+id,filter,calm_JP,fov_JP,aggro_JP,dead_JP,kill_JP,calm,fov,aggro,dead,kill,,,,
+string,,string,string,string,string,string,string,string,string,string,string,,,,
+artist,,,,"「感性の下劣なやつめ！」
+「低俗なやつだ」","「これぞ芸術！」
+「争いとは無縁の世界に生きていたのに」
+「アートだー！」",「人をあやめてしまった！」,,,"""You senseless bastard!""
+""You are vile!""","""This is art!""
+""I was living peacefully.""
+""It's art!""","""I give up on people!""",,,,
+bell,, *リン*,, *リン*, *リン…*,,*ring*,,*ring*,*ring...*,,,,,
+fairy,," *パタパタ*
+「にひひ」
+ *ハタハタ*",,,,,"*flutter*
+*flit flit*
+*flick*
+*laughter*",,,,,,,,
+black_angel,," *パタパタ*
+ * ばさっばさっ*
+ *ハタハタ*",,,「きゃあ！」,"「地獄に落ちなさい」
+「いいざまね」","*flutter*
+*flick*
+*flap flap*",,,"""Aaah!""","""Hell awaits you.""
+""Look at you.""",,,,
+bard,,"「タラララララー♪」
+「チキチキ♪」
+「ドナドナドナ～♪」
+*ジャン*
+*シャリン*",,"「や、やめてくれたまえ」
+「そんなに耳障りな演奏だったかい？」","「そんな馬鹿な…」
+「厳しい客だぜ」
+「下手で悪かったよ」",,"""Polish your sword and drink a beer♫♫""
+""Ninety-nine Yeeks in a dank hole. &Ninety-nine Yeeks in a Hole!""
+""Crawling in my Robes! &These wounds will need a Healer!""",,"""S-Stop it..!""
+""Was my music that bad?""","""No way!""
+""I's a bitter tirade.""
+""Did I suck that bad?"" ",,,,,
+bartender,,"カクテルをシェイクする音が聞こえる。
+「一杯どう{だ}？」
+「年季物のクリムエールがある{よ}」
+酒場は多くの人でにぎわっている。",,"「この酔っ払いめ！」
+「悪酔いはいけませんよ」","「酔っ払いごときに…」
+「ふざけた運命{だ}」",「酔いは覚めましたか？」,"You hear the sound of cocktail shakers.
+""How 'bout a drink sir?""
+""We got vintage crim ales.""
+The bar is crowded with people.",,"""Hey, stop it drunkard.""
+""Are you sick from drinking too much?""","""I got killed by a drunk.""
+""This is ridiculous.""","""Bet you're sober now huh?""",,,,
+begger,,"「旦那ぁ！」
+「お恵みを…」
+「恵んで{くれ}」",,"「やめて{くれ}、旦那」
+「ひぃ！」
+「私を殺しても何の得にもならない{よ}」
+「馬鹿にするな！」
+「なぜこんなことを！」
+「暴力反対{だ}！」
+「ちょ、ちょっと…！」","「殺生な！」
+「ぐわぁ」
+「なんでこんな目に…」
+「ひどい」
+「乞食だからって…」
+「私の人生っていったい」","「よわ！」
+「何がしたかったんだ？」
+「ははは！」","""Please sir…""
+""A bit of mercy…""
+""Sir!""",,"""P-please, no sir...""
+""Waaaa!""
+""You get nothing from killing me...""
+""Don't make a fool of me!""
+""Why are you doing this?""
+""A violent revolution!""
+""W-w-what...!""","""You are cruel.""
+""Ahhhh!""
+""I don't deserve this...""
+""It's unfair.""
+""Beggars always cry...""
+""My life is pathetic.""","""Weak! Weak!""
+""Huh?""
+""Ha ha ha!""",,,,
+bitch,,"「あらあら」
+「あら、いい#gender」
+「ウフフ」
+「楽しんでく？」
+「夢を見せてあげ{る}」",,"「喧嘩か」
+「みぐるみはいでやる{よ}」","「きさまー」
+「このままでは終わらないぞ」",「おねんねしてな」,"""Oh my.""
+""Hey bad #gender.""
+*grin*
+""Wanna have fun?""
+""I'll show you nasty dreams.""",,,,,,,,
+cat,animal,"「ミャア」
+「ニャ」
+「ミャ」
+「ニャア」
+「にゅう」
+*ごろごろ*",,"「ニャー！」
+「ニャウ！」
+「ニャン！」
+「ゥニャ！」
+「フシュー！」",「ニャァー…ァ」,"*ふしゅぅ*
+「ニャァー！」
+「にゃー」
+「ゥニャ！」
+爪を研ぐ音が聞こえる。","""Meow.""
+*purr purr*",,"""Meow!""
+""Mew mew!""
+""Mew!""
+""Meow""","""Me...meow....""","*hiss*
+""Meoow!""
+""Meew!""
+""Mew!""
+""Meow meow.""",,,,
+cat_stray,animal,"「おうちしってう？」
+「おうちかえう」
+「おうちかえう！」
+「ママどっち？おうちどっち？」
+「ニャア」",,"「ころさえう」
+「しぬぅ！」",「おうち…かえ…ぅ…」,「あぁ～ビックリしたぁ」,"""Do you know the way home?""
+""I'm going home.""
+""I'm going home!""
+""Where mom? Which way home?""
+""Home meow!""",,"""I'm going to die.""
+""I'm going to die!""","""I'm...going...hom....e...""","""That scared me!""",,,,
+mogu,,"「く…」
+「ぽ…」
+「きゅ～」
+「きゅ～ぽ～」
+",,「…」,"「くぱぉ！」
+「クパァ！」",,"""Cu...""
+""...po.""",,,"""Cupo!""",,,,,
+cat_black,animal,"「うみみゃ」
+「みゅー」
+「みゃ」
+ *ごろごろ*",,"「フシューッ」
+「うみみゃ！」
+「みゃ！」",「うみ…みゃ…」,黒猫は尻尾をふった。,"""Meow.""
+""Mew mew.""
+""Mew.""
+*purr purr*",,"""Meow!""
+""Mew mew!""
+""Mew!""
+""Meow""","""Me...meow....""","*hiss*
+""Meoow!""
+""Meew!""
+""Mew!""
+""Meow meow.""",,,,
+twintail,animal,"辺りは神聖な雰囲気に包まれている。
+あなたは何者かの穏やかな視線を感じた。
+とても静かで、平和な場所だ。
+心の中で、奇妙な祈りの声がこだました。",,,@cat,@cat,"All around you is the sensation of being in a sacred place.
+You have seldom felt such an air of peace.
+All around is very quiet  yet you aren't the least bit lonely.
+In your mind you hear the strange echoes of a voice in prayer.",,,@cat,@cat,,,,
+child,,,,"「たすけてー」
+「や、やめて」
+「悪の手先{だ}！」
+「変質者！」
+「わ、わわあ」
+「なんで叩くの？」
+「大人はこれだから」","「おかーさん…」
+「えーん」
+「地獄に落ちろ！」
+「わぁぁん」
+「うぐぅ！」
+「もっと…生きたかった…」
+「先立つ不孝をお許し下さい…」",「この人よわーい」,,,"""H-help-!""
+""No no!""
+""You are evil.""
+""Pervert!""
+""G-g-go away!""
+""Why are you teasing me?""
+""Adults.""","""Mom....""
+""A---ahh-""
+""Go to hell!""
+""Waaaan!""
+""Urghhh!""
+""My life ends here.""
+""Sorry, mom, dad....""","""Weak! You are weak!""",,,,
+hardgay,,"「フーーーーｰｰ！」
+「フーーー」
+「フゥーーーー！」",,"「フーーーーｰｰ！」
+「フーーー」
+「フゥーーーー！」","「フーーーーｰｰ！」
+「フーーー」
+「フゥーーーー！」","「フーーーーｰｰ！」
+「フーーー」
+「フゥーーーー！」","""Foooooo!""
+""Fooooo""
+""Foooooo!""",,"""Foooooo!""
+""Fooooo""
+""Foooooo!""","""Foooooo!""
+""Fooooo""
+""Foooooo!""","""Foooooo!""
+""Fooooo""
+""Foooooo!""",,,,
+citizen,,,,"「何をするんですか！」
+「野蛮人！」
+「私だって」","「私は善良な市民だったのに」
+「くそめ」
+「まいった」
+「ぐえ」
+「嘘でしょ」
+「なぜなんだー」
+「何の冗談ですか」",「市民パワー」,,,"""What are you doing?""
+""You barbarian!""
+""Even me?""","""I was a good citizen.""
+""Go to hell!""
+""I give up.""
+""Nooooo.....""
+""Is it a joke?""
+""Why me.""
+""W-What have you done!""","""Citizen power.""",,,,
+bunny,,,,"「何をするんですか！」
+「野蛮人！」
+「私だって」","「私は善良なバニーだったのに」
+「くそめ」
+「まいった」
+「ぐえ」
+「嘘でしょ」
+「なぜなんだー」
+「何の冗談ですか」",「バニーパワー」,,,"""What are you doing?""
+""You barbarian!""
+""Even me?""","""I was a good bunny.""
+""Go to hell!""
+""I give up.""
+""Nooooo.....""
+""Is it a joke?""
+""Why me.""
+""W-What have you done!""","""Bunny power.""",,,,
+conery,unique,"「若様にはもっと自覚を持って頂きたいものだ」
+「軍人たるもの、常に身だしなみに気をつけねば」
+「おお、スターシャさま…」
+「なんと麗しい！」",,「貴様、軍事裁判にかけてやるわ」,「ちょこざいなー！」,「こわっぱが」,"""I wish my young master would be more self-aware.""
+""You know what separates a soldier from a thug? &The polish on his buttons, that's what.""
+""O, Princess Stasha…""
+""How graceful!""",,"""I'll put you on military trial, scum.""","""You impertinent young snit!""","""Brat.""",,,,
+elder,,,,"「止めてくだされ」
+「ご無体な」
+「なんと卑劣な」
+「たわけ！」
+「いまどきの若者は…」
+「老人をいたわれ！」
+「金などもっていないんじゃ」","「神様はみておるぞ！」
+「わしの老後が…」
+「鬼！」
+「ぐほぉ」
+「化けて出ちゃるぞ」
+「わしゃ死んだのか」","「なんとよわっちぃ奴じゃ」
+「いまどきの若者はなっとらんのぉ」",,,"""Stop it, please.""
+""Unreasonable!""
+""You foul scum.""
+""Fool!""
+""Youngsters.""
+""Respect elders!""
+""Leave me alone.""","""God will punish you.""
+""My remaining years...""
+""Demon!""
+""Grrhhh""
+""I hate this planet.""
+""Am I dead?""","""Holy...why are you so weak?""
+""Muwahahaha!""",,,,
+farmer,,,,"「なにするだー」
+「やめるだー」","「おらは…おらはー！」
+「田舎モンだからって…！」
+「食べ物を粗末にするな！」
+「はぐわ」",「よわいべ」,,,"""What are you doing?""
+""Stop!""","""I'm...I'm..!""
+""Don't call me a clown...!""
+""Arrrg.""","""Cabbage.""",,,,
+garokk,unique,"*トンカン*
+*カーン*
+*キン*
+鉄を打つ音が響いている。
+「つまらんのう」
+「ミラルの奴め、何の役にも立たないもの&ばかり作りおって」
+「宝の持ち腐れじゃ」",,,,,"You hear the rhythmic clang of a hammer on steel
+You hear the whoosh of a bellows being pumped
+You hear the perfect ring of steel-on-steel. It makes your blood race
+""And just what shall you be, oh noble ingot? &A dagger perhaps, an axe blade by chance? &Let us find out...""
+""Ah! A good shipment of steel today. &Oh, what to make, decisions, decisions...""
+""With this, I have created half a legend. &Your wielder will make the other half with you.""
+""Let's just sit you on the shelf oh noble blade, &for soon your brothers shall join you.""",,,,,,,,
+gilbert,unique,"「今日もブイブイいわすぜ！」
+「敬礼！」
+「コネリーめ、小言ばかり…」
+「あいつはいつかハゲるぞ」
+「フハハハハッ」
+「フハハ！」",,"「おらおら！」
+「フハー！」",「フハー…」,「フハハハハ！」,"""Help the helpless! Crush the vileness!""
+""Atten-TION! Salute!""
+""Conery, always talking trash…""
+""He's gonna be bald someday.""
+""Mwahahaha""
+""Mwaha!""",,"""Hwaaaa!""
+""Hiyah""","""What?""","""Mwahahahahaha!""",,,,
+guard,,,,"「お尋ね者{だ}！」
+「犯罪者め、おとなしくしろ」
+「のこのこ現れるとはな！」
+「罪をつぐなってもらおう」",@citizen,,,,"""Stop there criminal!""
+""You scum! Stay there.""
+""You are under arrest.""
+""You will pay for your crimes.""",@citizen,,,,,
+giant,,"*ドスン*
+*ズシン*",,"*ドスン*
+*ズシン*",,,"*thud*
+*thump*",,"*thud*
+*thump*",,,,,,
+spider,,"*カサカサ*
+*カサ…*","*カサカサ*
+*カサ…*",,,,"*skitter skitter*
+*scurry...*","*skitter skitter*
+*scurry...*",,,,,,,
+horse,animal,"*パカパカ*
+*パカラッ*
+*パコパコ*",,,「ひ…ひん…」,「ヒヒーン！」,"You hear hoofbeats.
+*clop-clop*
+*clop*",,,*whinny*,"""Neigh!""",,,,
+janitor,,,,"「なめくじぃ」
+「私に歯向かうとはいい度胸{だ}」",「ああ、私の肉片が街を汚してしまう！」,"「フハハハハ！」
+「この下等生物め」",,,"""You snail!""
+""You've got balls to stand up against me.""","""Oh, my corpse will pollute the city!""","""Ahahahahaha!""
+""You lowlife!""",,,,
+littleOne,,"「#bigdaddy、動いて…おねがい！」
+「来ないで！触らないで！」
+「天使…天使に出会うまで、まだ死にたくないの…」",,「い、いや…！こないで！やだ…助けて…お願い…」,「死…死にたくない…いやあぁ…ぁ」,「天使の血でお腹を満たすの」,"""#bigdaddy, please stand up… Please!""
+You hear the sound of a frightened little girl somewhere.
+""Angel, angel, until we find the right one we don't dare die…""",,"""N...no...don't com closer...help....please""","""N...no...I don't want to die....noooo""","""My berry will be filled with blood of an angel...""",,,,
+littleOne2,,"「見て…天使がいるわ」
+「#bigdaddyはかくれんぼが上手ね」
+「うふふ…注射の時間だわ」
+「今日は何して遊ぶ？」
+「散らかしたらママに怒られるわ」
+「うふふ…」
+「お薬を飲まなくちゃ」
+クスクスと笑う声が聞こえる。
+リトルシスターはあなたを物珍し気に眺めた。
+リトルシスターは目が合うと物陰に隠れた。",,「い、いや…！こないで！やだ…助けて…お願い…」,「死…死にたくない…いやあぁ…ぁ」,「天使の血でお腹を満たすの」,"""Look... there's an angel.""
+""#bigdaddy is really good at hide and seek.""
+""Hehe... it's time for the injection.""
+""What shall we play today?""
+""If we make a mess, Mama will scold us.""
+""Hehe...""
+""I have to take my medicine.""
+You hear the sound of giggling.
+The Little Sister looks at you curiously, as if you are something novel.
+The Little Sister hides behind something.",,"""N...no...don't com closer...help....please""","""N...no...I don't want to die....noooo""","""My berry will be filled with blood of an angel...""",,,,
+big_sister,unique,"「見て…天使がいるわ」
+「#bigdaddyはかくれんぼが上手ね」
+「うふふ…注射の時間だわ」
+「今日は何して遊ぶ？」
+「うふふ…」
+「お薬を飲まなくちゃ」
+クスクスと笑う声が聞こえる。
+ビッグシスターはあなたを物珍し気に眺めた。
+ビッグシスターは目が合うと物陰に隠れた。",,「い、いや…！こないで！やだ…助けて…お願い…」,「死…死にたくない…いやあぁ…ぁ」,「天使の血でお腹を満たすの」,"""Look... there's an angel.""
+""#bigdaddy is really good at hide and seek.""
+""Hehe... it's time for the injection.""
+""What shall we play today?""
+""Hehe...""
+""I have to take my medicine.""
+You hear the sound of giggling.
+The Big Sister looks at you curiously, as if you are something novel.
+The Big Sister hides behind something.",,"""N...no...don't com closer...help....please""","""N...no...I don't want to die....noooo""","""My berry will be filled with blood of an angel...""",,,,
+strange_girl,unique,"「あの子たち気味が悪い」
+「早くお家に帰りたいわ」
+「パパまだ～？」
+「こんな所大嫌い」
+幼女の独り言が聞こえる。",,「この変態！」,「パ…パ…」,「情けない大人ね！」,"""Those girls are creepy.""
+""I want to go home.""
+""Daddy's late.""
+""I hate this place!""
+You hear a little girl talking to herself.",,"""You pervert!""","""Da...Daddy...""","""What a pathetic adult!""",,,,
+mapMerchant,,"「どれどれ」
+「あの地図はどこに置いたか…」
+「またクモが巣を張っている」
+「足元には気をつけて歩いてくれ」",,"「困るんだ、そういうの」
+「これも研鑽だ」
+「止めても無駄か」","「この知らせを…パルミアに…」
+「 …う、うぅ 」","「やれやれ、片付いたな」
+「恨まないでくれ」
+「これで少しは静かになる」","""Hmm.. Let's see.""
+""Where did I put that map...?""
+""Here's another cobweb.""
+""Watch your step.""",,"""That’s a problem.""
+""This too is part of my training.""
+""No use stopping it.""","""Ugh...""
+""This message... to Palmia...""","""Well, that’s taken care of.""
+""No hard feelings.""
+""That should quiet things down a bit.""",,,,
+adventurer_fox,,,,,"「こんなところで…！」
+「コン…」","#selfは尻尾を膨らませた。
+#selfは尻尾を激しくふった。",,,,"""Not here...!""
+""Hngh...""","#self puffs up #his tail.
+#self wags #his tail vigorously.",,,,
+merc,,,,"「なにしやがる！」
+「この野郎」
+「今更謝っても遅い{よ}」","「貴様…覚えていろ」
+「うわぁぁ」
+「人殺し{だ}！」
+「やめろー」
+「次があるとは思うな{よ}」
+「ひぃー」
+「命だけは助けて{くれ}ー」","「いいざま{だ}」
+「出直して来い」",,,"""What the hell!""
+""You will regret this.""
+""Ok, no turning back now.""
+""Now you die!""
+""Come on chicken.""
+""Huh.""
+""You touch me, you die.""","""You.... You will pay for this someday...""
+""Nooo!""
+""A murderer!""
+""Stop it!""
+""F-forgive me...""
+""Arrr--rr...""
+""D-don't!""","""Look at you.""
+""Bye bye.""",,,,
+merchant,,,"「いらっしゃい」
+「ゆっくり見ていって{くれ}」
+#selfはあなたに軽く頷いた。
+#selfはあなたに手を振った。","「ガード！ガード！」
+「襲撃{だ}！」
+「強盗め！」","「命だけわぁ」
+「あぁぁ…」","「あの世で後悔するがいい{よ}」
+「虫けらめ」",,"""Welcome to my shop!""
+""Take a look at my wares!""
+""Good to have you here.""
+#self looks at you and nods.
+#self waves at you.","""Guards! Guards!""
+""Ambush!""
+""You thief!""","""Please spare my life.""
+""Ahhhh.…""","""Die thief.""
+""You deserve this.""",,,,
+merchant_fish,,"「さかなさかなさかな～♪」
+「さかなを食べよう～♪」
+「体にいいのさ！」
+「魚は私たちを待っている{のだ}」
+「シマアジ～♪」",@merchant,@merchant,@merchant,@merchant,"""Fish, fish, fish～♪""
+""Let’s eat some fish～♪""
+""It’s good for your body!""
+""Fish are waiting for us!""
+""White Trevally～♪""",@merchant,@merchant,@merchant,@merchant,,,,
+merchant_festival,,"辺りは祭りに来た人々で賑わっている。
+楽しそうな笑い声が聞こえる。
+誰かが#festivalの歌を口ずさんだ。
+*わいわい*
+*ガヤガヤ*","「寄っていきな、そこの#brother」
+「#festival限定{だよ}！」
+「#brother、楽しんでる{か}？」","「ガード！ガード！」
+「襲撃{だ}！」
+「強盗め！」","「命だけわぁ」
+「あぁぁ…」","「あの世で後悔するがいい{よ}」
+「虫けらめ」","The area is alive with festival-goers.
+Joyful laughters echo around.
+Someone begins to hum a #festival tune.
+*giggles*
+*laughter*
+*buzzing*","""Come see what I have, #brother!""
+""It's only available at the #festival!""
+""Having a good time, #brother?""","""Guards! Guards!""
+""Ambush!""
+""You thief!""","""Please spare my life.""
+""Ahhhh.…""","""Die thief.""
+""You deserve this.""",,,,
+miral,unique,"「今日のご飯はなんにしよう」
+「ガロクの作品には遊びがないね」
+「暇だぬ」
+「おお、客人かな？」
+「猫 イズ フリ～ダ～ム♪ 猫 イズ フリ～ダ～ム♪」",,,,,"""Oh, what to make for dinner.""
+""All work and no play makes Miral a dull boy.""
+""There's never enough time in the world &to get everything done.""
+""Guests? Goodness it has been a while indeed.""
+""I've got a cat I wanna frame! &And now nothing shall ever be the same.""",,,,,,,,
+nino,unique,,,,,,,,,,,,,,
+noble,,"「ふん」
+
+「下賤の者が」
+
+「服が汚れ{る}」
+
+「今夜の劇は何かな」
+
+「優雅に過ごしたいもの{だ}」",,"「無礼者！」
+「ガード、とっととこのアホを捕まえろ」
+「ガード！きてくれー！」","「パパにいいつけてやるんだ」
+「なんという！なんという…！」
+「や、やめて…」",「ゴミくずめ」,"""Hmph.""
+""Lowly men.""
+""You'll get my cloth dirty.""
+""What's the play tonight?""
+""Always with elegance.""",,"""Rude!""
+""Guards! Hurry up and get this idiot!""
+""Guards! Come here!""","""I'm going to tell my father.""
+""What! How dare you!""
+""No… Stop…""","""Trash.",,,,
+nun,,"誰かが祈りを捧げる声が聞こえる。
+「おお、この迷える子猫に道標の光を…」
+「祈りなさい。どんな時でも救いはあります」
+「他人を憎んではなりません」",,"「償いなさい」
+「あなたには罰が必要なようですね」
+「てめー♪」
+「くそがーっ」",「おお、神よー」,「地獄に墜ちなさい♪」,"You hear the chants of prayer in the distance.
+""Come hither stray kittens, &I shall guide you to the light.""
+""Pray hard. There's always chance for salvation.""
+""Do unto others as you wish others to do unto you.""",,"""Atone for you sin.""
+""Well, you need to be punished.""
+""You sonova...""
+""Shit!""","""God help me!""","""Go to hell.""",,,,
+punk,,,,"「チキショー」
+「カモンベイベー」
+「ウラァ」
+「ヘドぶち吐きなッ！」
+「さあ、お仕置きの時間だよ」
+「コラー」","「逃げろぉぉ」
+「お前プッツンしてるぜ」
+「くそったれー」
+「やめてくれー」
+「うそだー」
+「私は負けんのだぁ」","「二度と私を馬鹿にするな」
+「ギャハハハハ！」
+「ゴゥトゥヘル」",,,"""Chickenshit.""
+""Come on baby.""
+""Ooh!""
+""Puke like a bitch!""
+""Now it's time for punishment!""
+""Come on.""","""Run!""
+""You are nuts!""
+""FAQ!""
+""Bullshit.""
+""Stop it!""
+""I can't lose!""",,,,,
+rich,,,,"「金か？金が欲しいのか？」
+
+「汚い手で触らないでくれるか」
+
+「周りの衆、見てないで助けぬか」
+
+「金の亡者め！」","「貴様には一銭もやらん…」
+「なんとまあ」
+「下衆め」
+「まだ死にたくないー…ぐぉ」
+「遺言書いといてよかったわ」",「フン」,,,"""Money, you want money right?
+""
+""Remove your filthy hands at once!""
+
+""Guards, help me!""
+
+""Money grubbing peasant!""","""I won't give you a single coin.""
+""Oh my god…""
+""You bastard!""
+""I don't want to die…""
+""I'm glad I wrote a will.""","""Hmm…""",,,,
+shojo,,,,,"「きゃぁー」
+「ダメぇ！」","少女は服のほこりをはらった。
+少女はあなたを見てにっこり笑った。
+あなたは少女に見とれた。",,,,"""No....no...!""
+""I'm sorry I failed you.""","The little girl brushes dust off her clothes.
+The little girl smiles at you.
+You look admiringly at the little girl.",,,,
+sister,,「#onii」,,,「ダメぇ！」,"あなたは妹の頭をなでた。
+あなたは妹の姿に目を細めた。
+妹は上目づかいにあなたの顔を覗いた。","""#onii""",,,"""N...no!""","You pat your little sister's head.
+You narrow your eyes at your little sister.
+Your little sister glances up at you.",,,,
+sister2,,"「お゛」
+「に゛」
+「ぃ」
+「ち」
+「ゃ」
+「あ゛」
+「ん゛」",,"「お゛」
+「に゛」
+「ぃ」
+「ち」
+「ゃ」
+「あ゛」
+「ん゛」","「お゛」
+「に゛」
+「ぃ」
+「ち」
+「ゃ」
+「あ゛」
+「ん゛」","「お゛」
+「に゛」
+「ぃ」
+「ち」
+「ゃ」
+「あ゛」
+「ん゛」","""o…""
+""ni…""
+""cha…""
+""a…""
+""n…""",,"""o…""
+""ni…""
+""cha…""
+""a…""
+""n…""","""o…""
+""ni…""
+""cha…""
+""a…""
+""n…""","""o…""
+""ni…""
+""cha…""
+""a…""
+""n…""",,,,
+olderyoungersister,,"「#onii」
+「#onii」
+「#onii」
+「#onii」
+「#onii」
+「#brother2、手をつないでいい？」
+「#brother2、今日のご飯は何がいい？」
+「ずっと一緒だよ、#brother2♪」
+「#brother2、何してるの？」
+「大好きだよ、#brother2♪」",,"「#brother2どいて！」
+
+「#brother2に触るな！」
+
+「#brother2、見ててね♪」",「#brother2、そいつ殺せない！ 」,"あなたは妹の頭をなでた。
+あなたは妹の姿に目を細めた。
+妹は上目づかいにあなたの顔を覗いた。","""#onii""
+
+""#onii""
+
+""#onii""
+
+""#onii""
+
+""#onii""
+
+""Can I hold your hand, #brother2?""
+
+""What do you want to eat today, #brother2?""
+
+""We'll always be together, #brother2♪""
+
+""What are you doing, #brother2?""
+
+""I love you so much, #brother2♪""
+",,"""Move over, #brother2!""
+""Don't touch #brother2!""
+""Watch me, #brother2♪""","""I can't...#brother2!""","You pat your little sister's head.
+You narrow your eyes at your little sister.
+Your little sister glances up at you.",,,,
+stasha,unique,"荘厳な感じが漂っている。
+辺りは厳重に警備されている。
+宮廷から華麗な音楽の響きが聞こえる。",,"「おやめなさい！」
+「皆の者、この曲者をどうにかするのです」",「無念じゃ…」,「さあ、この見苦しい死体を片付けるのです」,"The quiet majesty of the room makes you feel small.
+You note just how alert and well armed the guards are.
+Somewhere, a harpsichord is playing a tune befitting nobility.",,"""Stop this!""
+""Guards! Seize him!""","""I am sorry…""","""Come, get rid of this unsightly corpse.""",,,,
+strangeScientist,unique,"「正しいことを行うのが&時には難しいこともあるわ」
+「私の子供達を傷つけたらひどいわよ」",,「どうしてそんなことができるの？」,「あなたには心がないの？」,「あなたには心がないの？」,"""The righteous path is not always easy, yes?""
+""I'll not have him hurt my Little ones… &I've worked far too long on them to see them fail now.""",,"""How can you do this?""","""Have you no heart?""","""Have you no heart?""",,,,
+tourist,,,,"「観光客だからって馬鹿にするな」
+「なんて治安の悪い国だ」
+「野蛮な土地だな」
+「金などもってないぞ」","「こんな国二度とくるか」
+「無差別テロだー」
+「いやーん」",「弱い弱い」,,,"""Don't harass me just because I am a tourist.""
+""My, this country is dangerous.""
+""This land is barbaric.""
+""I don't have any money.""","""I never should have came to &a country like this!""
+""It's a terrorist attack!""
+""No!""","""So weak.""",,,,
+moyer,unique,"「さあ、寄った寄った！」
+「これなるは伝説のガラガラ！」
+「見なきゃ損だよ！」
+「他の店じゃ手に入らない珍品の数々！」",,@tourist,@tourist,@tourist,"""Step right up, step right up!""
+""Gather round, folks!""
+""Behold! &The legendary fortune roll is here!""
+""Wait till you see what I got over here!""",,@tourist,@tourist,@tourist,,,,
+parttimer_jure,unique,"「今なら無料でジュア様の抱き枕が手に入るよ～」
+「見てらっしゃい、よってらっしゃい」
+「そこの君！&清楚で綺麗なお姉さんが待ってるよ」
+「この荒れすさんだ世に咲く一輪の花、&気高く汚れを知らぬ純白の乙女、&その名も癒しのジュア！」",,@tourist,@tourist,@tourist,"""St.Jure's body pillow for FREE!""
+""Step right up!""
+""You there lucky one! &A beautiful and sweet Goddess awaits you.""
+""A flower growing in the desert &fragile yet most noble. &A maiden pure in heart with compassion. &Jure of Healing, our only Goddess!""",,@tourist,@tourist,@tourist,,,,
+tourist_festival,,"「屋台でおいしいもの売ってるかな？」
+「今日ははじけるぜ」
+「なんとも騒々しい{な}」
+「すげえ！」
+「人がゴミのよう{だ}」",,@tourist,@tourist,@tourist,"""Let's check the food stall.""
+""No! I want to play a little longer!""
+
+""What a noisy street.""
+
+""Oh my god!""
+
+""Aha, some human garbage.""",,@tourist,@tourist,@tourist,,,,
+tourist_hotspring,,"「いい湯{だ}」
+「 次はどこの温泉にしようかな」
+「温泉から上がるとお腹が空くよね」 
+「 体がポカポカしてきた {のだ}」
+水をパシャパシャする音が聞こえる。
+温泉の香りがする。",,@tourist,@tourist,@tourist,"""Nice hot bath!""
+""Which hot spring I should visit next?""
+""I get hungry after coming out of the hot spring.""
+""My body is starting to feel warm and toasty.""
+You hear the splashing sound of water.
+You smell the scent of the hot spring.",,@tourist,@tourist,@tourist,,,,
+mermaid_hotspring,,"「あ～いいわ～」
+「ラララ～」
+「ランラン」
+「うふふ」
+「あらあら♪」
+水をパシャパシャする音が聞こえる。
+温泉の香りがする。",,"「だめです！」
+「やめなさい！」
+「お湯を掛けますよ？」",「ああん♪」,"「自業自得です」
+「ゴミ虫が♪」","""Ah, this is nice～""
+""Lalala～""
+""Lanlanlan""
+""Ufufu""
+""My, my♪""
+You hear the splashing sound of water.
+You smell the scent of the hot spring.",,"""That's not allowed!""
+""Stop that!""
+""I'm going to splash you with hot water!""","""Aahn♪""","""You've brought this upon yourself.""
+""Serves you right, pest♪""",,,,
+xabi,unique,,,"「おお、乱心者だ！」
+「近衛兵、何をしている。奴をとらえよ！」
+「血迷ったか！」",「役に立たない兵どもだ」,「愚か者め」,,,"""Are you mad?""
+""Guards! Seize them!""
+""You've lost your mind!""","""Useless soldiers.""","""Fool.""",,,,
+sailor,,"「陸は久しぶり{だ}」
+「潮風が香るぜ！」
+「アホイ！」
+「アホーイ！」
+「海が私を呼んでい{る}…！」
+水夫の騒ぎ声が聞こえる。
+#selfは悪態をついた。
+あなたは水夫の快活な歌に耳を傾けた。",,@citizen,@citizen,@citizen,"""It be a while since I be on dry land.""
+""Smell that sea breeze!""
+""Ahoy!""
+""Ahoooy!""
+""The sea calls to me...!""
+You hear the sailors making noise.
+#self curses.
+You tuned in to the sailor's lively song.",,@citizen,@citizen,@citizen,,,,
+scholar,,"「ふむふむ」
+「これはどういう意味{だ}？」
+「書物は知恵の宝庫{だ}」
+「エウレーカ！」","「とっておきの本が{ある}」
+「新しい知識が必要かな？」
+「新作を入荷した{よ}」",@citizen,@citizen,@citizen,"""Hmmm...I see.""
+""What’s the meaning of this?""
+""Books are a source of wisdom.""
+""Eureka!""","""There is a book I think you'll love.""
+""Need some new knowledge?""
+""I’ve got new books.""",@citizen,@citizen,@citizen,,,,
+snail_torturer,,"「あらあら」
+「ヌルヌルしちゃって」
+「困ったかたつむりね」
+「どうしようもないかたつむりね」
+「罵られたいんだ？」
+「このかたつむり野郎！」
+「地べたを這うのがお似合いよ」
+「ほんとに駄目なかたつむりね」
+「塩が欲しいの？」
+「汚らわしい！」
+「悪いかたつむりね」",,@citizen,@citizen,@citizen,"""Oh dear, oh dear.""
+""All slimy, aren’t you?""
+""Such a little snaily.""
+""Hopelessly snaily, aren’t you?""
+""Craving for some scolding?""
+""You snail scoundrel!""
+""Crawling on the ground suits you.""
+""Truly a worthless snail.""
+""Oh, you want some salt?""
+""Disgusting!""
+""Bad, bad snaily.""",,,,,,,,
+healer,,,"「癒やしの手が必要{か}？」
+「体は大丈夫{か}？」
+「{おや}、また冒険者{か}」",@nun,@nun,@nun,,"""You need the hand of a healer?""
+""Are you alright?""
+""Oh, another adventurer.""",@nun,@nun,@nun,,,,
+informer,,"*ひそひそ*
+「いいネタを仕入れたぞ」
+「ほう！」
+「ははーん」","「耳寄りの情報が{ある}！」
+
+「ネタを買っていかない{か}？」
+
+「旦那、いい話がある{よ}」",@merchant,@merchant,@merchant,"*whispering*
+""I've got a good story for you.""
+""Oh!""
+""I know now.""","""I have interesting information.""
+""Want to buy a story?""
+""Sir, I got great news for you.""",@merchant,@merchant,@merchant,,,,
+dealer,,,"「ヒヒヒ、旦那も悪だねぇ」
+「へへへ…」
+「こっち{だ}」",@punk,@punk,@punk,,"""You are wicked too, aren't you?""
+""Heh heh heh...""
+""This way...""",@punk,@punk,@punk,,,,
+fanatic,,"「おお神よ」
+「憐れな子羊{だ}」
+「全ては御身のために」
+熱心な祈りの声が聞こえる。",,"「この異教徒め！」
+「冒涜{だ}！」
+「なんと恐れおおいことを！」
+「殺せ殺せ！」","「神よ…！」
+「今あなたの御許に」
+「貴様に神の呪いあれ」","「悔い改めよ」
+「当然の報い{だ}」
+「異教徒にふさわしい死{だ}」","""Oh Lord.""
+""A poor lamb.""
+""All is for Thee.""
+You hear fervent prayers.",,"""You heathen!""
+""Blasphemy!""
+""How dare you!""
+""Kill! Kill!""","""Oh God…!""
+""I shall come to Thee, my God!""
+""May God curse you!""","""Repent!""
+""You got what you deserve.""
+ ""A fitting death for a heathen.""",,,,
+ashland,unique,"誰かが武器の手入れをする音が聞こえる。
+「ウィロウのキッチンのパイは絶品だ！」
+「ミシリアはこれからどうなってしまうんだ？」
+「古い森には近づかないことだ」
+「この土地も、なかなか住み心地が&よさそうじゃないか」",,"「やれやれ」
+「死に急ぎたいのか？」
+「困ったな」",「フィア…すまない」,"「もう終わりか？」
+「残念だったな」","You hear someone tending to their weapons.
+""The pies in the Willow's kitchen &are the best!""
+""What's going to happen to Mysilia now?""
+""Stay out of the old forest.""
+""Hey...This place doesn’t look too bad.""",,"""Good grief.""
+""In a hurry to die, are you?""
+""This is troublesome.""","""Fia... my apologies.""","""Is it over already?""
+""That's unfortunate."" ",,,,
+fiama,unique,"エレアのように美しい娘の横顔にあなたは見とれた。
+「獣に変えられた王子の童話を&知っているかしら？」
+「シェト様が無事ならいいけど…」
+「ちょうどいい休憩になったわ」
+「あなたはいつも皮肉屋ね」
+",,"「躾が必要ね」
+「愚かね」
+「やめなさい！」",「アッシュ…！」,フィアマは服のほこりを払った。,"You are stunned by the face of a girl who as beautiful as an Elean.
+""Do you know the fairy tale of the ugly beast?""
+""I hope Master Cetrus is alright...""
+""It was a nice break.""
+""You're sarcastic as ever.""
+",,"""You need to be disciplined.""
+""How foolish.""
+""Stop it!""","""Ash...!""",Fiama brushes the dust off her clothes.,,,,
+mayor,,,"「用件は何{だ}？」
+「手短にして{くれ}」
+「{おや}、冒険者が何の用{だ}？」",,,,,"""What do you want?""
+""Make it quick.""
+""Well, adventurer?""",,,,,,,
+mage,,,"「なんでも鑑定する{よ}」
+「目利きは必要{か}？」
+「魔道具のことなら任せて{くれ}」",@merchant,@merchant,@merchant,,"""I can evaluate anything.""
+""Do you need an appraiser?""
+""Leave magic items to me.""",@merchant,@merchant,@merchant,,,,
+seeker,unique,"「ふむ…犬が西向きゃ尾は東だな…」
+「さて、次の未知を探そうか…」
+「妹猫がいるなら、妹犬だっていそうなものだが…」
+誰かが本のページをめくる音が聞こえた。
+誰かが執筆する音が聞こえた。 ",,"「それが君の哲学かい」 
+「君の物語を見せてくれ」
+「この世界は物騒だな」 
+「こら、本を傷つけるんじゃない」 ",「仕方がない…次は死後の世界を探究するか…」 ,「それが君の物語か…さみしい結末だな」 ,"""Well...When the raven flies her tail follows... ""
+""Now, onto the next unknown...""
+""If there's a cat sister, &one would think there's a dog sister too...""
+You hear the sound of someone turning a page. 
+You hear the sound of someone writing. ",,"""Is this your philosophy?""
+
+""Show me your story.""
+
+""This world is dangerous.""
+
+""Hey, don't damage the book.""","""Perhaps I shall explore the afterlife next...""","""So that's your story... A sad ending.""",,,,
+ineien,unique,"神秘的な古代の言葉で誰かが呟いた。
+どこからかリラの美しい音色が聴こえる。
+「フリアウネ…」
+「私は石の砦に一人取り残されてしまった」
+「ヴィンデールは人間の世界に関与しない」
+あなたは妙な胸騒ぎを覚えた。",,,,,"Someone muttered in a mysterious ancient language.
+Beautiful tunes of lyra are come from somewhere.
+""Friaune...""
+""I am left alone in this stone keep.""
+""Vindale will not be involved in the world of humans.""
+You feel an uneasy premonition.",,,,,,,,
+jonan,unique,"誰かが弱々しく独り言を呟いた。
+
+「私が許されることはないだろう…」
+
+「全てはミシリアのため」
+
+「なぜヴィンデールは何も応えてくれない？」",,,,,"Someone muttered weakly to himself.
+""I shall never be forgiven...""
+""All for the sake of Mysilia.""
+""Why doesn't Vindale respond to us?""",,,,,,,,
+lowell,unique,"屈託ない笑い声が聴こえる。
+あなたは好奇の眼差しを感じた。
+「おや、客人かな？」
+「子どもたちはミシリアの小さな希望だよ」",,,,,"You hear a hearty laugh.
+You sense curious eyes.
+""Oh, do we have a guest?""
+""The children are Mysilia's little hope.""",,,,,,,,
+zane,unique,"辺りは緊張感に包まれている。
+誰かが大きな声で叱責した。
+「あれにパルミアの王座を任せられるのだろうか？」
+「王もまた、歯車の一つに過ぎないのだ」
+「議会には狐と狸しかおらぬ」",,,,,"The place is filled with tension.
+Someone scolded in a loud voice.
+""How can I trust him with the throne of Palmia?""
+A king is just another cog in the wheel.
+There are only foxes and raccoons in the Council.",,,,,,,,
+chicken,animal,"「コココ…」
+「コ…」
+「コケーッ」
+「コッコッ」",,「コケー！」,,,,,,,,,,,
+gomachan,animal,"「キュー」
+「キューキュー」
+「キュッ？」
+「キュ」
+「キューッ」",,「キュッ！」,「キュー…」,「キューッ！」,"""Kyu.""
+""Kyuu kyuu!""
+""Kyut?""
+""Kyu.""
+""Kyuuu.""",,"""Kyut!""","""Kyu...""","""Kyuuu!""",,,,
+sheep,animal,"「メェェ」
+「メ～」
+「メェエェェェ」
+「メ～♪」",,「メー！」,,,,,,,,,,,
+dog,animal,"「ワン」
+「ワンワン！」",,「おぉおん！」,「くぅん…」,「ワオーン！」,,,,,"""Woof!""",,,,
+poppy,animal,"「くぅ～」
+「ぁぅぁぅ」
+「ぅ～」",,「おぉおん！」,「クゥン…」,"「わん！」
+「ぁぅぁぅ！」","You hear the high pitched yips of a young dog.
+A plaintive howl is heard in the distance.
+""Rowf!""",,,,"""Woof!""",,,,
+putty,animal,,,,*ぷちゅっ*,,,,,*putit*,,,,,
+mammoth,animal,"*ドスン*
+*ズシン*",,"「パォオオオオン！」
+「パオオオォン！」",「パオン…」,「パオオオオン！」,"*thud*
+*thump*",,"""Trroooomp!""","""Toot..."" ","""Trooomp!""",,,,
+snail,,*ズルズル…*,,,,,*zzzzle*,,,,,,,,
+pig,animal,"「ブー」
+「ブヒ」",,,,,"*oink*
+*oink oink*",,,,,,,,
+rat,animal,"「チュー」
+「チュチュ」
+「ちゅ」",,,「チュー！」,,"""Squeak""
+""Squeak-squeak""
+""Squeak""",,,"""Squeak!""",,,,,
+performer,,愉快な音楽が聞こえる。,,,「出直してくる」,,You hear cheerful music.,,,"""Back to practice.""",,,,,
+cow,animal,"「モー」
+「モォー」
+「モォオォォォ」",,,,,,,,,,,,,
+maid,,"「用事はありませんか♪」
+メイドの熱い視線を感じる…
+「ああ、忙しい{よ}！」
+「{よし}」
+「#title様♪」",,"「おいたが過ぎますよ！」
+「お仕置きです！」",「ダメぇ！」,,"""Oh Master, how can I help you♪""
+You can feel the maid looking at you...
+""Gosh, so busy!""
+""All set!""
+""#title♪""",,,,,,,,
+theolucia,unique,"「この文はどういう意味かしら…」
+誰かが本を整理する音が聞こえる。
+「姉さんったら、また散らかして！」
+「ふんふん♪」",,"「やめてください！」
+「あなたは、そんな人だったのですね」",「ひどい…」,「この役立たず！」,"""I wonder what the runic translation of this is...""
+You hear someone arranging books on shelves.
+""Sis, you made a mess again!""
+""Ta-la-la♪""",,"""Stop it, please!""
+""Why are you doing this?""","""How can you....""","""You are useless!""",,,,
+farris,unique,"「おお、白き寡婦エリン、&天満月に照らされる物憂い面影よ」
+「何を見ているのですか？」
+「おお、慈愛の女神オディナよ、&汝の犠牲に我が歌を捧げん」
+「雲なきみ空に横とう光、&常闇を払いし赤髪の公子よ！」
+あなたは背後に冷たい視線を感じた。",,,,,"""O, Elin the White Widow, &her fading face in the light of the full moon.""
+""What are you looking at?""
+""O Odina, Goddess of compassion, &I shall offer my song in thy sacrifice.""
+""The light that lies in the cloudless sky, &the red-haired duke who dispels the everlasting darkness!""
+You felt a cold gaze behind you.",,,,,,,,
+gwen,unique,"「あー…かわいいお花！」
+「ついていっていい？」
+「サンドラさんの赤いケープほしい…」
+「ざっつあぷりちーふらわー」
+「赤って好きな色なの～」
+「この花の冠はお母さんに編んでもらったの」
+「るるる♪」",,,「どうして、そんなことするの？」,「怖いのはいや…」,"""Ah... What a cute flower!""
+""Can I come with you?""
+""I want Sandra's red cape...""
+""That's a pretty flower～!""
+""Red is my favorite color!""
+""My mom made this flower crown for me.""
+""La la la～♪""",,,"""Why would you do that?""","""I don't like scary things...""",,,,
+lady,,,,,"「きゃぁー」
+「ダメぇ！」","嬢は服のほこりをはらった。
+嬢はあなたを見てにっこり笑った。
+あなたは嬢に見とれた。
+「うふふ♪」",,,,"""Eek!""
+""No way!""","The young lady brushes off the dust from her clothes.
+The young lady looks at you and smiles brightly.
+You were captivated by the young lady.
+""Ufufu♪""",,,,
+banker,,,"「いらっしゃい」
+「大金を持ち歩くのは不用心{だよ}」
+「金が全て{だ}！」",@merchant,@merchant,@merchant,,"""Welcome.""
+""It's not wise to carry around so much money.""
+""It's all about the money!""",@merchant,@merchant,@merchant,,,,
+guild_doorman_mage,unique,「止まれ…身分を照会させてもらう」,「この先は魔術士ギルドの管轄だ」,,,,"""Stop... Let me make sure you are on my lists.""","""Beyond here is the jurisdiction of the Mages Guild.""",,,,,,,
+guild_doorman_fighter,unique,「止まれ…身分を照会させてもらう」,「この先は戦士ギルドの管轄だ」,,,,"""Stop… Let me make sure you are on my lists.""","""Beyond here is the jurisdiction of the Fighters Guild.""",,,,,,,
+guild_doorman_thief,unique,「止まりなさい。身分の照会が必要よ…」,「この先は盗賊ギルドの管轄…」,,,,"""Stop. Let me make sure you are on my lists...""","""Beyond here is the jurisdiction of the Thieves Guild...""",,,,,,,
+isygarad,unique,,,「さあ、踊ってみせよ」,「馬鹿な…！」,「つまらぬな」,,,"""Show me your dance.""","""This can’t be…!""","""How boring.""",,,,
+mech_golem_a,unique,,,「行くぞ！」,「あとは任せたぜ、ウィッジ！」,,,,“Here we go!”,"“I’ll leave the rest to you, Widge!”",,,,,
+mech_golem_b,unique,,,「行くぞ！」,「あとは任せたぜ、ヒッグス！」,,,,“Here we go!”,"“I’ll leave the rest to you, Higgs!”",,,,,
+eluminaire,unique,"*スヤスヤ*
+「むにゅむにゃ」
+「…はっ！」",,,,,"*snooze*
+*nap*
+""...oh!""",,,,,,,,
+ephrond,unique,"「ふん、阿呆共が」
+「あのグズはどこへ行った？」
+「あれほど離れるなといったのに！」",,,,,"""Humph, fools.""
+""Where's that wench?""
+""I told her to stay close!""",,,,,,,,
+barrich,unique,"「しけてんねぇ」
+「おお、いい一節を思いついたぞ！」
+「まあなんと口うるさいハゲ親父だ」
+「おいおい、御婦人方はどこへ行ってしまったんだ？」",「一曲聴いていくかい？」,,,,"""Don't be such a killjoy.""
+""Oh, I've come up with a great phrase!""
+""God, what a nagging bald-headed old man.""
+""Hey, hey, where are all the ladies?""","""Care for a song or two?""",,,,,,,
+big_daddy,unique," *ドスン*
+リトルシスター「見て#bigdaddy、天使がいるわ」
+リトルシスター「急いで#bigdaddy、空で天使が踊っているの！」
+ *ドン*",,"リトルシスター「殺せ！殺せ！」
+リトルシスター「粉々に砕いちゃいなさい！」
+リトルシスター「いけ#bigdaddy、いけ！！」",「グウォォォォ！」,リトルシスター「天使の血でお腹を満たすの」,"You feel the ground tremble with the steps of a large, angry  Protector.
+Little Sister: ""Look #bigdaddy, the angel.""
+Little Sister: ""Look #bigdaddy, the angels are dancing in the sky!""
+You hear the tread of something you do NOT want to anger. Ever.
+* Thump*",,"Little Sister: ""Kill! Kill!""
+Little Sister: ""Smash it into pieces!""
+Little Sister: ""Go #bigdaddy, go!!""","""ROAAARR!""","Little Sister: ""Fill your belly with the angel's blood.""",,,,
+melvin,unique,"「まだまだなっていないぞ！」
+「平常心を保て」
+「真の弓は偽らない」
+「御婦人方、危険だから下がって！」
+「剣の鍛錬も怠るな」
+「弓で殴ろうなんて思うなよ」",,,,,"""You are far from perfect!""
+""Keep calm.""
+""A true bow never lies.""
+""Ladies, please stay back!""
+""Don't neglect your sword training.""
+""Don't even think of smacking your enemy with your bow.""",,,,,,,,
+griffin,unique,"「ホゥ」
+「ホホゥ」
+「ホゥー！」",,,,,"""Hoo.""
+""Hoo-hooo.""
+""Hooo!""",,,,,,,,
+caldorn,unique,"「まったく近頃の若い者は…」
+「たるんでおる！」
+「ふぬけておる！」",,,,,"""Young people these days are unbelievable.""
+""Pull your socks up!""
+""Correct your behaviour!""",,,,,,,,
+melilith,unique,,,,,,,,,,,,,,
+melilith_boss,unique,,,,「もうひとりにしないで…」,,,,,"""Don't leave me alone again...""",,,,,
+demitas,unique,"「古き者たちは災いをもたらす…」
+「ククク…」
+「神話は時の砂漠で真実を失うだろう」
+「神々は傲慢だ」
+「あの時、我は…」",,"「クク…」
+「破滅を望むか」
+「我に刃を向けるか」
+「汝の力、見せてもらおう」","「すまぬ、テレシア…」
+「闇へと還ろう」
+「ククク…」","「ククク…」
+「愚かなり」
+「闇へと還るがよい」","""The old ones bring forth calamity.""
+""Heh heh heh...""
+""Myths shall lose their truth in the desert of time.""
+""Gods be arrogant.""
+""In that moment, I...""",,"""Heh... heh...""
+""Dost thou seek ruin?""
+""Wilt thou raise thy blade 'gainst me?""
+""Show me thy might.""","""Forgive me, Telessia...""
+""Let us return unto the darkness.""
+""Heh heh heh...""","""Heh heh heh...""
+""Fool.""
+""Return unto the darkness.""",,,,
+loytel,unique,"「開拓とは芸術なのだ」
+「計画は十分に練らねばな」
+「将来が楽しみだな！」
+「たまの休暇もいいものだ」
+「オルヴィナのワインに勝るものはない」",,"「なんということだ！」
+「何の真似だ！」",「頭痛が…」,"「ふん」
+「いいざまだ！」","""Pioneering is truly an art.""
+""One must thoroughly plan.""
+""This land holds a promising future.""
+""It's good to have a vacation once in a while.""
+""Olvina's wine is unmatched.""",,"""What in the world!""
+""What are you doing!""
+""What is the meaning of this!"" ","""My head hurts...""","""Hmph.""
+""Serves you right!""",,,,
+quru,unique,"誰かにじっと見つめられている気がした。
+小声で誰かが呪文を呟いた。
+微かな鼻歌が聞こえたような気がした。",,"「愚かな」
+「やめて」
+「死にたいの？」
+「…」","「きゃぁー」
+「ダメぇ！」",「死ね！」,"You feel like someone is staring at you intently.
+Someone whispers a spell softly.
+You think you heard a faint humming.",,"""Foolish.""
+""You wish to die.""
+""Stop.""
+""...""","""Eek!""
+""No way!""","""Die!""",,,,
+kettle,unique,"風が悪戯っぽくあなたをつついた気がした。
+誰かの暖かい視線を感じた。
+「風の旋律に耳を傾けよう」
+「この小さな薬瓶に&世界の一片を閉じ込めよう」
+「ああ、この薬草の香り」
+「 星々の輝きは万病に効くんだ」
+「ふふ、また道を間違えたかな？」
+「迷う旅もまた一つの冒険さ」
+「風の名前を知っているかい？」
+「 水の音は最も古い語り部だ」",,"「争いは好まないが…」
+「仕方がない」
+「それがお望みなら」",「君の元に行こう」,"「残念だよ」
+「安らかに眠れ」
+「もう苦しまなくていい」","You feel as if the wind is playfully poking you.
+You sense someone's warm gaze.
+""Let's listen to the melody of the wind.""
+""This little potion bottle &can contain a piece of the world.""
+""Ah, the scent of these herbs.""
+""The sparkle of the stars cures all ailments.""
+""Hehe, did I take the wrong path again?""
+""A journey astray is &an adventure in its own right.""
+""Do you know the name of the wind?""
+""The sound of water is the oldest storyteller.""",,"""I don't like this, but...""
+""If it can't be helped.""
+""If that's what you wish for.""","""I'll come to you now.""","""It's a pity.""
+""Rest in peace.""
+""You don't have to suffer anymore.""",,,,
+keeper_garden,unique,"「かわいいのう」
+「フホホホ」",,「フホホホ！わっちに刃を向けるか！」,「フホォホホホォ！天晴じゃ！」,「フホホホホ、弱いのう！」,"""How adorable.""
+""Muwohoho.""",,"""Muwohohoho! You dare challenge me!?""","
+""Muwohohoho! Splendid!","""Muwohohoho, how weak you are!""",,,,
+namamani,,,,"「馬鹿にしてくれるじゃないか」
+「また誤動作か？」
+「いいぞ」",「やってくれたな」,"「くだらないな」
+「理解できたか？」
+「ふん」",,,"""Nice try.""
+""Another malfunction?""
+""Good.""","""Great.""","""How trivial.""
+""You understand now?""
+""Heh.""",,,,
+namamani2,,,,"「お前は敵なのか？」
+「何故私を？」
+「身に覚えはないが、仕方ない」",「死ぬ…のか？」,"「敵…だったのか？」
+「私は何者だ？」",,,"""You are my enemy then?""
+""Why?""
+""So be it.""","""Am I... going to die? ""","""So... you were my enemy?""
+""Who am I?""",,,,
+erishe,unique,"「どこに行ってしまったのかしらね？」
+柔らかな陽だまりの中にいるような温かさをあなたは感じた。 
+「ふふ、おいで、ヴェセル」
+「時が経つのを忘れてしまいそうです」
+「早く帰らなきゃ」
+「お芝居に遅れてしまいます」",,「や…やめてください」,「にい…さん…」,「ごめんなさい…」,"""I wonder where he went?""
+You feel a warmth as if being wrapped in gentle sunlight. ""Come here, Vesel.""
+""It feels like I could forget the passage of time.""
+""We should hurry back.""
+""We'll be late for the play.""",,"""P-please... stop.""","""B-brother...""","""Sorry...""",,,,
+larnneire,unique,"「獣に変えられた王子の童話を知っているかしら？」
+痺れるほど美しいエレアの横顔にあなたは見とれた。
+「この世界は今、大きく変わろうとしているの」
+「ヴェルニースで見かけたあの男…まさか…」
+神秘的な古代の言葉で誰かが囁いた。
+「あなたはプライドが高すぎるのよ。&ただでさえエレアは異端視されているのに」",,"「なぜ戦わなければならないの？」
+「悪いけど、遊んでいる暇は無いの」
+エレアの少女は美しい瞳を凍りつくようにとがらせた。",「うぅ…誰かが…ジャビ王に風の異変を伝えなければ…このままでは…」,「ごめんなさい…」,"""You know the fairy tale where a wicked &witch transforms a dashing prince into an monster?""
+The stunning beauty of Elea's face halts your step a moment.
+""The world is thrown into bedlam and chaos. &We must remain strong in the face of it.""
+""The man we saw in Vernis, he just might be...""
+Someone mutters in mysterious ancient language.
+""Elea is already being regarded as a heretic. &Your lofty dignity isn't helping this.""",,"""Do we really have to fight?""
+""Sorry  I don't have time for this.""
+The Elean little girl has an angry look in her beautiful cold eyes.","""A-ah...I failed my task...this world....this world will...""","""Sorry...""",,,,
+lomias,unique,"「異形の森、か…」
+「我等のもたらす真実を彼らはどう受け止めるか」
+「ここもなかなか住み心地がよさそうじゃないか」
+「ヴェルニースまでは&子供の足でも一日でたどり着けるだろう」
+「あの酒場の娘にはまいったな！」
+誰かが弓矢を手入れする音が聞こえた。",,「恩を仇で返すとはこのことだ」,「おいおい、冗談だろう…」,「世の中には、おかしな奴がいるものだ」,"""Wait'll they hear the news we bring.""
+""And they think they have problems. Hah!""
+""Hey... This is a fine looking place!""
+""Pah! It would take a child less than a day to &walk to Vernis, we won't be late.""
+""Man, that girl at the pub...""
+You hear someone testing the string of his bow.",,"""You repay kindness with ingratitude?""","""This is ridiculous...""","""There's always someone I can never understand.""",,,,
+raphael,unique,"「あんな極上の女はそうはいねえ」
+「俺の手に掛かれば、どんな女もイチコロよ」
+ *レロレロレロ*
+「まったく罪な男に生まれちまったもんだ」",,「真の男ってものを見せてやるよ」,「ママン！」,「ペッ」,"""Ladies! The line starts here!""
+""No woman can resist my charms.""
+*ero-ero-ero-ero*
+""I am the Gods gift to women.""",,"""I'll show you what it means to be a real man!""","""Mamaaa!""","""Ptui!""",,,,
+pursuer,unique,"猟犬の荒い鼻息が聞こえる。
+あなたは追われていると感じた。",,"「見つけたぞ」
+「逃れられるとでも？」
+「死がお前に追いついた」","「これが神の意思なのか？」
+「お前に呪いあれ」","「裁きを受けるがいい」
+「これは神の意思だ」","You hear the rough breathing of a hunting dogs.
+You feel that you’re being pursued.",,"""I’ve found you.""
+""Did you think you could escape?""
+""Death has caught up to you.""","""Is this the will of the gods?""
+""A curse upon you.""","""Face judgment.""
+""This is the will of the gods.""",,,,
+fairy_nanasu,unique,@fairy,,,,,@fairy,,,,,,,,
+fairy_poina,unique,@fairy,,「バカがよ…」,「ひゃん…」,"「次…」
+「ふん…」",@fairy,,"""Idiot...""",""" Ngh...""","""Next...""
+""Huh...""",,,,
+fairy_raina,unique,@fairy,,「焼きナスお待ちぃ！」,「え？アタシが…！？」,「ビリビリした？」,@fairy,,"""One roasted eggplant!""","""Huh? Me...!?""","""Shocky?""",,,,
+defender,servant,誰かに守られている気がする。,,,「主よ、お許しください…」,"防衛者は服のほこりをはらった。
+防衛者はあなたに微笑んだ。",You feel you are protected.,,,"""I'm sorry, my master...""","The defender brushes dust off #his clothes.
+The defender smiles at you.",,,,
+adv_kiria,adv,"「いつか私の製造者を見つけて殴ってやるの」
+「人形愛好者は懲らしめなければなりません…」
+「…私はスクラップではないです」",,,「私…さびついてしまったようです…」 ,,"""Someday, I will find my creator, and punch him.""
+""Have you met any doll fanatics? &I need to punish one...""
+""... I'm not scrap.""",,,"""I... must have gotten... rusty...""",,,,,
+adv_gaki,adv,"「ざこ」 
+「ざこ？」
+「ざこざこざーこ♪」
+「ざぁこざぁこ♥」 
+小声で罵倒されている気がする。
+牙姫はにやりと笑った。",,"「ざこ！！」 
+「ざーこざこざこざっこざこー♪」
+「ざこっ！ ざこっ！」
+「ざぁこざぁこ♥」
+「ざぁ～こぉ～」","「ざこ……」 
+「ざっっっっっこ！！」 ","「ざっっっっっっっっっっこ♪」
+「ざぁこざぁこ♥」
+「ざこざこざこざこざこざこざこざこ」 ","""Weakling.""
+""Weakling?""
+""Weak-weak-weaaklnig♪""
+""Weaakling-weaakling♥""
+You feel like you are being insulted in a soft voice.
+Gaki grins wickedly.",,"""Weakling!!""
+""Weak-weak-weak-weak-weaakling♪""
+""Weakling! Weakling!""
+""Weaak-weaakling♥""
+""Weaaaakling.""
+","""Weakling…""
+""Weaaaaakling!!""","""Weaaaaakling♪""
+""Weaak-weaakling♥""
+""Weak-weak-weak-weak-weak-weak-weak-weakling.""
+",,,,
+adv_verna,adv,"「影は、私の鏡」
+「暗闇は怖くない。君はどうかな？」
+「 この翼、触ってみる？ 」
+「 どこか遠くに行きたくなるわ」
+「 この世界は奇妙ね 」",,"「影よ、さあ共に舞おう」
+「瞬きする間に終わらせるわ」
+「哀れね」
+「影よ集え」",「この世界は眩しすぎるわ」 ,"「さよなら」
+「終わりよ」
+「私の世界へようこそ」
+「 闇に呑まれるがいい」 ","""The shadow is my mirror.""
+""I'm not afraid of the dark. Are you?""
+""Do you want to touch my wings?""
+""Makes me want to go somewhere far away.""
+""This world is strange, isn't it?""",,"""Shadows, come dance with me.""
+""I'll end it.""
+""How pitiful.""
+""Shadows, come.""
+","""This world is too bright for me.""","""Goodbye.""
+""It's the end.""
+""Welcome to my world.""
+""May you be swallowed by the darkness.""",,,,
+adv_mesherada,adv,"「心は決して忘れない。&幾千もの歳月が流れ、幾度の生を越えても」
+「果てしないこの道も&そなたのためなら長すぎることはない」
+「生まれ変わってもなお&心は誓った相手を探し求めている」
+「それでも私は歩み続け&探し続けるだろう」
+「約束が私をこの旅へと縛るのだ」
+「風がそなたの名を運んでくる」
+「そなたのまなざしは&忘れられた夢のように感じる」",,"「なんと無礼な！」
+「私の探し物の邪魔をするなど！」",「生まれ変わってもそなたを探し続けよう…」,"「すまぬ... 」
+「私は鎖に繋がれている」","""Ages pass, across lifetimes and boundless &paths, yet my heart remembers.""
+""Mine path stretches eternal, but for thee, &it shall never feel too long.""
+""Lifetimes pass, yet my heart still yearns for &the one I swore to find.""
+""Still I walk... still I search.""
+""A promise binds me to this journey.""
+""The winds carry thy name.""
+""Thy gaze feels like a forgotten dream...""",,"""How impertinent!""
+""Getting in the way of mine search.""","""I shall continue my search for thee &in mine next life...""","""I'm sorry...""
+""These shackles that were once my wish &won't ever release me.""",,,,
+adv_yukiimo,adv,"#meのもふもふの尻尾が揺れている。
+#meの目は遠くの小動物を追っている。
+猫吸いに飢えた#meは落ち着きを失っている。
+#meは毛づくろいをしている。
+「#onii2♪」
+「なにしてるの、#onii2？」
+「この先に、どんな冒険が待っているのかな？」
+「猫を嗅いだことある？&干し草とポップコーンの香りだよ」
+「猫はね、いい匂いがする」
+「僕…猫が吸いたい」
+「ブラッシングしてもいいよ、この僕に！」
+「にゃっす、調子どう？」",,"#meの毛が逆立っている。
+#meのもふもふの尻尾は倍の大きさになっている。
+#meの目は爛々と輝いている。
+「#onii2、どいて」
+「待ってました〜！」
+「どうしたの？死んじゃう？」
+「何すんの！」
+「血が見たい…ね？」","「そいつ殺せない！」
+「ダメぇ！」
+「気をつけて…」
+「こいつ、手強いよ…」
+「なんで…？」
+「ごめん、僕…油断しちゃった」
+「また逢えるよ…」
+「今は、これが精一杯…」
+「無駄でもなかった…でしょ？」","#meはぐーっと伸びをした。
+#meは返り血を拭っている。
+「良い感じだね、#onii2」
+「よくできました」
+「もっと戦いたい」
+「ほらほら、もっと僕と遊ぼ」
+「ふふん」","#me's fluffy tail is swinging.
+#me's eyes are following a small animal in the distance.
+#me is starved for cat sniffs and losing her calmness.
+#me is grooming her fur.
+""#onii2♪""
+""What are you doing, #onii2?""
+""What kind of adventures await us?""
+""Have you smelled a cat? &It smells like hay and popcorn.""
+""Cats smell too good.""
+""I... want to smell a cat.""
+""You can brush me, right here! hehe""
+""Meowdy, hows going?""",,"#me's hair stands on end.
+#me's fluffy tail has doubled in size now.
+#me's eyes are shining brightly.
+""#onii2, move!""
+""I've been waiting for this!""
+""What's up? Are you dying?""
+""What are you DOING?""
+""I'd like to see some blood…you know?""","""No!""
+""Be careful...""
+""That's a tough one…""
+""Why...?""
+""I'm sorry, I... let my guard down.""
+""Let's meet again soon…""
+""For now, this is the best I can do…""
+""Besides, it isn't a futile effort...right?""","#me stretches out.
+#me is wiping the returned blood.
+""You're looking good, #onii2.""
+""Well done.""
+""I wanna fight more.""
+""Come on, play with me some more.""
+""Fufun.""
+""Hehe.""",,,,
+exile_girl,unique,"「ついほうしゃ…」
+「追放者…♥」",,,,,"""Exiles...""
+""Exiles...♥""",,,,,,,,
+lurie_boss,,,,「グウォオオォォオオン！」,「クゥン…」,「グウォォオオ！」,,,"""GROOOOAAARRR!""","""Whimper...""","""GRROOAARR!""",,,,

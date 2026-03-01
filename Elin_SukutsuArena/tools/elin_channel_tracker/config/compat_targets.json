@@ -1,0 +1,127 @@
+{
+  "kind": "compat_targets",
+  "schema_version": "1.0.0",
+  "targets": [
+    {
+      "target": "Zone.Activate",
+      "check_kind": "patch_target",
+      "type_name": "Zone",
+      "canonical_name": "Activate",
+      "candidate_names": [
+        "Activate"
+      ],
+      "candidate_signatures": []
+    },
+    {
+      "target": "Zone.get_ShouldAutoRevive",
+      "check_kind": "patch_target",
+      "type_name": "Zone",
+      "canonical_name": "get_ShouldAutoRevive",
+      "candidate_names": [
+        "get_ShouldAutoRevive",
+        "ShouldAutoRevive"
+      ],
+      "candidate_signatures": []
+    },
+    {
+      "target": "LayerDrama.OnKill",
+      "check_kind": "patch_target",
+      "type_name": "LayerDrama",
+      "canonical_name": "OnKill",
+      "candidate_names": [
+        "OnKill"
+      ],
+      "candidate_signatures": []
+    },
+    {
+      "target": "Chara.TickConditions",
+      "check_kind": "patch_target",
+      "type_name": "Chara",
+      "canonical_name": "TickConditions",
+      "candidate_names": [
+        "TickConditions"
+      ],
+      "candidate_signatures": []
+    },
+    {
+      "target": "Region.CheckRandomSites",
+      "check_kind": "patch_target",
+      "type_name": "Region",
+      "canonical_name": "CheckRandomSites",
+      "candidate_names": [
+        "CheckRandomSites"
+      ],
+      "candidate_signatures": []
+    },
+    {
+      "target": "DramaManager.ParseLine",
+      "check_kind": "patch_target",
+      "type_name": "DramaManager",
+      "canonical_name": "ParseLine",
+      "candidate_names": [
+        "ParseLine"
+      ],
+      "candidate_signatures": []
+    },
+    {
+      "target": "Card.DamageHP",
+      "check_kind": "patch_target",
+      "type_name": "Card",
+      "canonical_name": "DamageHP",
+      "candidate_names": [
+        "DamageHP"
+      ],
+      "candidate_signatures": [
+        "void(System.Int64,System.Int32,System.Int32,AttackSource,Card,System.Boolean,Thing,Chara)"
+      ]
+    },
+    {
+      "target": "Card.HealHP",
+      "check_kind": "patch_target",
+      "type_name": "Card",
+      "canonical_name": "HealHP",
+      "candidate_names": [
+        "HealHP"
+      ],
+      "candidate_signatures": [
+        "void(System.Int32,HealSource)"
+      ]
+    },
+    {
+      "target": "Cwl.API.Custom.CustomZone.Managed",
+      "check_kind": "reflection",
+      "type_name": "Cwl.API.Custom.CustomZone",
+      "canonical_name": "Managed",
+      "candidate_names": [
+        "Managed",
+        "get_Managed"
+      ],
+      "candidate_signatures": []
+    },
+    {
+      "target": "Cwl.API.Custom.CustomMerchant.AddStock",
+      "check_kind": "reflection",
+      "type_name": "Cwl.API.Custom.CustomMerchant",
+      "canonical_name": "AddStock",
+      "candidate_names": [
+        "AddStock"
+      ],
+      "candidate_signatures": [
+        "void(System.String,System.String)",
+        "void(System.String)"
+      ]
+    },
+    {
+      "target": "Cwl.API.Custom.CustomMerchant.ClearStock",
+      "check_kind": "reflection",
+      "type_name": "Cwl.API.Custom.CustomMerchant",
+      "canonical_name": "ClearStock",
+      "candidate_names": [
+        "ClearStock"
+      ],
+      "candidate_signatures": [
+        "void(System.String)"
+      ]
+    }
+  ]
+}

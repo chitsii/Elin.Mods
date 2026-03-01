@@ -1,0 +1,1054 @@
+{
+  "rankUpStages": {
+    "rank_g_trial": {
+      "stageId": "rank_g_trial",
+      "displayNameJp": "屑肉の洗礼",
+      "displayNameEn": "Baptism of Scrap Meat",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "BGM/Battle_RankG_VoidOoze",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 5,
+      "enemies": [
+        {
+          "charaId": "sukutsu_void_ooze",
+          "rarity": "Normal",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 10
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "混沌の落とし子たち——彼らのブレスは魂を蝕む。耐性なくして生き残れない。",
+      "descriptionEn": "Children of Chaos—their breath corrodes the soul. Without resistance, you cannot survive."
+    },
+    "rank_f_trial": {
+      "stageId": "rank_f_trial",
+      "displayNameJp": "霜牙の試練",
+      "displayNameEn": "Trial of the Frostfang",
+      "zoneType": "field_snow",
+      "biome": "Snow",
+      "bgmBattle": "BGM/Battle_RankE_Ice",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 10,
+      "enemies": [
+        {
+          "charaId": "sukutsu_frost_hound",
+          "rarity": "Legendary",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 10
+        }
+      ],
+      "gimmicks": [
+        {
+          "gimmickType": "elemental_scar",
+          "interval": 8.0,
+          "damage": 15,
+          "radius": 3,
+          "startDelay": 5.0,
+          "effectName": "explosion",
+          "soundName": "explosion",
+          "enableEscalation": true,
+          "escalationRate": 0.85,
+          "minInterval": 3.0,
+          "maxRadius": 8,
+          "radiusGrowthInterval": 30.0,
+          "enableItemDrop": true,
+          "itemDropChance": 0.15,
+          "blastRadius": 2,
+          "directHitChance": 0.4,
+          "explosionCount": 1
+        }
+      ],
+      "descriptionJp": "姿なき牙——見えぬ敵に怯えるな。透明視を得よ、さもなくば凍え死ぬのみ。",
+      "descriptionEn": "The Invisible Fang—do not fear an unseen enemy. Gain true sight, or freeze to death."
+    },
+    "rank_e_trial": {
+      "stageId": "rank_e_trial",
+      "displayNameJp": "錆びついた英雄",
+      "displayNameEn": "The Rusty Hero",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "BGM/Battle_Kain_Requiem",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 20,
+      "enemies": [
+        {
+          "charaId": "sukutsu_kain_ghost",
+          "rarity": "Legendary",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "鉄血団の元副団長——バルガスが息子のように愛した男。",
+      "descriptionEn": "Former vice-captain of the Iron Blood Corps—the man Vargus loved like a son."
+    },
+    "rank_d_trial": {
+      "stageId": "rank_d_trial",
+      "displayNameJp": "観客の代弁者",
+      "displayNameEn": "Voice of the Audience",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "BGM/Battle_RankD_Chaos",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 30,
+      "enemies": [
+        {
+          "charaId": "sukutsu_greed",
+          "rarity": "Legendary",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        },
+        {
+          "charaId": "sukutsu_metal_putty",
+          "rarity": "Superior",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 1
+        },
+        {
+          "charaId": "sukutsu_metal_putty",
+          "rarity": "Superior",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 1
+        }
+      ],
+      "gimmicks": [
+        {
+          "gimmickType": "audience_interference",
+          "interval": 3.0,
+          "damage": 25,
+          "radius": 3,
+          "startDelay": 0.5,
+          "effectName": "explosion",
+          "soundName": "explosion",
+          "enableEscalation": true,
+          "escalationRate": 0.85,
+          "minInterval": 0.5,
+          "maxRadius": 6,
+          "radiusGrowthInterval": 20.0,
+          "enableItemDrop": true,
+          "itemDropChance": 0.12,
+          "blastRadius": 2,
+          "directHitChance": 0.35,
+          "explosionCount": 1
+        }
+      ],
+      "descriptionJp": "観客の「注目」に魅せられ、その力を取り込んだ傀儡——グリード。",
+      "descriptionEn": "Greed—a puppet who absorbed the audience's power."
+    },
+    "rank_c_trial": {
+      "stageId": "rank_c_trial",
+      "displayNameJp": "朱砂食い",
+      "displayNameEn": "Cinnabar Eater",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "BGM/Battle_RankC_Heroic_Lament",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 50,
+      "enemies": [
+        {
+          "charaId": "sukutsu_crow_shadow",
+          "rarity": "Legendary",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 1
+        },
+        {
+          "charaId": "sukutsu_raven_blade",
+          "rarity": "Legendary",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 1
+        },
+        {
+          "charaId": "sukutsu_karasu_venom",
+          "rarity": "Legendary",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "アリーナに巣食う「鴉」たち——かつての挑戦者だった者たちが、今は番人として立ちはだかる。",
+      "descriptionEn": "The 'Ravens' that nest in the arena—former challengers who now stand as guardians."
+    },
+    "rank_b_trial": {
+      "stageId": "rank_b_trial",
+      "displayNameJp": "虚無の処刑人",
+      "displayNameEn": "Void Executioner Null",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "BGM/Battle_Null_Assassin",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 80,
+      "enemies": [
+        {
+          "charaId": "sukutsu_null_enemy",
+          "rarity": "Mythical",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "「神の孵化場」計画の失敗作——暗殺人形ヌル。",
+      "descriptionEn": "A failure of the 'God Hatchery' project—the assassin doll Null."
+    },
+    "rank_a_trial": {
+      "stageId": "rank_a_trial",
+      "displayNameJp": "戦鬼",
+      "displayNameEn": "War Demon",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "BGM/Battle_Shadow_Self",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 120,
+      "enemies": [
+        {
+          "charaId": "sukutsu_shadow_self",
+          "rarity": "Mythical",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "観客の「注目」が生み出した、お前自身の影。",
+      "descriptionEn": "A shadow born from the audience's 'attention'—it knows everything about you."
+    },
+    "rank_s_trial": {
+      "stageId": "rank_s_trial",
+      "displayNameJp": "竜断ちへの道",
+      "displayNameEn": "Path to Dragon Slayer",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "BGM/Battle_Balgas_Prime",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 200,
+      "enemies": [
+        {
+          "charaId": "sukutsu_balgas_prime",
+          "rarity": "Mythical",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "「若返りの薬」を服用し、全盛期の力を取り戻したバルガス。",
+      "descriptionEn": "Vargus restored to his prime by the 'Rejuvenation Potion.'"
+    },
+    "final_astaroth": {
+      "stageId": "final_astaroth",
+      "displayNameJp": "竜神との対峙",
+      "displayNameEn": "Confrontation with the Dragon God",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "BGM/Battle_Astaroth_Phase1",
+      "bgmVictory": "BGM/Final_Liberation",
+      "rewardPlat": 500,
+      "enemies": [
+        {
+          "charaId": "sukutsu_astaroth",
+          "rarity": "Mythical",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "イルヴァの神々と同格の竜神。",
+      "descriptionEn": "A dragon god on par with the gods of Ilva."
+    }
+  },
+  "normalStages": {
+    "stage_1": {
+      "stageId": "stage_1",
+      "displayNameJp": "森の狼",
+      "displayNameEn": "Forest Wolf",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 10,
+      "enemies": [
+        {
+          "charaId": "wolf",
+          "rarity": "Normal",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "",
+      "descriptionEn": ""
+    },
+    "stage_2": {
+      "stageId": "stage_2",
+      "displayNameJp": "ケンタウロス",
+      "displayNameEn": "Centaur",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 20,
+      "enemies": [
+        {
+          "charaId": "centaur",
+          "rarity": "Superior",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "",
+      "descriptionEn": ""
+    },
+    "stage_3": {
+      "stageId": "stage_3",
+      "displayNameJp": "ミノタウロス",
+      "displayNameEn": "Minotaur",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 30,
+      "enemies": [
+        {
+          "charaId": "minotaur",
+          "rarity": "Superior",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "",
+      "descriptionEn": ""
+    },
+    "stage_4": {
+      "stageId": "stage_4",
+      "displayNameJp": "竜との対峙",
+      "displayNameEn": "Dragon Confrontation",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 50,
+      "enemies": [
+        {
+          "charaId": "dragon",
+          "rarity": "Legendary",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "",
+      "descriptionEn": ""
+    },
+    "balgas_training_battle": {
+      "stageId": "balgas_training_battle",
+      "displayNameJp": "戦士の哲学",
+      "displayNameEn": "Warrior's Philosophy",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "BGM/Battle_Kain_Requiem",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 0,
+      "enemies": [
+        {
+          "charaId": "sukutsu_balgas_training",
+          "rarity": "Legendary",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "「俺の足を一歩でも動かしてみせろ」——バルガスによる特別訓練。",
+      "descriptionEn": "'Try to make me move even one step.'—Special training by Vargus."
+    },
+    "upper_existence_battle": {
+      "stageId": "upper_existence_battle",
+      "displayNameJp": "見えざる観客の供物",
+      "displayNameEn": "Offering to the Unseen Audience",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "BGM/ProgressiveDance",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 15,
+      "enemies": [
+        {
+          "charaId": "sukutsu_metal_putty",
+          "rarity": "Superior",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        },
+        {
+          "charaId": "sukutsu_void_ooze",
+          "rarity": "Normal",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 3
+        }
+      ],
+      "gimmicks": [
+        {
+          "gimmickType": "audience_interference",
+          "interval": 3.5,
+          "damage": 20,
+          "radius": 3,
+          "startDelay": 0.5,
+          "effectName": "explosion",
+          "soundName": "explosion",
+          "enableEscalation": true,
+          "escalationRate": 0.88,
+          "minInterval": 0.7,
+          "maxRadius": 5,
+          "radiusGrowthInterval": 18.0,
+          "enableItemDrop": true,
+          "itemDropChance": 0.15,
+          "blastRadius": 2,
+          "directHitChance": 0.35,
+          "explosionCount": 1
+        }
+      ],
+      "descriptionJp": "観客の「注目」が初めて向けられる戦い。",
+      "descriptionEn": "The first battle where the audience's 'attention' focuses on you."
+    }
+  },
+  "debugStages": {
+    "rank_g_trial": {
+      "stageId": "rank_g_trial",
+      "displayNameJp": "屑肉の洗礼",
+      "displayNameEn": "Baptism of Scrap Meat",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "BGM/Battle_RankG_VoidOoze",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 5,
+      "enemies": [
+        {
+          "charaId": "sukutsu_void_ooze",
+          "rarity": "Normal",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 10
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "混沌の落とし子たち——彼らのブレスは魂を蝕む。耐性なくして生き残れない。",
+      "descriptionEn": "Children of Chaos—their breath corrodes the soul. Without resistance, you cannot survive."
+    },
+    "rank_f_trial": {
+      "stageId": "rank_f_trial",
+      "displayNameJp": "霜牙の試練",
+      "displayNameEn": "Trial of the Frostfang",
+      "zoneType": "field_snow",
+      "biome": "Snow",
+      "bgmBattle": "BGM/Battle_RankE_Ice",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 10,
+      "enemies": [
+        {
+          "charaId": "sukutsu_frost_hound",
+          "rarity": "Legendary",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 10
+        }
+      ],
+      "gimmicks": [
+        {
+          "gimmickType": "elemental_scar",
+          "interval": 8.0,
+          "damage": 15,
+          "radius": 3,
+          "startDelay": 5.0,
+          "effectName": "explosion",
+          "soundName": "explosion",
+          "enableEscalation": true,
+          "escalationRate": 0.85,
+          "minInterval": 3.0,
+          "maxRadius": 8,
+          "radiusGrowthInterval": 30.0,
+          "enableItemDrop": true,
+          "itemDropChance": 0.15,
+          "blastRadius": 2,
+          "directHitChance": 0.4,
+          "explosionCount": 1
+        }
+      ],
+      "descriptionJp": "姿なき牙——見えぬ敵に怯えるな。透明視を得よ、さもなくば凍え死ぬのみ。",
+      "descriptionEn": "The Invisible Fang—do not fear an unseen enemy. Gain true sight, or freeze to death."
+    },
+    "rank_e_trial": {
+      "stageId": "rank_e_trial",
+      "displayNameJp": "錆びついた英雄",
+      "displayNameEn": "The Rusty Hero",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "BGM/Battle_Kain_Requiem",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 20,
+      "enemies": [
+        {
+          "charaId": "sukutsu_kain_ghost",
+          "rarity": "Legendary",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "鉄血団の元副団長——バルガスが息子のように愛した男。",
+      "descriptionEn": "Former vice-captain of the Iron Blood Corps—the man Vargus loved like a son."
+    },
+    "rank_d_trial": {
+      "stageId": "rank_d_trial",
+      "displayNameJp": "観客の代弁者",
+      "displayNameEn": "Voice of the Audience",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "BGM/Battle_RankD_Chaos",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 30,
+      "enemies": [
+        {
+          "charaId": "sukutsu_greed",
+          "rarity": "Legendary",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        },
+        {
+          "charaId": "sukutsu_metal_putty",
+          "rarity": "Superior",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 1
+        },
+        {
+          "charaId": "sukutsu_metal_putty",
+          "rarity": "Superior",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 1
+        }
+      ],
+      "gimmicks": [
+        {
+          "gimmickType": "audience_interference",
+          "interval": 3.0,
+          "damage": 25,
+          "radius": 3,
+          "startDelay": 0.5,
+          "effectName": "explosion",
+          "soundName": "explosion",
+          "enableEscalation": true,
+          "escalationRate": 0.85,
+          "minInterval": 0.5,
+          "maxRadius": 6,
+          "radiusGrowthInterval": 20.0,
+          "enableItemDrop": true,
+          "itemDropChance": 0.12,
+          "blastRadius": 2,
+          "directHitChance": 0.35,
+          "explosionCount": 1
+        }
+      ],
+      "descriptionJp": "観客の「注目」に魅せられ、その力を取り込んだ傀儡——グリード。",
+      "descriptionEn": "Greed—a puppet who absorbed the audience's power."
+    },
+    "rank_c_trial": {
+      "stageId": "rank_c_trial",
+      "displayNameJp": "朱砂食い",
+      "displayNameEn": "Cinnabar Eater",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "BGM/Battle_RankC_Heroic_Lament",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 50,
+      "enemies": [
+        {
+          "charaId": "sukutsu_crow_shadow",
+          "rarity": "Legendary",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 1
+        },
+        {
+          "charaId": "sukutsu_raven_blade",
+          "rarity": "Legendary",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 1
+        },
+        {
+          "charaId": "sukutsu_karasu_venom",
+          "rarity": "Legendary",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "アリーナに巣食う「鴉」たち——かつての挑戦者だった者たちが、今は番人として立ちはだかる。",
+      "descriptionEn": "The 'Ravens' that nest in the arena—former challengers who now stand as guardians."
+    },
+    "rank_b_trial": {
+      "stageId": "rank_b_trial",
+      "displayNameJp": "虚無の処刑人",
+      "displayNameEn": "Void Executioner Null",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "BGM/Battle_Null_Assassin",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 80,
+      "enemies": [
+        {
+          "charaId": "sukutsu_null_enemy",
+          "rarity": "Mythical",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "「神の孵化場」計画の失敗作——暗殺人形ヌル。",
+      "descriptionEn": "A failure of the 'God Hatchery' project—the assassin doll Null."
+    },
+    "rank_a_trial": {
+      "stageId": "rank_a_trial",
+      "displayNameJp": "戦鬼",
+      "displayNameEn": "War Demon",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "BGM/Battle_Shadow_Self",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 120,
+      "enemies": [
+        {
+          "charaId": "sukutsu_shadow_self",
+          "rarity": "Mythical",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "観客の「注目」が生み出した、お前自身の影。",
+      "descriptionEn": "A shadow born from the audience's 'attention'—it knows everything about you."
+    },
+    "rank_s_trial": {
+      "stageId": "rank_s_trial",
+      "displayNameJp": "竜断ちへの道",
+      "displayNameEn": "Path to Dragon Slayer",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "BGM/Battle_Balgas_Prime",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 200,
+      "enemies": [
+        {
+          "charaId": "sukutsu_balgas_prime",
+          "rarity": "Mythical",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "「若返りの薬」を服用し、全盛期の力を取り戻したバルガス。",
+      "descriptionEn": "Vargus restored to his prime by the 'Rejuvenation Potion.'"
+    },
+    "final_astaroth": {
+      "stageId": "final_astaroth",
+      "displayNameJp": "竜神との対峙",
+      "displayNameEn": "Confrontation with the Dragon God",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "BGM/Battle_Astaroth_Phase1",
+      "bgmVictory": "BGM/Final_Liberation",
+      "rewardPlat": 500,
+      "enemies": [
+        {
+          "charaId": "sukutsu_astaroth",
+          "rarity": "Mythical",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "イルヴァの神々と同格の竜神。",
+      "descriptionEn": "A dragon god on par with the gods of Ilva."
+    },
+    "stage_1": {
+      "stageId": "stage_1",
+      "displayNameJp": "森の狼",
+      "displayNameEn": "Forest Wolf",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 10,
+      "enemies": [
+        {
+          "charaId": "wolf",
+          "rarity": "Normal",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "",
+      "descriptionEn": ""
+    },
+    "stage_2": {
+      "stageId": "stage_2",
+      "displayNameJp": "ケンタウロス",
+      "displayNameEn": "Centaur",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 20,
+      "enemies": [
+        {
+          "charaId": "centaur",
+          "rarity": "Superior",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "",
+      "descriptionEn": ""
+    },
+    "stage_3": {
+      "stageId": "stage_3",
+      "displayNameJp": "ミノタウロス",
+      "displayNameEn": "Minotaur",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 30,
+      "enemies": [
+        {
+          "charaId": "minotaur",
+          "rarity": "Superior",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "",
+      "descriptionEn": ""
+    },
+    "stage_4": {
+      "stageId": "stage_4",
+      "displayNameJp": "竜との対峙",
+      "displayNameEn": "Dragon Confrontation",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 50,
+      "enemies": [
+        {
+          "charaId": "dragon",
+          "rarity": "Legendary",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "",
+      "descriptionEn": ""
+    },
+    "balgas_training_battle": {
+      "stageId": "balgas_training_battle",
+      "displayNameJp": "戦士の哲学",
+      "displayNameEn": "Warrior's Philosophy",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "BGM/Battle_Kain_Requiem",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 0,
+      "enemies": [
+        {
+          "charaId": "sukutsu_balgas_training",
+          "rarity": "Legendary",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "「俺の足を一歩でも動かしてみせろ」——バルガスによる特別訓練。",
+      "descriptionEn": "'Try to make me move even one step.'—Special training by Vargus."
+    },
+    "upper_existence_battle": {
+      "stageId": "upper_existence_battle",
+      "displayNameJp": "見えざる観客の供物",
+      "displayNameEn": "Offering to the Unseen Audience",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "BGM/ProgressiveDance",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 15,
+      "enemies": [
+        {
+          "charaId": "sukutsu_metal_putty",
+          "rarity": "Superior",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        },
+        {
+          "charaId": "sukutsu_void_ooze",
+          "rarity": "Normal",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 3
+        }
+      ],
+      "gimmicks": [
+        {
+          "gimmickType": "audience_interference",
+          "interval": 3.5,
+          "damage": 20,
+          "radius": 3,
+          "startDelay": 0.5,
+          "effectName": "explosion",
+          "soundName": "explosion",
+          "enableEscalation": true,
+          "escalationRate": 0.88,
+          "minInterval": 0.7,
+          "maxRadius": 5,
+          "radiusGrowthInterval": 18.0,
+          "enableItemDrop": true,
+          "itemDropChance": 0.15,
+          "blastRadius": 2,
+          "directHitChance": 0.35,
+          "explosionCount": 1
+        }
+      ],
+      "descriptionJp": "観客の「注目」が初めて向けられる戦い。",
+      "descriptionEn": "The first battle where the audience's 'attention' focuses on you."
+    },
+    "debug_weak": {
+      "stageId": "debug_weak",
+      "displayNameJp": "[DEBUG] 弱い敵",
+      "displayNameEn": "[DEBUG] Weak Enemy",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 1,
+      "enemies": [
+        {
+          "charaId": "putty",
+          "rarity": "Normal",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "デバッグ用：レベル1のパティ",
+      "descriptionEn": ""
+    },
+    "debug_strong": {
+      "stageId": "debug_strong",
+      "displayNameJp": "[DEBUG] 強い敵",
+      "displayNameEn": "[DEBUG] Strong Enemy",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 100,
+      "enemies": [
+        {
+          "charaId": "dragon",
+          "rarity": "Mythical",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": true,
+          "count": 1
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "デバッグ用：レベル100の神話級ドラゴン",
+      "descriptionEn": ""
+    },
+    "debug_horde": {
+      "stageId": "debug_horde",
+      "displayNameJp": "[DEBUG] 敵の群れ",
+      "displayNameEn": "[DEBUG] Enemy Horde",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 50,
+      "enemies": [
+        {
+          "charaId": "goblin",
+          "rarity": "Normal",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 10
+        }
+      ],
+      "gimmicks": [],
+      "descriptionJp": "デバッグ用：10体のゴブリン",
+      "descriptionEn": ""
+    },
+    "debug_gimmick": {
+      "stageId": "debug_gimmick",
+      "displayNameJp": "[DEBUG] ギミックテスト",
+      "displayNameEn": "[DEBUG] Gimmick Test",
+      "zoneType": "field_fine",
+      "biome": "",
+      "bgmBattle": "",
+      "bgmVictory": "BGM/Fanfare_Audience",
+      "rewardPlat": 10,
+      "enemies": [
+        {
+          "charaId": "putty",
+          "rarity": "Normal",
+          "position": "random",
+          "positionX": 0,
+          "positionZ": 0,
+          "isBoss": false,
+          "count": 3
+        }
+      ],
+      "gimmicks": [
+        {
+          "gimmickType": "audience_interference",
+          "interval": 2.0,
+          "damage": 10,
+          "radius": 2,
+          "startDelay": 1.0,
+          "effectName": "explosion",
+          "soundName": "explosion",
+          "enableEscalation": true,
+          "escalationRate": 0.8,
+          "minInterval": 0.3,
+          "maxRadius": 10,
+          "radiusGrowthInterval": 10.0,
+          "enableItemDrop": true,
+          "itemDropChance": 0.2,
+          "blastRadius": 3,
+          "directHitChance": 0.6,
+          "explosionCount": 2
+        }
+      ],
+      "descriptionJp": "デバッグ用：高命中率ギミック確認",
+      "descriptionEn": "Debug: High hit rate gimmick test"
+    }
+  }
+}

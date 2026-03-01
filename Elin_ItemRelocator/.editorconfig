@@ -1,0 +1,45 @@
+[*.{cs,csx}]
+# New Line Options
+csharp_new_line_before_open_brace = none # "{"を新しい行に配置するか
+csharp_new_line_before_else = false # "else"を新しい行に配置するか
+csharp_new_line_before_catch = false # "catch"を新しい行に配置するか
+csharp_new_line_before_finally = false # "finally"を新しい行に配置するか
+csharp_new_line_before_members_in_object_initializers = true # オブジェクト初期化子のメンバーを別の行に配置するか
+csharp_new_line_before_members_in_anonymous_types = true # 匿名型のメンバーを別の行に配置するか
+csharp_new_line_between_query_expression_clauses = true # クエリ式の句の要素を別の行に配置するか
+
+# Indentation Options
+csharp_indent_block_contents = true # ブロックの内容をインデントするか
+csharp_indent_braces = false # "{}"をインデントするか
+csharp_indent_switch_labels = false # "switch" ラベルにインデントを付けるか
+csharp_indent_case_contents = true # "switch" ケースにインデントを付けるか
+csharp_indent_case_contents_when_block = false # "switch" ケースでのブロックをインデントするか
+csharp_indent_labels = one_less_than_current # ラベルの配置位置
+
+# Spacing Options
+csharp_space_before_comma = false # コンマの前
+csharp_space_after_comma = true # コンマの後
+csharp_space_before_dot = false # ドットの前
+csharp_space_after_dot = false # ドットの後
+csharp_space_between_parentheses = false # "()"間
+csharp_space_around_binary_operators = before_and_after # バイナリ演算子の前後
+csharp_space_before_open_square_brackets = false # "["の前
+csharp_space_between_square_brackets = false # "[]"の間
+csharp_space_between_empty_square_brackets = false # 空の"[]"の間
+csharp_space_after_cast = false # キャストの間
+csharp_space_after_keywords_in_control_flow_statements = true # 制御フローステートメント(forなど)の後
+csharp_space_before_semicolon_in_for_statement = false # forステートメントのセミコロンの前
+csharp_space_after_semicolon_in_for_statement = true # forステートメントのセミコロンの後
+csharp_space_around_declaration_statements = false # 宣言ステートメントの余計な空白文字. "false"なら削除
+csharp_space_between_method_declaration_name_and_open_parenthesis = false # メソッド宣言のメソッド名と始め括弧の間
+csharp_space_between_method_declaration_parameter_list_parentheses = false # メソッド宣言パラメータのリスト始めと終わり
+csharp_space_between_method_declaration_empty_parameter_list_parentheses = false # メソッド宣言の空パラメータのリスト始めと終わり
+csharp_space_between_method_call_name_and_opening_parenthesis = false # メソッド呼び出し名と始め括弧の間
+csharp_space_between_method_call_parameter_list_parentheses = false # メソッド呼び出しの始め括弧と終わり括弧
+csharp_space_between_method_call_empty_parameter_list_parentheses = false # 空パラメータのメソッド呼び出しの始め括弧と終わり括弧
+csharp_space_before_colon_in_inheritance_clause = true # 型宣言の":"前
+csharp_space_after_colon_in_inheritance_clause = true # 型宣言の":"後
+
+# Wrap Options
+csharp_preserve_single_line_statements = false # 1行に複数のステートメントとメンバー宣言を表示
+csharp_preserve_single_line_blocks = true # コードブロックを単一行に配置

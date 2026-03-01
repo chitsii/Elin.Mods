@@ -1,0 +1,9 @@
+[project]
+name = "sukutsu-arena-tests"
+version = "1.0.0"
+description = "Tests for Sukutsu Arena mod"
+requires-python = ">=3.10"
+dependencies = [
+    "openpyxl>=3.1.5",
+    "pydantic>=2.0.0",
+]

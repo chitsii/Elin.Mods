@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+    <PackageReference Include="NUnit" Version="3.14.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- テスト対象: 純粋計算ロジックのみ直接コンパイル -->
+    <Compile Include="..\..\src\NecromancyCalculations.cs" LinkBase="Source" />
+    <Compile Include="..\..\src\Common\DialogFlagStore.cs" LinkBase="Source" />
+    <Compile Include="..\..\src\CommonQuest\Conditions\QuestCooldownPolicy.cs" LinkBase="Source" />
+    <Compile Include="..\..\src\CommonQuest\Conditions\QuestCondition.cs" LinkBase="Source" />
+    <Compile Include="..\..\src\CommonQuest\Start\QuestStartService.cs" LinkBase="Source" />
+    <Compile Include="..\..\src\CommonQuest\StateMachine\QuestStateMachine.cs" LinkBase="Source" />
+    <Compile Include="..\..\src\CommonQuest\StateMachine\QuestTriggeredStateMachine.cs" LinkBase="Source" />
+    <Compile Include="..\..\src\Drama\IDramaDependencyResolver.cs" LinkBase="Source" />
+    <Compile Include="..\..\src\Drama\ArsDramaResolver.cs" LinkBase="Source" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,130 @@
+id,alias,name_JP,name,type,group,curse,duration,hexPower,negate,defenseAttb,resistance,gainRes,elements,nullify,tag,phase,colors,element,effect,strPhase_JP,strPhase,textPhase_JP,textPhase,textEnd_JP,textEnd,textPhase2_JP,textPhase2,gradient,invert,detail_JP,detail
+int,string,string,string,string,string,string,string,int,string[],string[],string[],int,string[],string[],string[],int[],string,string,string[],string[],string[],string,string,string,string,string,string,string,bool,string,string
+103,,,,,Neutral,,p/10,10,,,,,,,,"0,1,2,3,4,5,6,7,8,9",,,,,,,,,,,,condition,,,
+55,StanceTaunt,挑発,Taunt,,Stance,,,,,,,,,,,,stance,StTaunt,,挑発中,Taunting,#1は敵を挑発し始めた。,#1 start(s) to taunt enemies.,#1は挑発をやめた。,#1 stop(s) taunting.,,,,,仲間を敵の攻撃から庇い、敵に狙われやすくなる状態。,"A condition where you protect an ally from enemy attacks, making yourself an easier target."
+77,StanceManaCost,節魔,Maconomy,,Stance,,,,,,,,,,,,stance,StTaunt,,節魔,Maconomy,#1はマナを節約し始めた。,#1 start(s) to preserve mana.,#1はマナの節約をやめた。,#1 stop(s) preserving mana.,,,,,魔法のストックを多く消費する代わりに、マナの消費が少なくなる状態。,A condition where your mana consumption is reduced at the cost of using more spell stocks.
+83,StanceIai,居合い,Iai,,Stance,,,,,,,,,,,,stance,StTaunt,,居合い,Iai,#1は低く構え始めた。,#1 start(s) to take a low stance.,#1は居合いの構えを解いた。,#1 release(s) #his iai stance.,,,,,攻撃をしなかったターン数に応じて、命中率とダメージ倍率が一定値まで上昇する状態。,A condition where the hit rate and damage multiplier increase up to a certain limit based on the number of turns without attacking.
+84,StanceFury,渾身,Fury,,Stance,,,,,,,,,,,,stance,StTaunt,,渾身,Fury,#1は怒りに満ちた目で辺りを睨み始めた。,#1 start(s) to look around with furious eyes.,#1は優しい目つきになった。,#1 stop(s) being furious.,,,,,攻撃を回避される度に攻撃の威力が上昇する状態。,A condition where the attack power increases each time an attack is evaded.
+94,StanceSongSleep,眠りの歌,Hymn of Sleep,,Stance,,,,,,,,"mana,-25",,,,stance,StTaunt,"sing,sing",眠りの歌,Hymn of Sleep,#1は子守唄を歌い始めた。,#1 begin(s) to sing a lullaby.,#1は歌うのを止めた。,#1 stop(s) singing.,,,,,周囲の生物を眠らせる状態。歌を維持している間はマナが減少する。,A condition that grants sleep to nearby creatures. Consume mana while maintaining the song.
+97,StanceSongValor,勇気の歌,Hymn of Valor,,Stance,,,,,,,,"mana,-30",,,,stance,StTaunt,"sing,sing",勇気の歌,Hymn of Valor,#1は勇ましい歌を歌い始めた。,#1 begin(s) to sing a song of valor.,#1は歌うのを止めた。,#1 stop(s) singing.,,,,,周囲の生物に勇気を与える状態。歌を維持している間はマナが減少する。,A condition that grants courage to nearby creatures. Consume mana while maintaining the song.
+23,ConPoison,毒,Poison,,Bad,,p/4,,negatePoison,END,resPoison,100,,,,"0,0,0,1,1,1,1,1,1,1",poison,,,"毒,猛毒","Poisoned,Poisoned Bad!","#1は毒に冒された。
+#1は猛毒に冒された。","#1 are/is poisoned.
+#1 suffer/suffers from strong poison.",#1の体から毒は抜けた。,Poison leaves #your body.,#1の毒は少し弱まった。,#1 slightly feel/feels better.,,,毒を受け行動をするたびに体力が減る状態。,A condition where you are poisoned and lose health with every action.
+25,ConSuffocation,呼吸困難,Suffocation,,Bad,,p,,"breathing,featAquatic",END,,200,,,,"0,1,2,2,2,2,2,2,2,2",fear,,,"#,呼吸困難,窒息","#,Need Air,Suffocated!","
+#1は呼吸困難におちいった。","
+#1 are/is suffocated.",,,#1は息ができるようになった。,#1 can breathe again.,,,息ができない状態。窒息すると体力を急激に失う。,A condition where you cannot breathe and rapidly lose health if suffocating.
+26,ConBurning,炎上,Burning,,Bad,,p/30,,,,,100,,,,,burn,,,炎上,Burning,#1は燃えだした。,#1 begin/begins to burn.,#1の体から火は消えた。,#1 no longer burn./burns.,,,,,炎上し、行動をするたびに体力を失う状態。,A condition where you are on fire and lose health with every action.
+27,ConFear,恐怖,Fear,,Bad,,p/10,,negateFear,WIL,resMind,200,,,,,fear,,,恐怖,Fear,#1は恐怖に襲われた。,#1 are/is struck with terror.,#1は勇気を取り戻した。,#1 regain/regains courage.,,,,,相手に恐怖し攻撃できない状態。,A condition where you are terrified and cannot attack.
+14,ConSleep,睡眠,Sleep,,Bad,,,,negateSleep,WIL,resNerve,500,,,,,sleep,,,睡眠,Asleep,#1は眠りに落ちた。,#1 fall/falls asleep.,#1は心地よい眠りから覚めた。,#1 wake/wakes up.,,,,,眠っている状態。,A condition where you are asleep.
+29,ConFaint,気絶,Unconsciousness,,Bad,,,,,PER,,600,,,,,faint,,,気絶,Unconscious,#1は気を失った。,#1 faint./faints.,#1は意識を取り戻した。,#1 regain/regains consciousness.,,,,,動けない状態。,A condition where you are immobilized.
+72,ConEntangle,拘束,Entangled,,Bad,,p/20,,,DEX,,200,,,,,fear,,",web",拘束,Entangle,#1は拘束された。,#1 are/is entangled.,#1は拘束から逃れた。,#1 manage(s) to escape the restraints.,,,,,移動ができない状態。,A condition where you cannot move.
+2,ConParalyze,麻痺,Paralyze,,Bad,,p/20,,negateParalysis,PER,resNerve,800,,,,,faint,,,麻痺,Paralyzed,#1の体は痺れた。,#1 are/is paralyzed.,#1は動けるようになった。,#1 can move again.,,,,,動けない状態。,A condition where you are immobilized.
+32,ConConfuse,混乱,Confusion,,Bad,,p/7,,negateConfusion,WIL,resMind,200,,,,,confuse,,,混乱,Confused,#1は混乱した。,#1 get/gets confused.,#1は混乱から回復した。,#1 are/is no longer confused.,,,,,混乱し移動や詠唱が阻害される状態。,A condition where you are confused and your movement or spellcasting is disrupted.
+33,ConBlind,盲目,Blind,,Bad,,p/8,,negateBlind,PER,resDarkness,100,,,,,blind,,,盲目,Blind,#1は盲目になった。,#1 become/becomes blind.,#1は盲目から回復した。,#1 recover/recovers from blind.,,,,,何も見えない状態。,A condition where you cannot see anything.
+35,ConInsane,狂気,Insanity,,Bad,,p/10,,,LER,,100,,,,"0,0,0,0,0,1,1,1,1,2",poison,,,"不安定,狂気,崩壊","Unsteady,Insane,Broken",#1は気が狂った。,#1 lose/loses #his mind.,#1は正気を取り戻した。,#1 come/comes to #himself again.,,,,,狂った状態。,A condition where you are insane.
+38,ConBleed,出血,Bleeding,,Bad,,,,featGolem,END,,200,,,,"0,0,0,0,0,1,1,1,1,2",bleed,,,"切り傷,出血,大出血","Bleeding,Bleeding!,Hemorrhage",#1は血を流し始めた。,#1 start/starts to bleed.,#1の出血は止まった。,#1 stop/stops bleeding.,,,,,出血し、行動するたびに体力を失う状態。,A condition where you are bleeding and lose health with every action.
+39,ConDim,朦朧,Dim,,Bad,,,,featGolem,WIL,resSound,500,,,,"0,0,0,0,0,1,1,1,1,1",dim,,,"朦朧,混濁","Dim,Muddled",#1は朦朧とした。,#1 are/is dimmed.,#1の意識ははっきりした。,#1 are/is no longer dimmed.,,,,,朦朧とし移動や詠唱が阻害される状態。,A condition where you are groggy and your movement or spellcasting is disrupted.
+66,ConHallucination,幻覚,Hallucination,,Bad,,p,,,,,100,,,,"0,0,0,0,0,1,1,1,1,1",dim,,,"幻覚,幻覚","Hallucinated,Hallucinated",#1は幻覚を見始めた。,#1 become(s) hallucinated,#1の幻覚は消えた。,#1 are/is no longer hallucinating.,,,,,あらぬものが見える状態。,A condition where you see things that aren't there.
+54,ConFreeze,結露,Chill,,Bad,,,,,,resCold,100,,ConBurning,,"0,0,0,0,0,1,1,1,1,1",freeze,,,"結露,凍結","Chill,Freeze","#1は冷たくなった。
+#1は凍り付いた。","#1 are/is chilled.
+#1 freeze(s) up.",#1から結露が消えた。,#1 are/is now free of condensation.,,,,,凍り付き移動速度が低下した状態。,A condition where you are frozen and your movement speed is reduced.
+51,ConHOT,自然の抱擁,Nature's Embrace ,,Buff,ConBleed,p/80+6,,,,,,,,random,,buff,SpHOT,buff,自然の抱擁,Nature's Embrace ,#1の周りを木の葉が舞った。,Leaves dance around #1.,木の葉は消えた。,The leaves disappear.,,,,1,継続的に体力を回復する祝福。,Blessing that gradually restores hit points.
+64,ConBandage,包帯,Bandage,,Buff,ConBleed,p/80+6,,,,,,,,,,buff,SpHOT,"buff,bandage",包帯,Bandage,#1は傷口に包帯を巻いた。,#1 wrap(s) a bandage around #his wound.,,,,,,1,継続的に体力を回復する。,Gradually restore hit points.
+86,ConSmoking,喫煙,Smoking,,Buff,,p/5,,,,,,,,,,buff,,"buff,cigar",喫煙,Smoking,#1は満足そうに煙草をくゆらせはじめた。,#1 start(s) to smoke with a satisfied expression.,#1は残念そうに煙草を投げ捨てた。,#1 throw(s) away #his weed with a look of regret.,,,,1,眠気を少しずつ覚ます状態。友好度にマイナスの影響を及ぼす。,A condition where you gradually emerge from sleepiness. Has a negative effect on affection gain.
+87,ConAwakening,意識明瞭,Sharpened Mind,,Buff,,p,,,,,,,ConSleep,,,buff,,"buff,bandage",意識明瞭,Sharpened Mind,#1はシャキッとなった。,#1 feel(s) sharp and alert.,#1は頭が鈍くなったような気がした。,#1 feel(s) mentally sluggish.,,,,1,眠気が訪れず、疲労時以外の睡眠を無効にする状態。食事によるスタミナ回復効果を妨げる。,A condition where you are unaffected by drowsiness and immune to sleep except when fatigued. Prevents stamina recovery from food.
+56,ConWeapon,魔法の武器,Enchanted Weapon,,Buff,,p/25+8,,,,,,"res,(p2/40+1)*5",,,,buff,ActWeapon,intonation,魔法の武器,Enchanted Weapon,#1は神秘的な旋律を口ずさみ始めた。,#1 begin(s) to hum a mysterious intonation.,#1は口ずさむのを止めた。,#1 stop(s) humming.,,,,1,術者の武器に魔力を施す加護。,Blessing that enhances caster's weapon
+60,ConTelepathy,テレパシー,Telepathy,,Buff,ConInsane,p/5+15,,,,,,,,random,,buff,SpTelepathy,holyveil,テレパシー,Telepathy,#1は遠くの精神を感じるようになった。,#1 start(s) to sense distant minds.,#1はもう遠くの精神を感じなくなった。,#1 no longer sense(s) distant minds.,,,,1,遠くの精神が感知できるようになる加護。,Blessing that allows sensing distant spirits.
+61,ConInvisibility,透明,Invisible,,Buff,,p/12+6,,,,,,"stealth,p/35+8",,random,,buff,SpInvisibility,holyveil,透明,Invisible,#1は消えた。,#1 disappear(s).,#1は突然現れた。,#1 suddenly appear(s).,,,,1,透明になる加護。,Blessing that grants invisibility.
+62,ConSeeInvisible,透明可視,See Invisible,,Buff,ConBlind,p/6+12,,,,,,"spotting,p/40+6",,random,,buff,SpSeeInvisible,holyveil,透明可視,See Invisible,#1の眼は赤く輝いた。,#your eyes gleam red.,#1の眼から赤い輝きが消えた。,The red gleam disappear(s) from #your eyes.,,,,1,透明可視を授ける加護。,Blessing that allows seeing invisible objects.
+63,ConIncognito,変装,Disguise,,Buff,,p/2+20,,,,,,,,,,buff,SpIncognito,holyveil,変装,Disguise,#1は別人になりすました。,#1 start(s) to disguise.,#1の変装は解けた。,#your disguise is uncovered.,,,,1,変装を可能にする加護。,Blessing that enables disguise.
+28,ConNightVision,猫の目,Cat's Eye,,Buff,ConBlind,p*3,,,,,,"PER,p/30+5",ConBlind,random,,buff,SpCatsEye,holyveil,暗視,Night Vision,#1の眼は銀色に輝き始めた。,#your eyes begin to glow silvery.,#1の眼は普通に戻った。,#your eyes look normal now.,,,,1,暗視を授ける加護。,Blessing that grants night vision.
+30,ConHolyVeil,ホーリーヴェイル,Holy Veil,,Buff,ConWeakResEle,p/6+5,,,,,,,ConFear,random,,buff,SpHolyVeil,holyveil,ホーリーヴェイル,Holy Veil,#1は聖なる衣に覆われた。,Holy coatings cover #your body.,#1の体は輝きを失った。,#your body stops shining.,,,,1,呪いを防ぐ加護。,Blessing that protects from hexes.
+59,ConResEle,元素保護,Elemental Shield,,Buff,ConWeakResEle,p/15+8,,,,,,"resFire,5+p/200,resCold,5+p/200,resLightning,5+p/200",ConWeakResEle,random,,buff,SpResEle,holyveil,元素保護,Elemental Shield,#1は元素の衣で覆われた。,An elemental garment envelops #1.,#1の元素の衣は消えた。,The elemental garment disappears.,,,,1,三元素への耐性を授ける加護。,Blessing that grants resistance to the three elements.
+42,ConHero,英雄,Heroic Mood,,Buff,ConFear,p/4+10,,,,,,"STR,p/30+5,DEX,p/30+5","ConFear,ConConfuse",random,,buff,SpHero,buff,英雄,Hero,#1の士気は高まった。,#1 feel(s) heroic.,#1の士気は元通りになった。,#1 no longer feel(s) heroic.,,,,1,英雄気分になる加護。,Blessing that evokes a heroic feeling.
+91,ConBreath,水中呼吸,Water Breathing,,Buff,ConSuffocation,p*3,,,,,,"swimming,p/30",ConSuffocation,random,,buff,SpBreath,buff,水中呼吸,Water Breathing,#1の周りに空気の泡が立ち始めた。,Bubbles of air start forming around #1.,空気の泡は弾けた。,The bubbles of air burst.,,,,1,水中での呼吸を可能にする加護。,Blessing that allows breathing underwater.
+71,ConEuphoric,高揚,Euphoric  ,,Buff,,p*2,,,,,,"STR,p/40,END,p/25,WIL,p/20,MAG,p/35",,random,,buff,ActHeadpat,buff,高揚,Euphoric,#1は高揚した。,#1 feel(s) euphoric.,#1の高揚は冷めた。,#1 no longer feel(s) euphoric.,,,,1,士気を上昇させる加護。,Blessing that boosts morale.
+93,ConBerserk,狂戦士化,Berserk,,Bad,,5,,,,,,"SPD,100,STR,p/20,END,p/15,WIL,-p/20,MAG,-p/10",ConFear,,"0,0,0,0,0,0,0,0,0,0",buff,,"buff,rage",狂戦士化,Berserk,怒りが#1を支配した！,#1 are/is consumed by fury!,#1は落ち着いた。,#1 feel(s) calm again.,,,,1,怒りに支配され攻撃行動しか行わなくなる状態。全ての与ダメージが上昇する。,A condition where you are consumed by rage and can only perform offensive actions. All damage dealt is increased.
+88,ConRebirth,再臨,Rebirth,,Buff,,-1,,,,,,,,,,buff,SpRebirth,"revive,revive",再臨,Rebirth,#1は大いなる存在により保護された。,#1 are/is protected by a great being.,大いなる存在は#1の元を去った。,The great being leaves #1.,,,,1,死亡した時に自動的に蘇る加護。,Blessing that automatically revives the bearer upon death.
+90,ConBrightnessOfLife,いのちの輝き,Brightness of Life,,Buff,,p/2+10,,,,,,,,,,buff,SpBrightnessOfLife,"revive,revive",いのちの輝き,Brightness of Life,#1の命はまばゆい輝きを帯びた。,#your life is bathed in a radiant glow.,,,,,,1,自爆への欲求を高める加護。,Blessing that intensifies the desire for self-destruction.
+76,ConStrife,戦禍の炎,Flames of Strife,,Buff,,30,,,,,,,,,,buff,ConStrife,"buff,fire",戦禍の炎,Flames of Strife,,,,,,,,1,敵を倒すごとに物理攻撃が強化される加護。,Blessing that strengthens physical attacks with each enemy defeated.
+78,ConChampagne,シャンパンコール,Champagne Call,,Buff,,p*3/2,,,,,,,,,,buff,SpHOT,"buff,fire",シャンパンコール,Champagne Call,,,,,,,,1,シャンパンコールを定期的に唱える加護。,Blessing that periodically casts champagne call.
+79,ConPeace,心の平穏,Peace of Mind,,Buff,,p/5+10,,,,,,,"ConInsane,ConHallucination,ConBerserk",random,,buff,SpPeace,"buff,fire",心の平穏,Peace of Mind,#1の心は落ち着いた。,#1 feel(s) a sense of inner peace.,#1の心の平穏は去っていった。,The peace in #your heart leaves.,,,,1,狂気から心を守る加護。,Blessing that protects your mind from insanity.
+43,ConLevitate,浮遊,Levitation,,Buff,ConGravity,p/5+10,,,,,,,,random,,buff,SpLevitate,"revive,buff",浮遊,Levitate,#1は浮き上がった。,#1 levitate(s).,#1の浮遊の効果は切れた。,#1 no longer levitate(s).,,,,1,浮遊を授ける加護。,Blessing that grants levitation.
+48,ConHolyShield,聖なる盾,Holy Shield,BaseBuff,Buff,ConWeakness,p/3+10,,,,,,"PV,p/15+15","ConFear,ConWeakness",random,,buff,SpHolyShield,holyveil,聖なる盾,Holy Shield,#1は光輝いた。,#1 shine(s).,#1の体は輝きを失った。,#your body stops shining.,,,,1,防御力を上げる加護。,Blessing that enhances defense.
+49,ConWisdom,知者の加護,Divine Wisdom,BaseBuff,Buff,ConSilence,p/4+10,,,,,,"MAG,p/40+6,LER,p/40+6,reading,p/40+3",ConConfuse,random,,buff,SpWisdom,holyveil,知者の加護,Divine Wisdom,#1の思考は冴え渡った。,#1 start(s) to think clearly.,#1は愚かになった気がした。,#1 are/is no longer genius.,,,,1,知恵を授ける加護。,Blessing that bestows wisdom.
+52,ConInvulnerable,不死身,Invulnerable,,Buff,,p/1000,,,,,,,,,,buff,SpInvulnerable,buff,不死身,Invulnerable,#1は黄金の光に包まれた。,The fate protects #1.,,,,,,1,傷つかなくなる加護。,Blessing that grants invulnerability.
+82,ConDeathSentense,死の宣告,Death Sentense,,Sentense,,13,,,,,,,,,,debuff,ActDeathSentense,"debuff,laugh_death",死の宣告,Death Sentence,#1は死を宣告された。,#1 are/is sentenced to death.,,,,,,1,一定時間後に死ぬ宣告。現在のマップを離れるか、宣告者を破壊することで解除される。,Sentense that causes death after a certain period of time. It can be lifted by leaving the current map or destroying the sentenser.
+67,ConBoost,覚醒,Boost,,Buff,,30,,,,,,"SPD,min(100+p/3;300),featRapidArrow,4,featRapidMagic,2",,,,buff,SpInvulnerable,buff,覚醒,Boost,#1は覚醒した！,#1 is awaken!,#1は元に戻った。,#1 return(s) to normal.,,,,1,真の力に目覚める加護。,Blessing that boosts attributes.
+96,ConSevenSense,セブンセンシズ,Seventh Sense,,Buff,,7,,,,,,"SPD,min(100+p/10;200),featRapidArrow,2,featRapidMagic,1",,,,buff,SpInvulnerable,buff,セブンセンシズ,Seventh Sense,#1はセブンセンシズに目覚めた！,#1 awaken(s) to the Seventh Sense!,#1の小宇宙は燃え尽きた。,#your cosmo fade(s) away.,,,,1,真の力に目覚める加護。,Blessing that boosts attributes.
+69,ConTransmuteBroom,ホウキ変容,Broomification,,Buff,,30+p,,,,,,"SPD,40,life,-10,STR,-10,DV,20,resFire,-10,levitation,10",,,,buff,SpTransmuteBroom,"debuff,offering",ホウキ変容,Broomification,#1は変容した。,#1 are/is transmuted.,#1は元に戻った。,#1 return(s) to normal.,,,,1,他者への変容。,Transformation into another.
+70,ConTransmutePutit,プチ変容,Putitification,,Buff,,30+p,,,,,,"STR,-5,END,-5,CHA,5,resAcid,10",,,,buff,SpTransmutePutit,"debuff,offering",プチ変容,Putitification,#1は変容した。,#1 are/is transmuted.,#1は元に戻った。,#1 return(s) to normal.,,,,1,他者への変容。,Transformation into another.
+92,ConTransmuteCat,猫変容,Catification,,Buff,,30+p,,,,,,"SPD,20,stealth,20,bane_machine,10,bane_fish,10,mod_flurry,20,mod_chaser,20,resFire,-5,resSound,-5",,,,buff,SpTransmuteCat,"debuff,offering",猫変容,Catification,#1は変容した。,#1 are/is transmuted.,#1は元に戻った。,#1 return(s) to normal.,,,,1,他者への変容。,Transformation into another.
+98,ConTransmuteBat,コウモリ変容,Bat Transformation,,Buff,,,,,,,,"SPD,60,stealth,30,evasionPerfect,65,dmgDealt,-50,life,-90,mana,-50,levitation,10,negateSunburn,10",,,,buff,SpTransmuteBat,"debuff,offering",コウモリ変容,Bat Transformation,#1は変容した。,#1 are/is transmuted.,#1は元に戻った。,#1 return(s) to normal.,,,,1,他者への変容。,Transformation into another.
+102,ConTransmuteMimic,ミミック,Mimic,,Buff,,,,,,,,"SPD,-50,stealth,40+p/5,PDR,75,EDR,75,dmgDealt,-90,evasionPerfect,-200",,,,buff,SpTransmuteMimic,,ミミック,Mimic,#1は擬態した。,#1 mimic(s).,#1は擬態を解いた！,#1 reveal(s) #his true form!,,,,1,他者への変容。,Transformation into another.
+99,ConVampire,吸血症,Vampirism,,Neutral,,,,,,,,,,,,debuff,,,#,#,,,,,,,,,,
+101,ConPeaky,ピーキー,Peaky,,Neutral,,,,,,,,,,,,buff,,,ピーキー,Peaky,,,,,,,,,,
+103,ConAmbush,不意打ち,Ambush,,Neutral,,4,,,,,,,,,,stance,StTaunt,,不意打ち,Ambush,,,,,,,,,攻撃が必ずクリティカルヒットになる状態。,A condition where critical hits are guaranteed on all attacks.
+50,ConMiasma,瘴気,Miasma,,Debuff,,p/100+5,50,,,,,,,,,debuff,ActMiasma,debuff,瘴気,Miasma,#1は#2の瘴気に包まれた。,#1 are/is enveloped in the miasma of #2.,,,,,,,継続的に体力を奪う呪い。,Hex that gradually damages the target.
+44,ConGravity,重力,Gravity,,Debuff,,p/20+10,20,negateGravity,,,,,ConLevitate,random,,debuff,SpGravity,"debuff,gravity",重力,Gravity,#1は重力を感じた。,#1 feel(s) the gravity.,#1の体は元通り軽くなった。,#1 no longer feel(s) the gravity.,,,,,重力を付与する呪い。テレポートやノックバックを阻害する。,Hex that applies gravity. It blocks teleportation and knockback effects.
+47,ConSilence,沈黙,Silence,,Debuff,,p/80+5,8,,WIL,,500,,,random,,debuff,SpSilence,debuff,沈黙,Silence,#1は分厚い霧に覆われた。,#1 are/is surrounded by hazy mist.,,,,,,,詠唱を阻害する呪い。,Hex that impedes incantations.
+57,ConWeakness,脆弱,Weakness,,Debuff,,p/50+10,20,,WIL,,20,,,random,,debuff,SpWeakness,debuff,脆弱,Weakness,#1は脆くなった。,#1 feel(s) weak.,,,,,,,防御を半減する呪い。,Hex that halves defense.
+65,ConBane,災い,Bane,,Debuff,,p/50+10,20,,LER,,20,"LUC,-50-p/3",,random,,debuff,SpBane,debuff,災い,Bane,#1は不幸になった。,Fortune has forsaken #1.,,,,,,,不幸になる呪い。,Hex that strips luck.
+68,ConExcommunication,破門,Excommunication,,Debuff,,p/50+20,20,,LER,,20,,,,,debuff,SpBane,debuff,破門,Excommunication,#1は破門された。,#1 are/is excommunicated.,#1は許された。,#1 are/is forgiven.,,,,,信仰を断絶する呪い。,Hex that severs faith.
+58,ConWeakResEle,元素の傷跡,Elemental Scar,,Debuff,,p/40+8,15,,END,,20,"resFire,-5-p/100,resCold,-5-p/100,resLightning,-5-p/100",,random,,debuff,SpWeakResEle,debuff,元素の傷跡,Elemental Scar,#1は元素への耐性を失った。,#1 lose(s) resistance to elements.,,,,,,,元素への耐性を奪う呪い。,Hex that weakens resistances to elements.
+89,ConNightmare,ナイトメア,Nightmare,,Debuff,,p/60+6,15,,LER,,50,"resMind,-4-p/150,resNether,-3-p/200,resDarkness,-5-p/100",,random,,debuff,SpNightmare,debuff,ナイトメア,Nightmare,#1は悪夢に苛まれた。,#1 are/is tormented by a nightmare.,,,,,,,悪夢により耐性を減少させる呪い。,Hex that weakens resistances through nightmares.
+11,ConDisease,病気,Disease,,Disease,,p/5,,,,,,,,,"0,0,0,0,0,0,1,1,1,1",disease,,,"病気,重病","Sick,Very Sick",#1は病に蝕まれた。,#1 feel/feels sick.,#1の病は回復した。,#1 recover/recovers from sickness.,,,,,病気により自然回復が止まった状態。,A condition where natural healing stops due to illness.
+37,ConDrug,薬中毒,Addiction,,Disease,,,,,,,,,,,,disease,,,薬漬け,Drugged,#1はハイになった。,#1 become/becomes high.,#1はまともになった。,#1 are/is no longer high.,,,,,薬がないと生きていけない状態。,A condition where you cannot live without medication.
+41,ConAnorexia,拒食症,Anorexia,,Disease,,,,,,,,,,,,disease,,"debuff,offering",拒食症,Anorexia,#1は拒食症になった。,#1 develop/develops Anorexia.,#1の拒食症は治った。,#1 manage/manages to recover from anorexia.,,,,,食べたものを吐き出してしまう状態。,A condition where you vomit everything you eat.
+31,ConTorch,松明,Torch,,Neutral,,p*30,,,,,,,,,,buff,,,松明,Torch,,,,,,,,1,,
+100,ConDark,潜行,Dark Concealment,,Neutral,,10+p/5,,,,,,"stealth,10+p/20,negateSunburn,10",,,,reload,,,潜行,Dark Concealment,#1は闇に潜った。,#1 don(s) darkness.,#1は闇を抜けた。,#1 cast(s) off darkness.,,,,1,闇に潜んだ状態。,A condition where you are hidden in darkness.
+24,ConWet,濡れ,Wet,,Neutral,,p/5,,,,,,,ConBurning,,,wet,,,濡れ,Wet,#1は濡れた。,#1 are/is wet.,#1は乾いた。,#1 dry/dries up.,,,,,濡れた状態。電撃属性に弱くなる。,A condition where you are wet and more susceptible to electric attacks.
+36,ConDrunk,酔い,Drunk,,Neutral,,p/3+10,,,,,,,,,"0,1",reload,,,"ほろ酔い,泥酔","Drunk,Wasted",#1は酔っ払った。,#1 get/gets drunk.,#1は酔いから覚めた。,#1 get/gets sober.,,,,,酔った状態。たまにふらふらする。,A condition where you are intoxicated and occasionally stagger.
+40,ConWait,動揺,Distraction,,Neutral,,,,,,,,,,,,reload,,,動揺,Distracted,,,,,,,,,動揺して短期間動けない状態。,A condition where you are agitated and cannot move for a short time.
+85,ConSupress,妨害,Suppressed,,Neutral,,p/20,,,,,100,,,random,,debuff,,,妨害,Suppressed,,,,,,,,,与えるダメージが減少し、アビリティの使用機会が減る状態。,"A condition where damage dealt is reduced, and opportunities to use abilities are limited."
+46,ConSuspend,仮死,Asphyxia,,Neutral,,,,,,,,,,,,reload,,,仮死,Asphyxia,#1の活動は停止した。,#your body functions halt.,#1は再び動き出した。,#1 animte/animates again.,,,,,生命活動が停止して動けない状態。,"A condition where your life functions have stopped, rendering you immobile."
+53,ConReload,リローディング！,Reloading!,,Neutral,,,,,,,,,,,,reload,,",reload,,reloaded",装填中,Reloading,#1は銃に弾をこめ始めた。,#1 start(s) to reload #his gun.,#1はリロードを終えた。,#1 finish(es) reloading.,,,,,リロード中で遠隔武器が使えない状態。,A condition where you are reloading and cannot use ranged weapons.
+95,ConFractured,折れかけの心,Fractured Valor,,Neutral,,p,,,,,,,,,,reload,,,折れかけの心,Fractured Valor,,,,,,,,,心がくじけかけ、不屈の効果が発動しない状態。,A condition where your spirit falters and the effect of Guts no longer activates 
+0,hunger,食事,Food,,Stats,,,,,,,,,,,"0,1,1,2,2,2,3,3,4,5",hunger,,,"食べ過ぎ,満腹,#,空腹,飢餓,餓死寸前","Bloated,Filled,#,Hungry,Very Hungry,Starving","
+
+
+腹がすいてきた。|空腹になった。|さて何を食べようか。
+空腹で目が回りだした…|すぐに何かを食べなくては…
+このままだと餓死してしまう！|腹が減ってほとんど死にかけている。","
+
+
+You are getting hungry.|You feel hungry.|Now what shall you eat?
+Your hunger makes you dizzy.|You have to eat something NOW.
+You are starving!|You are almost dead from hunger.",,,"お腹が一杯で動けない！
+あなたは十分に満足した。
+まだ物足りない。
+まだ物足りない。
+こんなものじゃ腹の足しにもならない！
+こんなものじゃ腹の足しにもならない！","You are too full to move now!
+You've eaten sufficiently.
+You are still peckish.
+You are still peckish.
+Your stomach is still growling!
+Your stomach is still growling!",,,満腹度。腹が減ると速度が遅くなり、自然回復が止まり、最後には餓死する。,"A condition of being full. As you get hungrier, your speed decreases, natural healing stops, and eventually, you die of starvation."
+1,burden,重荷,Burden,,Stats,,,,,,,,,,,"0,1,1,2,2,2,3,3,3,4",weight,,,"#,重荷,圧迫,超過,潰れ","#,Burden,Burden!,Overweight,Squashed",,,,,,,,,荷物の重さ。重くなるほど速度が遅くなる。,"A condition affected by the weight of your luggage. The heavier it is, the slower you move."
+13,insanity,狂気度,Insanity,,Stats,,,,,,,,,,,"0,0,0,0,0,0,0,0,0,0",sleep,,,"#,","#,",,,,,,,,,精神の不安定さ。悪化すると気がくるって死ぬ。,"A condition of mental instability. If it worsens, you go insane and die."
+3,stamina,スタミナ,Stamina,,Stats,,,,,,,,,,,"1,1,2,2,3,3,3,3,3,3",,,,"過労,疲労,#,#","Exhausted,Tired,#,#",,,,,,,,,疲労度。疲労がたまると行動をするたびに体力が減るようになる。,"A condition of fatigue. As it accumulates, you start losing health with every action."
+4,sleepiness,睡眠,Sleep,,Stats,,,,,,,,,,,"0,0,0,0,1,1,2,2,3,3",sleep,,,"#,眠気,ひどい眠気,ひどい眠気","#,Sleepy,Very Sleepy,Very Sleepy","
+少し眠くなってきた。
+瞼が重い…
+すぐに睡眠が必要だ！","
+You feel a bit sleepy.
+Your eyelids feel heavy.
+You need to sleep now!",,,もう眠気を感じない。,You aren't sleepy any more.,,,眠気。ひどい眠気になると速度が低下する。,A condition of sleepiness. Severe sleepiness reduces your speed.
+5,depression,ムード,Mood,,Stats,,,,,,,,,,,"0,1,2,2,3,3,3,3,4,5",,,,"崩壊,鬱,空虚,#,充足,狂喜","Broken,Depressed,Empty,#,Fulfilled,Wild Joy",,,,,,,,,,
+6,bladder,トイレ,Bladder,,Stats,,,,,,,,,,,"0,1,2,2,3,3,3,3,3,3",,,,"瀬戸際,危険,#,#","Danger!,Danger,#,#,",,,,,,,,,,
+7,hygiene,衛生,Hygiene,,Stats,,,,,,,,,,,"0,1,2,2,3,3,3,3,4,5",,,,"生ごみ,不潔,不潔,#,清潔,純白","Garbage,Filthy,Dirty,#,Clean,Washed",,,,,,,,,清潔度。友好度の上昇に影響し、ブラッシングや温泉に浸かることで改善する。,A condition of cleanliness. It affects affinity gain and can be improved by brushing or soaking in a hot spring.
+8,mana,マナ,Mana,,Stats,,,,,,,,,,,"0,0,0,1,1,2,2,3,3,4",,,,,,,,,,,,,,,
+9,health,健康,Health,,Stats,,,,,,,,,,,"0,1,2,2,3,3,3,3,4,5",,,,"危篤,重体,重体,軽傷,かすり傷,健康","Dying,Wounded,Wounded,Grazed,Grazed,Healthy",,,,,,,,,,
+10,mood,ムード,Mood,,Stats,,,,,,,,,,,"0,1,2,2,3,3,3,3,4,5",,,,"最低,劣悪,悪い,普通,まあまあ,幸福","Worst,Very Bad,Bad,Normal,Nice,Happy",,,,,,,,,,
+45,ConWrath,神の怒り,God's Wrath,,Wrath,,p,99,,,,,,,hex,,poison,ActWrath,"attack_lightning,wrath",神の怒り,God's Wrath,#1は神の怒りを買った！,#1 provoke(s) the wrath of God!,#1は許された。,#1 are/is forgiven.,,,,,神罰。,Divine punishment.
+34,ConBuffStats,能力強化,Enhance Attribute,,,,p/8+5,,,,,,,,,,hunger,,,能力強化,Enhance Attribute,,,,,,,,1,能力を変化させる加護、または呪い。,Hex or blessing that alters an ability.
+73,ConWardMonster,魔除け,Ward Monster,,Buff,,p/4+100,,,,,,,ConDrawMonster,,,buff,Perfume,buff,,,魔物は#1をさけるようになった。,Monsters start to avoid #1.,#1の匂いは消えた。,#1 no longer smell(s).,,,,1,魔物に襲われにくくなる加護。,Blessing that decreases the chance of encountering  monsters.
+74,ConDrawMonster,魔寄せ,Draw Monster,,Buff,,p/4+100,,,,,,,ConWardMonster,,,buff,Perfume,buff,,,魔物は#1にひきよせられるようになった。,#1 lure(s) monsters.,#1の匂いは消えた。,#1 no longer smell(s).,,,,1,魔物に襲われやすくなる加護。,Blessing that increases the chance of encountering monsters.
+75,ConDrawMetal,メタル寄せ,Draw Metal,,Buff,,p/4+100,,,,,,,,,,buff,Perfume,buff,,,魔物は#1にひきよせられるようになった。,#1 lure(s) monsters.,#1の匂いは消えた。,#1 no longer smell(s).,,,,1,メタルモンスターに遭遇しやすくなる加護。,Blessing that increases the chance of encountering metal monsters.
+80,ConDrawBacker,出会い,Meeting,,Buff,,p/4+100,,,,,,,,,,buff,Perfume,buff,,,#1は出会いの予感がした。,#1 feel(s) the anticipation of a meeting.,#1の匂いは消えた。,#1 no longer smell(s).,,,,1,奇妙な出来事に遭遇しやすくなる加護。,Blessing that increases the chances of encountering bizzare events.
+81,ConHotspring,魂の調和,Harmony of Soul ,,Buff,,p*2,,,,,,"slowCorruption,p/2",,random,,buff,Hotspring,buff,,,#1の体は温まった。,#your body warms up.,#1の匂いは消えた。,#1 no longer smell(s).,,,,1,免疫力を高め異物の侵入を防ぐ加護。,Blessing that boosts immunity to block harmful substances.

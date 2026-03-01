@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Meta>
+  <title>Ars Moriendi</title>
+  <id>chitsii.elin._ars_moriendi</id>
+  <loadPriority>100</loadPriority>
+  <author>chitsii</author>
+  <version>0.23.252</version>
+  <tags>General,Integration,Quest</tags>
+  <description>
+A necromancy mod - capture souls, learn forbidden spells, raise undead servants.
+  </description>
+  <builtin>false</builtin>
+</Meta>

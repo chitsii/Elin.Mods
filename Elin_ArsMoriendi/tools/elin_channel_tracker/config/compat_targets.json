@@ -1,0 +1,87 @@
+{
+  "kind": "compat_targets",
+  "schema_version": "1.0.0",
+  "targets": [
+    {
+      "target": "Chara.SetMainElement",
+      "check_kind": "reflection",
+      "type_name": "Chara",
+      "canonical_name": "SetMainElement",
+      "candidate_names": [
+        "SetMainElement"
+      ],
+      "candidate_signatures": [
+        "void(System.Int32,System.Int32,System.Boolean)",
+        "void(System.Int32,System.Int32)",
+        "void(System.Int32)"
+      ]
+    },
+    {
+      "target": "Chara.Die",
+      "check_kind": "reflection",
+      "type_name": "Chara",
+      "canonical_name": "Die",
+      "candidate_names": [
+        "Die"
+      ],
+      "candidate_signatures": [
+        "void(Element,Card,AttackSource,Chara)",
+        "void(Element,Card,AttackSource)"
+      ]
+    },
+    {
+      "target": "Chara.ReleaseMinion",
+      "check_kind": "reflection",
+      "type_name": "Chara",
+      "canonical_name": "ReleaseMinion",
+      "candidate_names": [
+        "ReleaseMinion",
+        "UnmakeMinion"
+      ],
+      "candidate_signatures": [
+        "void()"
+      ]
+    },
+    {
+      "target": "Quest.Create",
+      "check_kind": "reflection",
+      "type_name": "Quest",
+      "canonical_name": "Create",
+      "candidate_names": [
+        "Create",
+        "CreateQuest"
+      ],
+      "candidate_signatures": [
+        "Quest(System.String,System.String,Chara,System.Boolean)",
+        "Quest(System.String,System.String,Chara)",
+        "Quest(System.String)"
+      ]
+    },
+    {
+      "target": "ActPlan._Update",
+      "check_kind": "patch_target",
+      "type_name": "ActPlan",
+      "canonical_name": "_Update",
+      "candidate_names": [
+        "_Update",
+        "Update"
+      ],
+      "candidate_signatures": [
+        "void(PointTarget)"
+      ]
+    },
+    {
+      "target": "Point.GetNearestPoint",
+      "check_kind": "reflection",
+      "type_name": "Point",
+      "canonical_name": "GetNearestPoint",
+      "candidate_names": [
+        "GetNearestPoint"
+      ],
+      "candidate_signatures": [
+        "Point(System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Int32)",
+        "Point(System.Boolean,System.Boolean,System.Boolean,System.Boolean)"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <Nullable>disable</Nullable>
+    <DefineConstants>$(DefineConstants);NUNIT</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+    <PackageReference Include="NUnit" Version="3.14.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
+    <PackageReference Include="Moq" Version="4.20.70" />
+  </ItemGroup>
+
+  <!-- CwlQuestFramework ソースファイルを直接コンパイル -->
+  <ItemGroup>
+    <Compile Include="..\..\src\CwlQuestFramework\*.cs" LinkBase="CwlQuestFramework" />
+    <Compile Include="..\..\src\Core\IFlagStorage.cs" LinkBase="Core" />
+    <Compile Include="..\..\src\Core\InMemoryFlagStorage.cs" LinkBase="Core" />
+    <Compile Include="..\..\src\Migration\FlagMigration.cs" LinkBase="Migration" />
+  </ItemGroup>
+
+</Project>

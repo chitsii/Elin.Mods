@@ -1,0 +1,117 @@
+id,alias,name_JP,name,category,tag,thing,goods,minerals,decal,decay,grass,defFloor,defBlock,edge,ramp,idSound,soundFoot,hardness,groups,tier,chance,weight,value,quality,atk,dmg,dv,pv,dice,bits,elements,altName,altName_JP
+int,string,string,string,string,string[],string,string[],string[],int,int,int,int,int,int,int,string,string,int,string[],int,int,int,int,int,int,int,int,int,int,string[],elements,string[],string[]
+113,,,,,,chunk,,,2,,,1,1,0,6,,,1,,,1000,100,100,1,,,,,100,,,,
+42,paper,紙,paper,fiber,,fiber,,,15,,,,,,,paper,carpet,1,"metal,leather",0,,10,90,7,15,-10,12,0,100,,evasion/2,silly,ふざけた
+10,meat,生もの,raw food,organic,food,fragment,,,2,10,,,,,,meat,,1,"metal,leather",0,150,100,100,10,-5,-5,-5,-5,100,,nutrition/3,edible,食用
+94,process,加工物,processed food,organic,food,fragment,,,2,,,,,,,leather,,1,,0,,100,100,10,0,0,0,0,100,,nutrition/1,,
+9,jelly,ゼリー,jelly,organic,coral,fragment,,,4,,,,,,,jelly,water,1,"metal,leather",0,150,80,120,10,12,-2,5,7,100,fire,"resFire/2,nutrition/2",trembling,プルプルする
+91,hemp,麻,hemp,fiber,,fiber,,,15,,,,,,,leather,carpet,2,leather,0,,60,90,6,1,1,7,14,100,,rare/-10,tough,強靭なる
+70,cotton,綿,cotton,fiber,,fiber,,,15,,,,,,,leather,carpet,2,leather,0,,40,80,8,2,1,9,0,100,,comfort/20,lightweight,薄い
+5,grass,草,grass,grass,farm,grass,,,7,,,35,,1,3,grass,dirt,2,"metal,leather",0,,60,75,2,2,-2,4,2,100,,,practice,練習用の
+62,straw,藁,straw,grass,straw,grass,,,7,,,36,34,,,straw,carpet,2,leather,0,,40,70,5,-1,-1,8,1,100,,"resCold/1,resFire/-2",farmwork,農作業用の
+8,sand,砂,sand,soil,"soil,sand,farm",,,,11,,,33,33,3,,mud,sand,3,"metal,leather",0,500,50,80,,-5,-5,-5,-5,100,fire,,toy,子供のおもちゃの
+97,sand_sea,海砂,sea sand,soil,"soil,sand,farm",,,,11,,,33,33,3,,mud,sand,3,,0,,50,80,,-5,-5,-5,-5,100,fire,,,
+90,sand_white,白砂,white sand,soil,"soil,sand,farm",,,,11,,,33,33,3,,mud,sand,3,,0,,50,80,,-5,-5,-5,-5,100,fire,,,
+40,bone,骨,bone,bone,,bone,,,14,,,,,,,bone,stone,12,"metal,leather",0,400,120,130,8,10,4,7,6,130,,resNether/2,immortal,不死なる
+56,phyllite,フィライト,phyllite,rock,,rock,,,11,,,,,,,rock,stone,13,,0,500,160,120,8,8,6,4,7,110,fire,,,
+61,ice,氷,ice,rock,ice,rock,,,19,,,38,35,,,glass,glass,15,,0,0,120,80,5,0,0,0,0,110,fire,,,
+3,granite,グラナイト,granite,rock,,rock,,,11,,,6,,,,rock,stone,18,metal,0,2000,220,90,6,4,8,2,10,125,fire,,"rigid,stone","岩をも砕く,石の"
+1,oak,オーク,oak,wood,,log,,,17,,,,,,,wood,wood,20,"metal,leather",0,,100,100,10,2,3,3,6,100,,,"forest,wooden","森から生まれし,木の"
+63,cedar,杉,cedar,wood,,log,,,17,,,,,,,wood,wood,20,,0,,100,100,10,2,3,3,6,100,,,,
+49,limestone,ライムストーン,limestone,rock,,rock,,,11,,,,,,,rock,stone,30,,0,100,180,140,6,6,9,1,11,120,fire,,,
+14,copper,銅,copper,ore,,ore,,,11,,,,,,,ore,metal,34,metal,0,500,200,110,7,6,5,4,5,110,"fire,acid","eleLightning/5,resLightning/-3",lightning,雷を帯し
+36,lapis,ラピス,lapis lazuli,gem,,ore_gem,,,13,,,,,,,ore,stone,42,,0,,120,180,12,4,8,3,8,120,fire,air/20,,
+35,onyx,オニキス,onyx,gem,,ore_gem,,,11,,,,,,,ore,stone,50,,0,,180,160,8,0,11,1,12,130,fire,eleDarkness/3,,
+16,mica,ミカ,mica,crystal,,ore,,,11,,,,,,,ore,stone,5,"metal,leather",0,,40,150,12,10,-2,12,0,100,fire,"LUC/3,air/20",ephemeral,儚き
+104,amber,琥珀,amber,gem,,ore_gem,,,13,,,,,,,ore,stone,22,,0,250,80,150,14,10,8,9,8,110,,,,
+71,silk,シルク,silk,fiber,,fiber,,,15,,,,,,,leather,carpet,2,leather,1,,60,210,17,6,-2,12,2,100,,"resMind/2,comfort/30",beautiful,美しき
+65,grass_mystic,神秘的な草,mystic grass,grass,farm,grass,,,7,,,35,,1,3,grass,dirt,2,,1,,,,3,,,,,,,,,
+72,scale,鱗,scale,skin,,skin,,,15,,,,,,,leather,carpet,4,leather,1,,180,150,11,14,6,12,11,120,fire,resFire/4,wrath,逆鱗に触れし
+21,coral,珊瑚,coral,bone,,bone,,,14,,,,,,,bone,stone,7,metal,1,,180,130,18,7,2,10,7,120,,"resLightning/3,air/30",ocean,海からもたらされし
+78,plastic,プラスチック,plastic,ore,,ore,,,11,,,,,,,ore,stone,10,"metal,leather",1,,60,120,11,12,1,16,4,100,fire,,transparent,透き通った
+22,glass,珪砂,quartz sand,soil,"soil,sand,farm,coral",,,,11,,,,,,,mud,dirt,17,metal,1,,120,110,12,19,0,17,0,100,fire,SPD/3,"glittering,glass","さざめく,ガラスの"
+95,carbone,炭,carbon,wood,carbone,log,,,17,,,,,,,wood,wood,20,,1,,100,100,6,2,3,3,6,100,fire,,,
+96,poplar,ポプラ,poplar,wood,,log,,,7,,,,,,,wood,wood,20,,1,,100,100,10,2,3,3,6,100,,,,
+44,pine,パイン,pine,wood,,log,,,17,,,,,,,wood,wood,20,,1,,100,100,10,2,3,3,6,100,,,,
+84,fir,モミ,fir,wood,,log,,,17,,,,,,,wood,wood,20,,1,,100,100,10,2,3,3,6,100,,comfort/30,,
+85,palm,パルル,palulu,wood,,log,,,17,,,,,,,wood,wood,20,,1,,100,100,10,2,3,3,6,100,,cute/30,,
+11,wood_acacia,アカシア,acacia,wood,,log,,,17,,,,,,,wood,wood,25,,1,,100,100,10,2,3,3,6,100,,,,
+41,wood_birch,樺,birch,wood,,log,,,17,,,,,,,wood,wood,20,,1,,100,100,10,2,3,3,6,100,,"cute/10,comfort/20",,
+53,silt,シルト,silt,rock,,rock,,,11,,,,,,,rock,stone,24,,1,,110,120,12,8,6,7,7,110,fire,,,
+13,silver,銀,silver,gem,,ore_gem,,,13,,,,,,,ore,stone,27,"metal,leather",1,,230,220,16,6,7,4,11,130,"fire,acid","resDarkness/2,bane_undead/25",dreadbane,闇を砕く
+52,slate,スレート,slate,rock,,rock,,,11,,,,,,,rock,stone,38,,1,,140,160,11,6,8,6,9,120,fire,,,
+50,marble,大理石,marble,rock,,rock,,,11,,,,,,,rock,stone,40,,1,200,170,220,16,6,8,6,10,120,fire,,,
+15,bronze,青銅,bronze,ore,,ore,,,11,,,,,,,ore,stone,45,metal,1,,200,120,12,2,5,1,5,100,fire,resLightning/2,noble,気高き
+2,iron,鉄,iron,ore,,ore,,,11,,,,,,,ore,metal,56,metal,1,,260,150,14,8,8,3,14,135,fire,resFire/2,mass,鉄塊と呼ばれる
+28,cobalt,コバルト,cobalt,gem,coral,ore_gem,,,11,,,,,,,ore,stone,54,,1,,130,150,12,4,8,2,10,120,fire,elePoison/3,,
+54,diorite,ダイオライト,diorite,rock,,rock,,,11,,,,,,,rock,stone,46,,1,,160,120,13,5,9,4,9,125,fire,,,
+51,basalt,バサルト,basalt,rock,,rock,,,11,,,,,,,rock,stone,52,,1,,180,130,11,3,11,2,11,130,fire,,,
+34,jade,翡翠,jade,crystal,,ore_gem,,,13,,,,,,,ore,stone,57,,1,,150,170,18,4,8,2,10,125,fire,,,
+55,obsidian,黒曜石,obsidian,ore,,ore,,,11,,,,,,,rock,stone,60,metal,1,,160,160,16,16,10,13,14,140,fire,"resChaos/3,bane_god/20",godbane,神殺しの
+81,spidersilk,蜘蛛糸,spider silk,fiber,,fiber,,,15,,,,,,,leather,carpet,2,leather,2,,50,240,26,7,3,22,14,100,,rare/30,entangled,絡みつく
+73,cashmere,カシミア,cashmere,fiber,,fiber,,,15,,,,,,,leather,carpet,4,leather,2,,80,320,28,2,1,15,18,100,,"resCold/3,CHA/2,cute/30",warm,暖かなる
+80,wool,ウール,wool,fiber,,fiber,,,15,,,,,,,leather,carpet,4,leather,2,,70,160,25,3,3,16,12,100,,resCold/2,soft,柔らかい
+24,hide,革,hide,skin,,skin,,,15,,,,,,,leather,carpet,4,leather,2,,100,150,22,12,2,13,6,100,,,mysterious,全てを包む
+59,mahogany,マホガニー,mahogany,wood,,log,,,17,,,,,,,wood,wood,25,,2,,100,100,10,2,3,3,6,100,,rare/20,,
+23,crystal,水晶,crystal,crystal,coral,fragment,,,13,,,,,,,glass,glass,22,metal,2,,200,180,25,19,14,16,19,150,fire,"MAG/3,resSound/3",luminescent,異光を放つ
+26,pearl,真珠,pearl,gem,coral,ore_gem,,,13,,,,,,,ore,stone,32,leather,2,,190,280,29,18,6,18,12,140,fire,"PER/3,rare/20",shining,闇を照らす
+39,platinum,白金,platinum,gem,coral,ore_gem,,,13,,,,,,,ore,stone,49,metal,2,,220,300,28,16,11,14,17,140,"fire,acid",resDarkness/3,brilliant,光をまといし
+33,opal,オパール,opal,gem,,ore_gem,,,13,,,,,,,ore,stone,53,,2,,200,250,29,14,9,16,16,130,fire,innocence/8,,
+20,steel,鋼,steel,ore,coral,ore,,,11,,,,,,,ore,stone,67,metal,2,,270,200,21,12,13,8,18,140,"fire,acid",,historic,由緒ある
+37,turquoise,ターコイズ,turquoise,gem,,ore_gem,,,11,,,,,,,ore,stone,58,,2,,140,220,28,13,12,14,14,130,fire,air/20,,
+31,topaz,トパーズ,topaz,gem,coral,ore_gem,,,13,,,,,,,ore,stone,60,,2,,160,280,28,14,13,16,15,135,fire,eleFire/5,,
+99,amethyst,アメジスト,amethyst,crystal,,fragment,,,13,,,,,,,glass,glass,72,metal,3,,90,250,38,14,26,10,18,200,fire,"CHA/3,resMind/3",bewitching,妖艶なる
+74,zylon,ザイロン,zylon,fiber,,fiber,,,15,,,,,,,leather,carpet,4,leather,3,,50,220,30,5,4,21,16,100,,resNether/4,exotic,異国からもたらされし
+75,spirit,霊布,spirit cloth,fiber,,fiber,,,15,,,,,,,leather,carpet,7,leather,3,,40,360,45,3,2,34,6,100,,SPD/5,otherworldly,この世ならざる
+60,rosewood,ローズウッド,rosewood,wood,,log,,,17,,,,,,,wood,wood,30,,3,,100,100,10,2,3,3,6,100,,,,
+92,willow,柳,willow,wood,,log,,,17,,,,,,,wood,wood,20,,3,,100,100,12,2,3,3,6,100,,cute/20,,
+98,bamboo,竹,bamboo,wood,bamboo,log,,,17,,,,,,,wood,wood,35,,3,,100,100,16,2,3,3,6,100,,comfort/10,,
+101,coralwood,コーラルウッド,coralwood,wood,coral,log,,,17,,,,,,,wood,wood,52,,3,,125,100,10,4,11,7,15,150,,"cute/20,breathing/10,slowCorruption/20,resSound/2,air/50",,
+12,gold,金,gold,gem,,ore_gem,,,13,,,,,,,ore,stone,25,"metal,leather",3,400,260,400,34,13,18,14,22,140,"fire,acid","STR/3,rare/30",golden,黄金に輝く
+32,aquamarine,アクアマリン,aquamarine,gem,,ore_gem,,,13,,,,,,,ore,stone,68,,3,,200,280,36,20,18,16,25,180,fire,eleCold/5,,
+30,saphire,サファイア,sapphire,gem,,ore_gem,,,13,,,,,,,ore,stone,71,,3,,200,280,38,20,18,16,25,180,fire,eleSound/5,,
+27,emerald,エメラルド,emerald,gem,,ore_gem,,,13,,,,,,,ore,stone,78,metal,3,,240,320,38,22,23,18,28,190,fire,resNerve/3,miracle,奇跡を呼ぶ
+17,chromite,クロム,chromite,ore,,ore,,,11,,,,,,,ore,stone,85,metal,3,,240,230,30,15,17,12,22,150,fire,,unveiling,真実を暴く
+68,mithril,ミスリル,mithril,ore,,ore,,,13,,,,,,,ore,stone,98,metal,3,,120,420,38,20,18,25,17,190,fire,casting/3,ancient,古なる
+102,rosequartz,ローズクオーツ,rose quartz,crystal,coral,fragment,,,13,,,,,,,glass,glass,65,metal,3,300,90,260,35,22,12,20,13,150,fire,"CHA/4,loving",lovely,愛らしい
+100,feywood,フェイウッド,feywood,wood,coral,log,,,17,,,,,,,wood,wood,60,,4,,80,100,28,12,5,16,5,140,,"comfort/10,rare/30,encSpell/5,resMagic/1",,
+76,dusk,宵晒,dawn cloth,fiber,,fiber,,,15,,,,,,,leather,carpet,8,leather,4,500,45,460,46,10,8,35,15,100,,mana/5,dusk,宵闇をまといし
+25,hide_dragon,竜鱗,dragon scale,skin,,skin,,,15,,,,,,,leather,carpet,12,leather,4,,160,410,44,25,24,29,24,160,"fire,acid","resFire/4,resCold/4",draconic,竜を統べし
+77,griffon,翼鳥鱗,griffon scale,skin,,skin,,,15,,,,,,,leather,carpet,12,leather,4,,90,360,42,16,17,32,24,150,fire,evasion/6,fallen,翼を折られし
+93,cherryblossom,桜,cherryblossom,wood,coral,log,,,17,,,,,,,wood,wood,20,,4,,100,100,20,2,3,3,6,100,,"cute/10,comfort/20",,
+69,titanium,タイタニアム,titanium,crystal,,ore,,,11,,,,,,,ore,stone,89,metal,4,,180,380,40,21,18,19,35,180,fire,STR/6,stainless,色褪せぬ
+38,meteorite,メテオライト,meteorite,ore,,ore,,,11,,,,,,,rock,stone,95,,4,,190,410,40,20,31,24,38,230,fire,"eleNether/5,resNether/2",,
+18,diamond,ダイヤモンド,diamond,gem,,ore_gem,,,13,,,,,,,ore,stone,100,metal,4,,280,540,48,19,27,13,31,220,,"resLightning/5,innocence/10",everlasting,変わることなき
+19,rubinus,ルビナス,rubynus,gem,,ore_gem,,,13,,,,,,,ore,stone,110,"metal,leather",4,500,220,480,46,38,18,31,24,190,fire,life/3,crimson,赤く染まった
+29,adamantite,アダマンタイト,adamantite,ore,,ore,,,11,,,,,,,ore,stone,115,metal,4,,400,420,42,11,38,8,42,240,fire,END/3,earthshaking,大地を揺るがす
+43,ether,エーテル,ether,crystal,,fragment,,,11,,,,,,,glass,glass,120,"metal,leather",4,100,80,650,48,8,45,35,8,250,,"SPD/5,corruption/10",eternal,永遠なる
+110,steel_deep,深淵鋼,deep steel,ore,coral,ore,,,11,,,,,,,ore,stone,154,metal,5,0,270,200,21,12,13,8,18,140,"fire,acid",,abyssal,深淵を映す
+111,netherite,ネザライト,netherite,ore,coral,ore,,,11,,,,,,,ore,stone,129,metal,5,0,270,200,21,12,13,8,18,140,"fire,acid",,infernal ,煉獄で鍛えられし
+109,orichalcum,オリハルコン,orichalcum,ore,,ore,,,11,,,,,,,ore,stone,136,metal,5,0,400,420,42,11,38,8,42,240,fire,END/3,unbreakable,砕けることなき
+108,gold_elder,エルダーゴールド,elder gold,gem,,ore_gem,,,13,,,,,,,ore,stone,192,"metal,leather",6,0,260,400,34,13,18,14,22,140,"fire,acid","STR/3,rare/30",dusk,黄昏の
+0,void,ダークマター,dark matter,,,fragment,,,,,,,,,,ore,ore,200,,6,,,,,,,,,,,,void,無の
+107,obsidian_void,真なる黒曜,true obsidian,ore,,ore,,,11,,,,,,,rock,stone,220,"metal,leather",6,0,160,160,16,16,10,13,14,140,fire,"resChaos/3,bane_god/20",lawbreaking ,摂理を断つ
+112,eternity,永砂,eternal sand,crystal,,fragment,,,11,,,,,,,glass,glass,300,"metal,leather",7,0,80,650,48,8,45,35,8,250,,"SPD/5,corruption/10",infinite,無限の
+113,iron_unfading,うつろわざる鉄,unfading iron,ore,,ore,,,11,,,,,,,ore,metal,350,"metal,leather",7,0,260,150,14,8,8,3,14,135,fire,resFire/2,unfading,うつろわざる
+103,cream,生クリーム,fresh cream,water,food,dye,,,4,,,43,53,,,jelly,water,3,,,,,,,,,,,,fire,nutrition/1,,
+105,magma,マグマ,magma,water,,dye,,,4,,,43,53,,,jelly,water,8,,,,,,,,,,,,fire,,,
+106,blood,血,blood,water,,dye,,,4,,,43,53,,,jelly,water,4,,,,,,,,,,,,fire,nutrition/1,,
+66,water,水,water,water,,dye,,,4,,,43,53,,,jelly,water,1,,,,,,,,,,,,fire,,,
+67,water_fresh,淡水,fresh water,water,,dye,,,4,,,44,53,,,jelly,water,1,,,,,,,,,,,,fire,,,
+88,water_sea,海水,sea water,water,,dye,,,4,,,44,53,,,jelly,water,1,,,,,,,,,,,,fire,,,
+89,water_tropical,南の島の水,tropical water,water,,dye,,,4,,,44,53,,,jelly,water,1,,,,,,,,,,,,fire,,,
+7,grass_deep,深い草,deep grass,grass,"farm,coral",grass,,,7,,,35,,1,3,grass,dirt,2,,,,,,,,,,,,,,,
+6,grass_forest,森の草,forest grass,grass,farm,grass,,,7,,,35,,1,3,grass,dirt,2,,,,,,,,,,,,,,,
+4,mud,泥,mud,soil,"soil,mud,farm",,,,9,,,40,,2,,mud,dirt,2,,,,,,,,,,,,,,,
+58,pudding,薄い色の土,pale soil,soil,soil,,,,9,,,40,1,1,,mud,dirt,2,,,,,,,,,,,,,,,
+48,snow,雪,snow,soil,snow,,,,19,,,39,36,1,,mud,snow,2,,,,,,,,,,,,fire,,,
+45,soil,土,soil,soil,"soil,farm",,,,9,,5,40,1,2,3,mud,dirt,2,,,,,,,,,,,,,,,
+82,ash,灰,ash,soil,"soil,farm,carbone",,,,9,,5,40,1,2,3,mud,dirt,2,,,0,,,,,,,,,,,,
+83,redsoil,赤土,red soil,soil,"soil,farm",,,,9,,5,40,1,2,3,mud,dirt,2,,,,,,,,,,,,,,,
+79,soil_blue,青い土,blue soil,soil,"soil,farm",,,,9,,7,40,1,2,3,mud,dirt,2,,,,,,,,,,,,fire,,,
+47,soil_deep,深土,deep soil,soil,"soil,farm",,,,9,,7,40,1,2,3,mud,dirt,2,,,,,,,,,,,,fire,,,
+46,soil_forest,森の土,forest soil,soil,"soil,farm,coral",,,,9,,6,40,1,2,3,mud,dirt,2,,,,,,,,,,,,,,,
+64,soil_mystic,神秘的な土,mystic soil,soil,"soil,farm",,,,9,,65,35,1,2,3,mud,dirt,2,,,,,,,,,,,,,,,
+86,soil_light,明るい土,light soil,soil,"soil,farm",,,,9,,5,40,1,2,3,mud,dirt,2,,,,,,,,,,,,fire,,,
+87,soil_yellow,黄色い土,yellow soil,soil,"soil,farm",,,,9,,5,40,1,2,3,mud,dirt,2,,,,,,,,,,,,fire,,,
+57,tofu,温泉水,hot spring water,water,,dye,,,4,,,40,1,1,,jelly,water,2,,,,,,,,,,,,,,,

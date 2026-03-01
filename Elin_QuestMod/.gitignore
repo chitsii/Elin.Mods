@@ -1,0 +1,7 @@
+_bin/
+_obj/
+
+tests/runtime/_artifacts/
+
+tools/**/__pycache__/
+*.pyc

@@ -1,0 +1,15 @@
+_bin/
+_obj/
+elin_link/
+obj/
+**/bin/
+**/obj/
+tests/runtime/_artifacts/
+LangMod/**/*.tsv
+LangMod/**/*.xlsx
+__pycache__/
+
+*.mp3
+
+.*
+!tools/elin_channel_tracker/.gitignore

@@ -1,0 +1,18 @@
+id,name_JP,name,resource,money,tech,req,type,expMod,maxLv,reward,detail_JP,detail
+string,string,string,string[],int,int,string,string,int,int,string,string,string
+,,,,10,10,,,,1,,,
+hearth_stone,ハースストーン,Hearth Stone,"branch,1",,,,,,99,"1,r/bookshelf
+2,r/cabinet",,
+exploration,探索ライセンス,Exploration License,"branch,2",,,,,,,,,
+home_development,街づくり計画,Home Development,"branch,3",,,,,,99,"1,e/fArgiculture/1
+2,e/fTourism/1,p/impressment
+3,p/vaccination",,
+construction,土木建築,Civil Engineering,"branch,1",,,,,,10,"2,e/fBuildAnywhere/1
+3,e/fBuildCut/1
+4,e/fBuildTerrain/1
+5,e/fBuildCollect/1",,
+department_law,法部,Department of Law,"branch,1",,,,,,,"1,department",,
+department_life,生活部,Department of Life,"branch,1",,,,,,,"1,department",,
+department_economy,経済部,Department of Economy,"branch,1",,,,,,,"1,department",,
+test1,テストプランA,Test Plan A,,,,,,,,,,
+test2,テストプランB,Test Plan B,,,,,,,,,,

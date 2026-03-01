@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ChannelSnapshot",
+  "type": "object",
+  "required": [
+    "kind",
+    "schema_version",
+    "generated_at_utc",
+    "head",
+    "stable",
+    "nightly",
+    "pull_result"
+  ],
+  "properties": {
+    "kind": {
+      "const": "channel_snapshot"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "head": {
+      "type": "string"
+    },
+    "stable": {
+      "type": "string"
+    },
+    "nightly": {
+      "type": "string"
+    },
+    "pull_result": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

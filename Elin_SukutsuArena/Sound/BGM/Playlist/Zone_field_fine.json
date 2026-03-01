@@ -1,0 +1,18 @@
+{
+  "remove": [
+    "**"
+  ],
+  "list": [
+    "BGM/Battle_Astaroth_Phase1",
+    "BGM/Battle_Astaroth_Phase2",
+    "BGM/Battle_Balgas_Prime",
+    "BGM/Battle_Kain_Requiem",
+    "BGM/Battle_Null_Assassin",
+    "BGM/Battle_RankC_Heroic_Lament",
+    "BGM/Battle_RankD_Chaos",
+    "BGM/Battle_RankE_Ice",
+    "BGM/Battle_RankG_VoidOoze",
+    "BGM/Battle_Shadow_Self"
+  ],
+  "shuffle": true
+}

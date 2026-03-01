@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Meta>
+  <title>Rapid Fire Magic</title>
+  <id>tishi.elin_rapid_fire_magic</id>
+  <loadPriority>100</loadPriority>
+  <author>chitsii</author>
+  <version>0.23.252</version>
+  <tags>General,QoL</tags>
+  <description>
+Hold hotbar magic buttons to rapid-fire cast spells.
+  </description>
+  <builtin>false</builtin>
+</Meta>

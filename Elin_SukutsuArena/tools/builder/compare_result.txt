@@ -1,0 +1,29 @@
+
+=== MODビルダー vs バニラ Source Excel 比較 ===
+
+--- Thing (create_thing_excel.py) ---
+  バニラ: 52 カラム, MOD: 52 カラム
+  OK
+
+--- Element (create_element_excel.py) ---
+  バニラ: 57 カラム, MOD: 57 カラム
+  OK
+
+--- Stat (create_stat_excel.py) ---
+  バニラ: 32 カラム, MOD: 32 カラム
+  OK
+
+--- Quest (create_quest_excel.py) ---
+  バニラ: 17 カラム, MOD: 17 カラム
+  OK
+
+--- Zone (create_zone_excel.py) ---
+  バニラ: 24 カラム, MOD: 24 カラム
+  OK
+
+--- Chara (create_chara_excel.py) ---
+  バニラ: 50 カラム, MOD: 52 カラム
+  OK (CWL拡張カラム Author, portrait を追加)
+
+全シートで差異なし
+

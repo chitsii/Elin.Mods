@@ -1,0 +1,12 @@
+{
+  "remove": [
+    "**"
+  ],
+  "list": [
+    "BGM/Lobby_Normal",
+    "BGM/Final_Astaroth_Throne",
+    "BGM/Final_PreBattle_Calm",
+    "BGM/Ominous_Heartbeat"
+  ],
+  "shuffle": true
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Meta>
+  <title>Elin_AutoEatSleep</title>
+  <id>tishi.elin.auto_eat_sleep</id>
+  <author>tishi</author>
+  <builtin>false</builtin>
+  <loadPriority>100</loadPriority>
+  <version>1.0.0.0</version>
+  <tags>General,QoL</tags>
+  <description>
+■概要
+食事と睡眠を自動化するModです。
+設定した空腹度や眠気になると、自動的にインベントリ内の食料を食べたり、ベッドで寝たりします。
+  </description>
+</Meta>

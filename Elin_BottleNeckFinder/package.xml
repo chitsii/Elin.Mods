@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Meta>
+  <title>BottleNeckFinder</title>
+  <id>tishi.elin_bottleneck_finder</id>
+  <loadPriority>100</loadPriority>
+  <author>tishi</author>
+  <version>0.23.252</version>
+  <tags>General</tags>
+  <description>
+Mod performance profiler and error detector for Elin.
+  </description>
+  <builtin>false</builtin>
+</Meta>

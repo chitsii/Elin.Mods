@@ -1,0 +1,29 @@
+{
+  "kind": "signature_catalog",
+  "schema_version": "1.0.0",
+  "generated_at_utc": "2026-02-28T11:20:24Z",
+  "symbols": {
+    "ActPlan.Update": [
+      "void(PointTarget)"
+    ],
+    "ActPlan._Update": [
+      "void(PointTarget)"
+    ],
+    "Chara.Die": [
+      "void(Element,Card,AttackSource,Chara)"
+    ],
+    "Chara.ReleaseMinion": [
+      "void()"
+    ],
+    "Chara.SetMainElement": [
+      "void(System.String,System.Int32,System.Boolean)",
+      "void(System.Int32,System.Int32,System.Boolean)"
+    ],
+    "Point.GetNearestPoint": [
+      "Point(System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Int32)"
+    ],
+    "Quest.Create": [
+      "Quest(System.String,System.String,Chara)"
+    ]
+  }
+}

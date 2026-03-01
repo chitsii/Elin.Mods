@@ -1,0 +1,22 @@
+{
+  "id": 1000030,
+  "allowMultiple": true,
+  "bgmDataOptional": {
+    "fadeIn": 0.1,
+    "fadeOut": 0.5,
+    "failDuration": 0.7,
+    "failPitch": 0.12,
+    "parts": [
+      {
+        "start": 0.5,
+        "duration": 1.0
+      }
+    ],
+    "pitchDuration": 0.01
+  },
+  "chance": 1.0,
+  "pitch": 1.0,
+  "reverbMix": 1.0,
+  "type": "BGM",
+  "volume": 0.5
+}

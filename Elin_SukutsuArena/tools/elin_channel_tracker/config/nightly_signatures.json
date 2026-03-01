@@ -1,0 +1,35 @@
+{
+  "kind": "signature_catalog",
+  "schema_version": "1.0.0",
+  "generated_at_utc": "2026-02-28T12:29:39Z",
+  "symbols": {
+    "Card.DamageHP": [
+      "void(System.Int64,AttackSource,Card)",
+      "void(System.Int64,System.Int32,System.Int32,AttackSource,Card,System.Boolean,Thing,Chara)"
+    ],
+    "Card.HealHP": [
+      "void(System.Int32,HealSource)"
+    ],
+    "Chara.TickConditions": [
+      "void()"
+    ],
+    "DramaManager.ParseLine": [
+      "void(System.Collections.Generic.Dictionary\u003CSystem.String,System.String\u003E)"
+    ],
+    "LayerDrama.OnKill": [
+      "void()"
+    ],
+    "Region.CheckRandomSites": [
+      "void()"
+    ],
+    "Zone.Activate": [
+      "void()"
+    ],
+    "Zone.ShouldAutoRevive": [
+      "System.Boolean"
+    ],
+    "Zone.get_ShouldAutoRevive": [
+      "System.Boolean()"
+    ]
+  }
+}

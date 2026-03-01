@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CompatReport",
+  "type": "object",
+  "required": [
+    "kind",
+    "schema_version",
+    "scan_scope",
+    "summary",
+    "checks",
+    "mod_summary"
+  ],
+  "properties": {
+    "kind": {
+      "const": "compat_report"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "scan_scope": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "broken",
+        "risky",
+        "ok"
+      ]
+    },
+    "checks": {
+      "type": "array"
+    },
+    "mod_summary": {
+      "type": "object",
+      "required": [
+        "status",
+        "fail_gate"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,26 @@
+{
+  "Items": [
+    { "Id": "ars_book_actSoulTrap", "Num": 50, "Restock": true },
+    { "Id": "ars_book_actPreserveCorpse", "Num": 50, "Restock": true },
+    { "Id": "ars_book_actCurseWeakness", "Num": 50, "Restock": true },
+    { "Id": "ars_book_actSummonUndead", "Num": 50, "Restock": true },
+    { "Id": "ars_book_actTerror", "Num": 50, "Restock": true },
+    { "Id": "ars_book_actCurseFrailty", "Num": 50, "Restock": true },
+    { "Id": "ars_book_actLifeDrain", "Num": 50, "Restock": true },
+    { "Id": "ars_book_actStaminaDrain", "Num": 50, "Restock": true },
+    { "Id": "ars_book_actManaDrain", "Num": 50, "Restock": true },
+    { "Id": "ars_book_actPlagueTouch", "Num": 50, "Restock": true },
+    { "Id": "ars_book_actBoneAegisLegion", "Num": 50, "Restock": true },
+    { "Id": "ars_book_actGraveQuagmire", "Num": 50, "Restock": true },
+    { "Id": "ars_book_actCorpseChainBurst", "Num": 50, "Restock": true },
+    { "Id": "ars_book_actSoulRecall", "Num": 50, "Restock": true },
+    { "Id": "ars_book_actGraveExile", "Num": 50, "Restock": true },
+    { "Id": "ars_book_actFuneralMarch", "Num": 50, "Restock": true },
+    { "Id": "ars_book_actSummonSkeletonWarrior", "Num": 50, "Restock": true },
+    { "Id": "ars_book_actUnholyVigor", "Num": 50, "Restock": true },
+    { "Id": "ars_book_actSoulBind", "Num": 50, "Restock": true },
+    { "Id": "ars_book_actDeathZone", "Num": 50, "Restock": true },
+    { "Id": "ars_book_actSoulTrapMass", "Num": 50, "Restock": true },
+    { "Id": "ars_hecatia_guide", "Num": 1, "Restock": true }
+  ]
+}

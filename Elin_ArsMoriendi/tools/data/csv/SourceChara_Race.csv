@@ -1,0 +1,187 @@
+id,name_JP,name,playable,tag,life,mana,vigor,DV,PV,PDR,EDR,EP,STR,END,DEX,PER,LER,WIL,MAG,CHA,SPD,ratio,INT,martial,pen,elements,skill,figure,geneCap,material,corpse,loot,blood,meleeStyle,castStyle,EQ,sex,age,height,breeder,food,fur,detail_JP,detail,,,
+string,string,string,int,string[],int,int,int,int,int,int,int,int,int,int,int,int,int,int,int,int,int,,int,int,int,elements,string,string,int,string,string[],string[],int,string,string,string[],int,int[],int,int,string[],string,string,string,,,
+,,,,,,,100,0,0,,,,,,,,,,,,,,,,,,,,3,meat,"_meat,20",,2,,,,,"8,50",,,100,,,,,,
+yerles,イエルス,yerles,1,human,110,90,,,,,,,7,8,8,8,12,7,7,8,100,100,12,3,,"featFastLearner/1,weaponGun/3,negotiation/3,investing/3,marksman/3",●,頭|首|体|背|手|手|指|指|腕|腰|脚|足|,,,,,,,,all,52,,165,100,,,シエラ・テールで急速に台頭してきた新王国イエルの民がイェルスです。彼らの祖先はエウダーナから脱走した奴隷であり、帝国と帝国の生み出した全てのものを憎んでいます。シエラ随一の機械文明を築き上げた彼らは、高い学習能力を持ち、機械武装の扱いにたけ、他の種族よりも早くフィートを獲得できます。,"The Yerles, people of the rising New Kingdom in Sierre Terre, trace their lineage back to slaves who escaped from Eulderna. Harboring deep-seated hatred towards the empire and everything it represents; they have established the pinnacle of mechanical civilizations in Sierre. Gifted with a heightened learning capacity, adept in handling mechanized armaments, they acquire feats faster than any other races.",,,
+eulderna,エウダーナ,eulderna,1,human,90,110,,,,,,,7,7,7,8,7,10,12,9,100,100,15,2,,"featManaPrecision/1,featManaBond/1,reading/2,casting/3,magicDevice/4",●,頭|首|体|背|手|手|指|指|腕|腰|脚|足|,,,,,,,,all,52,,175,90,,,エウダーナはシエラ・テールに存在する最も古い国の一つです。強大な魔法と魔道兵器の知識を有し、砂漠の帝国として各国から恐れられています。彼らは、自分たちのみが世界を動かすに値すると考える選民意識の持ち主で、残虐な完ぺき主義者です。エウダーナ人は魔法や魔法道具の扱いにたけ、キャスターや中間的な職業に向いています。,"One of the most ancient nations in Sierre Terre, Eulderna wields vast knowledge of magic and magical weaponry. Recognized and feared as the desert empire by the world, they bear a sense of chosen destiny, believing that only they are worthy of steering the world's course. They are cruel perfectionists. Euldernains are skilled in magic and magical tools, making them apt for caster and intermediate professions.",,,
+fairy,妖精,fairy,1,"fairy,humanSpeak",35,130,,25,,,15,50,3,4,9,10,8,7,13,12,180,141,16,1,,"featFairyWeak/1,featFairyResist/1,casting/4,stealth/3,stealing/3",●,頭|首|体|背|手|手|指|指|腕|腰|脚|足|,,,,,5,,,all,52,"8,150",50,150,,,妖精は可憐で非力で儚い生物です。彼女達は、人間族と比べて高い魔力と回避力、目にも止まらぬすばしっこさを持ち、ほぼ全ての耐性に高い抵抗力を持っています。反面、妖精は重さ1s以上の装備を身につけることができず、防御力をあげるのは困難です。その体力の低さからも、まともな物理攻撃を一度でもくらうと危機に陥るでしょう。,"Delicate, frail, and fleeting, fairies boast higher magical prowess, evasion, and unmatched speed compared to humans. They hold high resistance to nearly all elements. However, their physical fragility limits them from wearing gear heavier than 1s, making bolstering defenses a challenge. A single substantial physical attack could place them in peril.",,,
+dwarf,丘の民,hillfolk,1,human,120,80,,,,,,,12,11,8,6,6,8,6,6,100,100,9,4,,"featDwarf/1,featUnderground/2,mining/4,weightlifting/2,armorHeavy/3,featHeavyEater/2",●,頭|首|体|背|手|手|指|指|腕|腰|脚|足|,,,,,,,,all,56,"8,100",100,120,,,丘の民は、頑強で無骨な背が低い種族です。かつて地下深くに黄金と宝石の都を築いた彼らですが、その栄光の多くは、今や危険な魔物が住みつく遺跡として残るのみとなっています。丘の民は高い採掘技術と生産技術を持ち、ずんぐりした小さい体は強靭で、暗闇や毒の環境でも生存する能力を持っています。彼らは酒をこよなく愛し、酒を飲むことで普段以上の力を発揮することができます。,"The Hillfolk are a stout and rugged race of short stature. Once, they built grand cities of gold and gems deep beneath the earth, but much of those splendors now remains only as ruins inhabited by dangerous monsters. Possessing advanced mining and crafting skills, their compact, sturdy bodies are equipped to thrive in the darkest and most toxic of environments. They have a profound love for alcohol and can summon strength beyond their usual capabilities when they drink.",,,
+juere,ジューア,juere,1,human,100,100,,,,,,,7,7,12,11,9,6,7,10,105,103,13,3,,"featSlowFood/1,stealth/3,spotting/3,travel/4,featChef/1",●,頭|首|体|背|手|手|指|指|腕|腰|脚|足|,,,,,,,,all,50,"8,40",165,160,,,ジューアは国を持たないサウスティリスの遊牧民です。彼らは時に盗賊やならず者の集団へと転じるため、ティリスでの評判はあまり芳しくありません。彼らは束縛されることを嫌い、自分の意思を尊重し、自由に生きることを好みます。ジューアは手先が器用で、鋭い感覚と高い学習能力を持ち、多彩な技術に精通しています。彼らはパフォーマンスをすることで生計をたてることができ、少ない食事で生き抜く術を会得しています。,"Nomads of South Tyris without a homeland, the Juere often drift into banditry, making them notorious in Tyris. They cherish freedom, loathe constraints, and prioritize personal autonomy. Gifted with dexterous hands, sharp senses, and a high learning ability, they are masters of all trades. They can earn their living through performances and can survive on minimal sustenance.",,,
+elea,エレア,elea,1,human,80,130,,,,,,,5,6,10,10,7,12,13,13,110,108,16,1,,"featManaBond/1,featElea/1,manaCapacity/3,casting/5,meditation/4",●,頭|首|体|背|手|手|指|指|腕|腰|脚|足|,,,,,,,,all,53,"10,400",180,70,,,エレアはシエラ・テールでもっとも古い、大人しく、神秘的で、美しい種族です。彼らは他の種族との干渉を避け、森の中で静かに暮らすことを好みます。エレアはエーテルへの耐性と高い魔力を持ち、魔力の反動によるダメージを軽減することができます。,"Among the oldest and most mysterious races in Sierre Terre, the Elea are serene, mystical, and beautiful beings. Preferring isolation, they live peacefully in forests. They have resistance to ether and vast magical powers, with the capability to mitigate damage from magical backlash.",,,
+mutant,カオスシェイプ,chaos shape,1,"gelatin,humanSpeak",100,100,,,,,,,6,5,5,7,7,9,7,1,100,100,7,5,,"featGrowParts/1,regeneration/3,meditation/3,nerve/-20",●,体|手|,,,,,,,,all,53,,140,40,,,カオスシェイプについて分かっていることは、ほとんどありません。異形の人とも呼ばれる彼らは、かろうじて人の形を保っています。カオスシェイプは成長とともに新しい身体の部位を獲得しますが、何が生えてくるかは予測不可能です。,"Little is known about the Chaos Shape, also referred to as the ""Deformed Ones."" They barely retain a human form. Chaos Shapes acquire new body parts as they grow, but what emerges is unpredictable.",,,
+snail,かたつむり,snail,1,"sand,ride,mofu,fish",100,80,,,,,,,4,5,3,6,3,4,2,4,40,60,1,1,,featSnail/1,●,背|,10,,,,,,,,53,"1,10",8,500,150,,カタツムリは非常に鈍い生き物です。彼らは脆く、非力で、不器用で、学習能力がなく、塩で溶けます。,"The snail is a notably sluggish creature. Fragile, weak, clumsy, and devoid of learning aptitude, they can be dissolved by salt.",,,
+lich,リッチ,lich,1,"undead,humanSpeak",60,150,,15,,25,30,,5,6,6,7,8,13,15,5,100,102,18,2,,"featUndead/1,meditation/4,casting/3,magicDevice/3,featLightEater/1",●,頭|首|体|背|手|手|指|指|腕|腰|脚|足|,,,,,3,,,all,53,"10,1500",180,25,,,リッチは高い知能と魔力を備えた不朽のアンデッドです。彼らは他の種族よりも高いマナと瞑想の技術を得ますが、肉弾戦に耐え切れるほどの体力はありません。リッチは幾つかの属性への耐性を持っていますが、炎は苦手です。,"Immortal undead endowed with immense intelligence and magic, Liches possess greater mana and meditation skills than other races. However, they lack the physical stamina for direct combat. While liches have resistance to several elements, they are vulnerable to fire.",,,
+wraith,幽鬼,wraith,4,"undead,humanSpeak",40,125,,15,,,,,8,6,8,7,8,10,12,6,100,93,18,2,,"featUndead/1,featManaMeat/2,meditation/4,casting/3,magicDevice/3,featLightEater/2",●,頭|首|体|背|手|手|指|指|腕|腰|脚|足|,,,,,3,,,all,53,"10,1500",180,25,,,幽鬼は高い知能と魔力を備えた不朽のアンデッドです。彼らは他の種族よりも高いマナと瞑想の技術を得ますが、肉弾戦に耐え切れるほどの体力はありません。幽鬼は幾つかの属性への耐性を持っていますが、炎は苦手です。,"Immortal undead endowed with immense intelligence and magic, Wraiths possess greater mana and meditation skills than other races. However, they lack the physical stamina for direct combat. While wraiths have resistance to several elements, they are vulnerable to fire.",,,
+golem,ゴーレム,golem,4,,150,70,,,10,10,-15,,10,14,4,5,4,10,6,5,70,86,5,5,,"featGolem/1,twohand/4,manaCapacity/3,weightlifting/3,featLightEater/2",●,頭|首|体|背|手|手|指|指|腕|腰|脚|足|,,granite,"rock,500",,8,,,all,53,"10,80",700,40,,,ゴーレムは魔力により生命を与えられた物質です。ゴーレムは他の種族に比べ遥かに高い体力を持っています。その代償としてか、彼らのマナと速度は、通常よりも劣っています。ゴーレムには毒への強い耐性があり、また出血と朦朧状態にならないという利点があります。,"Golems are materials imbued with life through magical means. Compared to other races, they boast vastly superior physical strength. However, perhaps as a trade-off, their mana and speed are notably inferior. Golems have a strong resistance to poison, are immune to bleeding, and possess the advantage of not succumbing to a state of being dazed.",,,
+mifu,ミフ,mifu,5,"human,mofu",70,110,,,,,,,5,5,8,8,12,7,11,9,130,114,10,3,,"featFoxBless/1,featFluffyTail/1,reading/4,casting/3,stealing/3,featHeavyEater/1",●,頭|首|体|背|手|手|指|指|腕|腰|脚|足|,,,,tail_fox/10,,Claw,,all,50,"8,100",140,120,,,ミフはティリスの片隅でひっそりと暮らす狐と人間の亜種族で、姉妹種族のネフとは異なり、白い髪と毛皮、ピンと垂直にたった大きな耳が特徴的です。彼らは明るく、悪戯好きで、あまり打たれ強くはないものの、卓越した祝福と呪いの知識を持っています。,"The Mifu are a hybrid race of fox-human who live quietly in a corner of Tyris. Unlike their sister race, the Nefu, they are characterized by their white hair and fur, and large fluffy ears that stand up straight. They are cheerful and mischievous, and while they aren't particularly resilient, they make up for it with their outstanding knowledge of blessings and curses.",,,
+nefu,ネフ,nefu,5,"human,mofu",80,120,,,,,,,6,5,10,6,7,9,11,12,125,115,10,4,,"featFoxLearn/1,featFluffyTail/1,meditation/2,casting/4,negotiation/3,weaponSword/4",●,頭|首|体|背|手|手|指|指|腕|腰|脚|足|,,,,tail_fox/10,,Claw,,all,50,"8,100",145,80,,,ネフは赤い髪と毛皮、大きな胸とふさふさの多尾が特徴的な、狐と人間の亜種族です。姉妹種族のミフ同様に、人里から離れて暮らしていますが、その美しさ、そして魔法と長剣を操り舞うように戦う独特の流儀は、冒険者の間でもよく囁かれています。,"Featuring red hair and fur, ample bosoms, and fluffy tails that increase in number as they age, the Nefu are a hybrid fox-human race. Similar to the Mifu, they reside far from human settlements. However, their striking beauty, combined with their distinctive spellsword combat style, has become a topic of fascination among adventurers.",,,
+succubus,サキュバス,succubus,5,"human,ride",85,120,,,,,,,5,9,7,11,5,3,10,14,100,101,10,2,,"featSuccubus/1,meditation/4,reading/2,parasite/4",●,頭|首|体|背|手|手|指|指|腕|腰|脚|足|,,,,,,,,all,50,,170,220,,,月夜の眷属、ルナーという別名でも知られるサキュバスは、月の美しい夜に枕元に現れ、人々を誘惑すると言い伝えられています。実際には、月が出ていようとなかろうと、夜であろうとなかろうと、気持ちいいことが大好きです。彼らは高い魅力と魔力を持ち、快感に耽ることで成長します。,"Known by the alias ""Lunar"" or ""Moonlit Kins"", Succubi are said to appear by one's bedside on beautiful moonlit nights, tempting humans with their allure. The reality of this is whether the moon is out or not, night or day, they simply adore pleasurable experiences. They possess both high charisma and magic, growing stronger by indulging in sensations of pleasure.",,,
+vampire,吸血鬼,vampire,5,"undead,humanSpeak",110,110,,,,,,,12,11,8,7,7,6,12,11,100,104,10,4,,"featVampire/1,featUndead/1,featAshborn/1,meditation/3,reading/3,magicDevice/3,stealth/3",●,頭|首|体|背|手|手|指|指|腕|腰|脚|足|,,,,,,Claw,,all,50,"10,1500",170,10,,,吸血鬼は古来より夜の支配者として恐れられてきた種族で、高い身体能力と知性を備えています。彼らは闇夜の中で並外れた能力を発揮しますが、日の光と炎には脆弱で、通常の食事で栄養を満たすことができず、常に新鮮な生き血に飢えています。,"Vampires have long been feared as rulers of the night, gifted with both exceptional physical prowess and keen intellect. They display extraordinary abilities under the cover of darkness, yet remain vulnerable to sunlight and flame. Unable to sustain themselves on ordinary food, they are ever in hunger for fresh, living blood.",,,
+demigod,半神,demigod,5,"human,ride,god",110,110,,,,,,,7,7,7,7,7,7,7,10,100,104,20,3,,"featDemigod/1,featPeacemaker/1,tactics/4,casting/4,regeneration/2,meditation/3",●,頭|首|体|背|手|手|指|指|腕|腰|脚|足|,,,,,,,,all,52,"50,300",165,5,,,半神は地上に降り立った神の化身が人間と交わった結果生まれた子供たちです。その多くは神々の戯れの産物であり、彼らが自身の出自や特異な能力に気づくことは稀です。彼らは神の造形がごとく美しく、均整の取れた能力を持ち、強い生命力とマナを備えています。,"Demigods are the offspring of a god incarnate who descended to the earth and mingled with humans. Most of them are the product of the gods' whims, and it is rare for them to realize their own origins or their unique abilities. They possess beauty akin to that of the gods, well-balanced abilities, strong vitality, and mana.",,,
+centaur,ケンタウロス,centaur,5,"humanSpeak,ride",100,40,,,,,-10,,11,9,12,9,11,7,4,6,120,100,20,4,,"featCentaur/1,featSevenSense/1,marksman/4,regeneration/3,evasion/3",●,頭|首|体|背|手|手|指|指|腕|脚|足|足|,,,,,,,,all,52,"10,300",180,100,,,ケンタウロスは、強靭な肉体と叡智を併せ持つ半人半獣族です。荒野や戦場を駆け抜けるその高貴な姿は、古来より多くの英雄譚に語られています。彼らは魔術を苦手としていますが、それを補って余りあるほどの射撃術を誇ります。彼らの中には、稀に「第七感」に目覚める者が現れるとされ、それにより解き放たれる能力は常人をはるかに凌ぎ、矢は必ず標的を捉えると言われています。,"Centaurs are a half-human, half-beast race who embody both a powerful physique and wisdom. Their noble figures, galloping across the wilderness and battlefield alike, have been celebrated in countless tales. Though averse to sorcery, they more than make up for it with their mastery of archery. Among them, rare individuals awaken to the “Seventh Sense,” a gift that grants abilities far beyond ordinary beings, and their arrows are said to never miss their mark.",,,
+shiba,シバ,shiba,7,"animal,ride,mofu,sleepBeside",110,90,,,,,,,7,9,6,8,10,8,10,12,120,112,7,3,,"featShiva/1,featFluffyTail/1,featLoyal/1,spotting/8,weightlifting/3,evasion/5,swimming/3",●,頭|首|体|背|手|足|足|,5,,,tail_dog/10,,Bite,,,53,"1,15",80,680,,fiber/wool,シバは多様な種族により形成され、その外見や生態も様々ですが、総じてがっちりした体格と、友好的で従順な性格で知られています。彼らは賢く、キュートで、氷に対する耐性を持っています。,"The Shiba, while diverse in appearance and ecology, are generally known for their sturdy build and friendly, submissive nature. They are intelligent and adorable. and possess resistance to cold.",,,
+eldercrab,古代蟹,elder crab,7,"fish,sand",150,80,,,15,25,25,,10,13,6,10,3,4,5,6,60,82,1,5,,"featAquatic/5,featElderCrab/1,ActCrabBreathe/1,twowield/5,regeneration/4,weightlifting/4,swimming/3",●,背|手|手|指|指|足|足|足||足|,,,,,,Claw,,,53,"1,10",450,210,200,,古代蟹は最も古い蟹の種族で、水辺を好み、生息する地域に適応し様々な属性へと進化しています。基本的には美味しいものの、属性によって風味も変化します。筋力と耐久に秀で、その巨大なハサミで敵を拘束し、また泡のブレスを吐くことができます。,"The Elder Crab is the oldest of the crab species, preferring waterside habitats and evolving into various elements adapted to their environments. They are basically delicious, but their flavor changes depending on their element. Excelling in strength and endurance, they can restrain enemies with their massive pincers and are capable of exhaling a bubble breath.",,,
+goblin,ゴブリン,goblin,8,humanSpeak,110,90,,,,,,,8,8,5,5,8,7,7,4,100,100,8,2,,featUnderground/1,"rsHealing 5
+rsFishing 2
+rsMining 2
+rsCritical 3",頭|首|体|背|手|手|指|指|腕|腰|脚|足|,4,,,,,,,all,53,,140,540,,,,,,,
+kobolt,コボルト,kobold,8,humanSpeak,90,80,,,,,,,8,6,5,3,2,2,4,2,100,94,9,3,,"featUnderground/1,antidote/-30","rsPickpocket 3
+rsStealth 2
+rsMagicDevice 3",頭|体|背|手|手|指|指|腕|腰|脚|足|,4,,,,,,,all,50,,150,260,,,,,,,
+orc,オーク,orc,8,humanSpeak,130,70,,,,,,,5,6,3,2,2,3,4,2,100,100,7,4,,,"rsHealing 3
+rsHeavyArmor 3
+rsShield 3",頭|体|背|手|手|指|腕|腰|脚|足|,4,,,,,,,all,51,,150,620,,,,,,,
+troll,トロール,troll,8,humanSpeak,240,50,,,5,15,,,10,9,1,2,2,2,3,3,70,100,5,5,,"featUnderground/1,regeneration/50,featHeavyEater/4",●,頭|体|背|手|手|腕|腰|,5,,,,,,,all,51,,400,200,,,,,,,
+lizardman,リザードマン,lizardman,8,"sand,humanSpeak",120,70,,12,,,,,7,5,6,7,4,4,5,3,120,110,8,3,,,"rsPole 3
+rsShield 3
+rsEvade 2",頭|体|背|手|手|指|腕|腰|脚|足|,4,,,,,,,all,51,,240,230,150,,,,,,
+minotaur,ミノタウロス,minotaur,8,humanSpeak,170,60,,,,,,,12,8,3,4,3,4,7,4,80,94,6,4,,"featHeavyEater/3,featHeavyEater/2","rsTactics 4
+rsCritical 3",頭|体|手|手|指|腰|脚|足|,4,,,,,,,all,51,,350,470,150,,,,,,
+norland,ノーランド,norland,8,human,100,100,,,,,,,8,8,6,6,7,9,7,6,100,100,11,2,,"featNorland/1,weaponBow/4,marksman/3,tactics/2,spotting/3","rsCasting 3
+rsTactics 3
+rsTwohand 3
+rsMagicControl 3",頭|首|体|背|手|手|指|指|腕|腰|脚|足|,,,,,,,,all,52,,170,130,,,,,,,
+asura,阿修羅,asura,8,"humanSpeak,god",90,70,,16,,,20,15,11,9,14,6,4,4,5,5,100,92,10,4,,twowield/12,"rsTwoWield 30
+rsEvadePlus 6
+rsAnatomy 4",手|手|手|手|首|,6,,,,,,,all,52,"10,200",220,110,,,,,,,
+slime,スライム,slime,8,"ride,gelatin,sleepBeside,sand",80,120,,,,,,,4,5,7,5,6,8,4,14,70,82,1,2,,"food_CHA/30,resAcid/20,swimming/4","rsEvade 2
+rsPerform 3",頭|,9,jelly,,,4,,castSpill,,54,"1,10",40,600,,,,,,,
+wolf,狼,wolf,8,"animal,ride,mofu",90,80,,14,,,,,8,8,6,11,7,8,4,6,120,106,3,3,,"evasion/3,evasionPlus/3",●,頭|首|体|背|腕|脚|足|,5,,,tail_wolf/10,,Bite,,,55,"1,15",100,380,150,fiber/wool,,,,,
+zombie,ゾンビ,zombie,8,undead,125,80,,,,10,,,10,8,2,2,1,6,6,2,60,77,2,4,,"featUndead/2,featLightEater/2,featAshborn/1","rsCooking 3
+rsFishing 3",頭|首|体|背|手|指|腕|腰|,6,,,,3,,,,50,"10,200",160,100,,,,,,,
+rabbit,ウサギ,rabbit,8,"animal,mofu,sleepBeside",60,90,,10,,,,10,5,4,6,11,5,4,4,10,150,120,3,1,,featFluffyTail/1,rsRiding 3,頭|首|体|背|腕|,7,,,,,,,,53,"1,10",40,720,200,fiber/cashmere,,,,,
+sheep,羊,sheep,8,"animal,mofu",130,80,,,,,,,6,6,5,8,4,5,4,7,80,90,3,1,,,"rsHealing 3
+rsAnatomy 3",頭|首|体|背|腕|脚|足|,6,,,,,Bite,,,53,"1,10",150,1000,250,fiber/wool,,,,,
+frog,蛙,frog,8,"noRide,fish,sand",80,80,,,,,,,6,6,6,8,5,5,5,6,90,86,1,1,,,"rsPerform 3
+rsInvest 2",体|,8,,,,,Kick,,,53,"1,10",10,610,,,,,,,
+centipede,ムカデ,centipede,8,"noRide,insect",90,80,,,,,,,6,5,5,6,3,2,2,2,90,88,1,1,,"featUnderground/1,antidote/-20",rsCritical 3,背|指|指|,7,,,,,Touch,,,53,"1,10",10,420,,,,,,,
+mandrake,マンドレイク,mandrake,8,plant,70,120,,,,,40,,5,6,5,10,8,8,10,4,90,92,4,2,,,"rsMemorize 3
+rsLiteracy 2
+rsMagicCapacity 3",頭|背|,8,,,,,Spore,,,53,"1,200",25,80,150,,,,,,
+beetle,甲虫,beetle,8,insect,80,80,,,,20,,,5,6,5,7,4,5,4,3,110,98,1,3,,,"rsDetection 3
+rsStealth 3",首|,8,,,,,Bite,,,53,"1,10",10,750,,fiber/silk,,,,,
+mushroom,きのこ,mushroom,8,plant,70,80,,,,,,,5,7,4,8,4,8,10,4,90,84,3,1,,"featUnderground/1,meleeDistance/7","rsTailor 3
+rsAlchemy 2",頭|首|,9,,,,,Spore,castSpore,,53,"1,20",20,820,200,,,,,,
+bat,コウモリ,bat,8,"animal,filth",40,80,,40,,,,50,3,5,9,9,4,3,6,2,220,156,4,2,,"evasionPlus/5,levitation/1",●,頭|,7,,,,,Bite,,,53,"1,20",70,330,,,,,,,
+ent,エント,ent,8,plant,180,10,,,,,,,9,12,4,6,2,3,6,2,70,80,10,4,,,"rsHealing 2
+rsCarpentry 4",手|指|指|腕|脚|足|,6,oak,"log,500",,,,,,53,"10,500",1500,35,,log/willow,,,,,
+hound,猟犬,hound,8,"animal,ride",90,50,,12,,,,,8,9,11,10,5,4,3,3,120,100,6,3,,,"rsDetection 4
+rsPerform 2",頭|首|体|背|脚|足|,5,,,tail_wolf/10,,Bite,,,53,"1,15",160,540,,,,,,,
+ghost,幽霊,ghost,8,"undead,humanSpeak",30,130,20,16,,75,75,30,4,7,6,14,7,6,11,11,90,86,10,2,,"featUndead/2,levitation/1,featLightEater/2,seeInvisible,featAshborn/1","rsMagicCapacity 4
+rsMagicDevice 2",頭|首|体|背|手|手|指|指|,5,,,,5,Touch,,,53,"10,1500",180,30,,,,,,,
+spirit,精霊,spirit,8,,90,120,,5,,,30,,5,9,5,7,8,10,13,4,100,102,11,2,,"featFairyResist/2,levitation/1,featLightEater/3","rsCasting 3
+rsMagicControl 2",頭|首|体|背|手|手|指|指|,4,,,,5,,,,53,"10,1500",100,25,,,,,,,
+eye,目,eye,8,filth,100,120,,,,,30,,3,9,4,6,4,7,10,4,40,68,2,3,,"featUnderground/1,resNerve/20,resMind/10,nerve/-10","rsDetection 3
+rsAnatomy 3",頭|,9,,,,3,Gaze,,,53,"1,10",40,50,,,,,,,
+wyvern,ワイバーン,wyvern,8,dragon,180,80,,,,,,,11,13,8,9,5,7,8,4,100,112,12,5,,"levitation/1,resFire/20,featHeavyEater/2","rsLiteracy 3
+rsTravel 3",首|体|指|指|,5,,,,,Claw,,,53,"10,300",1600,60,150,fiber/hide_dragon,,,,,
+wasp,ワスプ,wasp,8,insect,55,80,,28,,,,30,7,6,13,11,4,6,3,2,150,117,3,3,,"levitation/1,resPoison/20",rsEvadePlus 2,頭|,8,,,,,Sting,,,53,"1,10",80,580,,,,,,,
+giant,巨人,giant,8,human,300,80,,,,,,,12,14,9,4,8,5,6,3,90,130,5,7,,throwing/7,"rsAnatomy 3
+rsMagicDevice 2
+rsCarpentry 3",体|背|手|手|腕|脚|足|,4,,,,,,,all,53,"10,300",1800,50,,,,,,,
+imp,インプ,imp,8,fairy,65,110,,25,,,30,30,5,6,8,8,8,4,7,3,100,95,12,2,,"featFairyResist/1,featUnderground/1","rsMemorize 3
+rsMagicControl 3",首|体|手|手|指|指|指|,6,,,,,Claw,,,53,"10,40",80,240,,,,,,,
+hand,手,hand,8,,100,100,,,,,,,8,9,9,4,8,6,5,2,100,100,2,4,,,rsCritical 4,手|手|指|指|腕|,6,,,,,Punch,,all,53,,70,160,,,,,,,
+snake,蛇,snake,8,"animal,sand",100,100,,,,,,,6,9,8,10,4,6,6,4,100,100,2,2,,"featUnderground/1,resPoison/20",rsStealth 4,体|,8,,,,,Bite,,,53,"1,10",50,430,,,,,,,
+drake,ドレイク,drake,8,"ride,dragon",180,80,,,12,,,,11,12,11,8,6,9,8,7,100,112,14,5,,featHeavyEater/3,"rsTravel 3
+rsFishing 2",首|体|指|指|,5,,,,,Claw,,,53,"10,500",1400,90,150,fiber/hide_dragon,,,,,
+bear,熊,bear,8,"animal,ride",160,80,,,,,,,9,10,5,6,6,6,3,5,100,108,5,4,,,"rsHealing 3
+rsPerform 2
+rsCritical 3",手|手|指|指|腕|腰|脚|足|,5,,,,,Claw,,,53,"1,20",280,340,,fiber/hide,,,,,
+armor,鎧,armor,8,undead,30,80,,,40,80,,,8,4,7,5,6,6,7,4,50,52,6,3,,featGolem/1,"rsOpenLock 3
+rsMagicDevice 2",頭|首|体|背|手|手|腕|腰|,6,,,,8,,,all,53,,550,40,,,,,,,
+medusa,メデューサ,medusa,8,humanSpeak,100,110,,10,,,25,,7,6,8,7,7,9,11,5,100,102,12,3,,,"rsMagicCapacity 3
+rsMagicControl 3",頭|頭|頭|体|手|手|指|指|腕|脚|足|,,,,,,,,all,53,"10,200",160,180,,,,,,,
+cupid,キューピット,cupid,8,,80,130,,20,,,25,25,6,7,9,8,8,7,12,8,110,108,11,2,,levitation/1,"rsLiteracy 4
+rsMagicControl 3",首|体|手|手|指|指|腕|,5,,,,,,,all,53,"10,300",120,360,,,,,,,
+phantom,ファントム,phantom,8,undead,70,90,,,20,15,50,,6,6,8,7,6,6,9,4,100,92,9,2,,"featUndead/2,featLightEater/2","rsStealth 3
+rsDisarmTrap 3",首|体|手|手|指|指|腕|,5,,,,8,,,all,53,"10,300",450,35,,,,,,,
+harpy,ハーピー,harpy,8,,90,100,,15,,,,20,8,6,9,9,6,8,9,4,100,98,8,3,,,"rsMagicCapacity 3
+rsMagicDevice 2",首|手|手|指|指|腕|脚|足|脚|足|,4,,,,,Kick,,,53,"10,80",140,420,150,fiber/griffon,,,,,
+dragon,ドラゴン,dragon,8,"ride,dragon",260,100,,,12,10,,,13,15,10,9,10,9,13,9,100,132,20,6,,"featHeavyEater/5,featElder,levitation/1,swimming/5","rsTravel 3
+rsJeweller 3",首|体|指|指|,5,,,,,Claw,,,53,"10,600",2400,20,250,fiber/hide_dragon,,,,,
+dinosaur,恐竜,dinosaur,8,"animal,dragon",140,40,,,8,,,,8,10,6,5,4,5,6,5,150,126,5,7,,featHeavyEater/5,"rsTravel 3
+rsEvadePlus 2",首|体|指|指|,4,,,,,Claw,,,53,"10,100",2000,30,150,fiber/hide,,,,,
+cerberus,ケルベロス,cerberus,8,"animal,dungeon",180,70,,,,10,,,11,9,10,11,6,8,7,4,110,116,6,4,,"featUnderground/1,featHeavyEater/3","rsDetection 3
+rsTailor 3",頭|頭|頭|首|体|腕|脚|足|脚|足|,4,,,tail_dog/10,,Claw,,,53,"10,100",1200,70,150,,,,,,
+spider,蜘蛛,spider,8,"ride,webfree,insect,filth",40,70,,17,,,,20,5,5,9,12,5,6,8,4,180,130,3,2,,"resPoison/20,antidote/-20","rsStealth 3
+rsAnatomy 5",指|指|,7,,,,6,Bite,castSpider,,53,"1,20",60,570,,fiber/spidersilk,,,,,
+rock,岩,rock,8,,80,50,,,20,25,,,8,22,3,8,2,3,4,10,80,74,2,3,,featGolem/1,"rsWeightLifting 3
+rsMining 3",頭|,9,granite,"rock,500",,8,,,,53,"10,600",500,130,,,,,,,
+crab,蟹,crab,8,"fish,sand",60,80,,,15,15,,,6,6,7,7,3,4,4,3,80,76,1,2,,"featAquatic/3,swimming/4","rsDisarmTrap 2
+rsShield 3",背|手|手|指|指|脚|足|,6,,,,,Claw,,,53,"1,10",50,420,150,,,,,,
+skeleton,骸骨,skeleton,8,undead,90,80,,,,,,,8,7,8,6,4,6,9,4,90,88,6,3,,"featUndead/2,featLightEater/2","rsLongSword 3
+rsShield 2
+rsOpenlock 3",頭|首|体|背|手|手|指|指|腕|腰|脚|足|,4,bone,"bone,500",,14,,,all,53,"10,150",160,30,,fiber/bone,,,,,
+piece,駒,piece,8,humanSpeak,90,80,,,10,15,,,9,7,6,4,5,9,10,4,100,94,7,3,,featLightEater/2,"rsMagicCapacity 2
+rsLiteracy 3",頭|首|体|背|手|手|指|指|腕|腰|,,,,,8,,,all,53,"10,100",750,25,,,,,,,
+cat,猫,cat,8,"animal,ride,cat,mofu,sleepBeside",100,120,,10,,,,25,6,7,7,7,4,4,7,12,160,140,8,3,,"featFluffyTail/1,food_cat/-1","rsPerform 2
+rsEvadePlus 3
+rsEvade 2",頭|首|体|背|手|脚|足|脚|足|,6,,,tail_cat/10,,Claw,castGaze,,53,"1,15",60,640,50,,,,,,
+dog,犬,dog,8,"animal,ride,mofu,sleepBeside",100,80,,,,,,,7,8,7,7,8,7,7,7,120,108,7,3,,"featFluffyTail/1,swimming/2","rsWeightLifting 3
+rsPerform 2
+rsDetection 3",頭|首|体|背|手|脚|足|脚|足|,5,,,tail_dog/10,,Bite,,,53,"1,15",80,660,50,,,,,,
+roran,ローラン,roran,8,"human,ride",100,80,,10,,,,,4,6,5,7,7,6,7,10,110,102,10,3,,"featRoran/1,regeneration/4,meditation/3,tactics/3","rsMeditation 3
+rsLiteracy 4
+rsInvest 2",頭|首|体|背|手|手|指|指|腕|腰|脚|足|,5,,,,,,,all,0,"6,32",150,120,,,,,,,
+mermaid,人魚,mermaid,8,"human,ride,fish,water",90,120,,10,5,,,,4,5,7,8,6,6,10,13,90,96,10,4,,"featAquatic/2,featRoran/1,regeneration/4,meditation/3,tactics/3,swimming/6","rsMeditation 3
+rsLiteracy 4
+rsInvest 2",頭|首|体|背|手|手|指|指|腕|,6,,,,,,,all,0,"6,32",150,160,,fiber/scale,,,,,
+rat,ねずみ,rat,8,"animal,noRide",60,80,,,,,,,5,4,8,10,3,3,2,3,120,100,2,1,,,"rsStealth 3
+rsAnatomy 2",背|腕|腰|脚|足|,7,,,,,Bite,,,53,"1,10",30,1160,50,,,,,,
+shell,やどかり,shell,8,"fish,sand",45,80,,,25,25,,,7,7,5,4,4,5,3,4,35,46,1,1,,swimming/3,"rsMeditation 3
+rsSenseQuality 3",足|,8,,,,,Claw,,,53,"1,10",120,380,150,,,,,,
+machine,機械,machine,8,"machine,ride",100,65,,,5,20,,,7,10,7,9,5,12,5,6,110,99,9,4,,"featGolem/1,blood/-20,spotting/4,weaponGun/3,armorHeavy/3","rsMeditation 3
+rsOpenLock 3
+rsDisarmTrap 3",頭|首|体|背|手|手|指|指|腕|腰|脚|足|,,iron,"ore,300",,10,,castMachine,all,53,"1,1500",170,15,,,,,,,
+wisp,ウィスプ,wisp,8,fairy,60,150,,10,,50,50,,5,10,10,20,10,15,15,4,50,72,7,1,,"featFairyResist/3,levitation/1,featLightEater/3,seeInvisible","rsMagicControl 3
+rsMagicCapacity 5",頭|,8,,,,5,Gaze,,,53,"1,200",40,25,,,,,,,
+chicken,鶏,chicken,8,"animal,ride",80,80,,5,,,,,8,6,7,7,4,4,5,7,100,92,3,1,,swimming/3,"rsAnatomy 3
+rsMeditation 3",頭|,9,,,,,Bite,,,53,"1,10",40,1320,220,,,,,,
+stalker,ストーカー,stalker,8,undead,90,140,,13,,,,,9,8,5,11,7,6,9,3,150,136,8,3,,"featUndead/1,invisibility/1,seeInvisible","rsCritical 3
+rsStealth 4",首|手|手|指|指|腕|,6,,,,3,Claw,,,53,,180,25,,,,,,,
+yeek,イーク,yeek,8,humanSpeak,70,90,,5,,,,,3,7,6,7,6,4,6,6,130,110,8,2,,,"rsMeditation 3
+rsTrade 4",頭|首|体|背|手|手|指|指|腕|腰|脚|足|,5,,,,,,,all,50,,90,510,,,,,,,
+yith,イス,yith,8,horror,180,220,,,,,,,11,13,9,13,6,8,9,11,120,152,14,5,,"featCosmicHorror/2,seeInvisible,swimming/3","rsMagicControl 4
+rsMeditation 3
+rsPrayer 4",手|手|手|手|指|指|指|指|,5,,,,3,Touch,castTentacle,,53,"10,5000",950,25,,,,,,,
+octopus,タコ,octopus,8,"water,fish,ride",150,70,,,,,,,12,11,11,9,9,4,6,4,50,74,14,4,,"featAquatic/3,regeneration/20,meditation/12,weightlifting/9,swimming/5","rsMagicControl 4
+rsMeditation 3
+rsPrayer 4",頭|手|手|手|手|手|手|手|手|,4,,,,,Touch,castTentacle,,53,"10,80",400,880,,,,,,,
+horse,馬,horse,8,"animal,ride",120,50,,10,,,,,8,9,4,5,4,4,3,6,180,142,4,2,,,rsHealing 4,頭|体|脚|足|脚|足|,5,,,,,Bite,,,53,"1,20",250,680,150,fiber/wool,,,,,
+quickling,クイックリング,quickling,8,"noRide,humanSpeak",10,40,,55,,,,50,2,4,16,13,5,6,10,7,440,274,7,1,,,"rsStealth 3
+rsEvade 7
+rsEvadePlus 6",頭|体|背|手|手|指|指|腕|脚|足|,2,,,,,,,all,53,,25,1,,,,,,,
+metal,メタル,metal,8,noRide,1,100,,20,25,,,,3,1,3,32,2,4,4,16,300,200.2,6,1,,featMetal/999,●,頭|体|背|,6,platinum,"ore,300",,10,Bite,,,53,,12,1,,,,,,,
+bike,バイク,bike,8,"machine,ride",50,20,,,,30,30,40,9,6,13,3,4,2,3,12,200,134,2,2,,"featGolem/1,blood/-20,spotting/4,weaponGun/3,armorHeavy/3,weightlifting/5","rsEvade 11
+rsOpenLock 3
+rsDisarmTrap 3",頭|体|背|手|手|脚|足|脚|足|,5,iron,"ore,300",,10,,castMachine,,53,,240,15,,,,,,,
+fish,魚,fish,8,"water,fish,ride",80,60,,,,,,30,4,6,15,12,3,3,6,6,90,82,3,2,,"featAquatic/3,swimming/12","rsEvade 11
+rsOpenLock 3
+rsDisarmTrap 3",頭|体|背|手|手|腰|脚|足|脚|足|,5,,,,,Bite,,,53,,350,500,,fiber/scale,,,,,
+animal,豚,pig,8,"animal,ride",100,80,,,,,,,9,8,7,7,8,7,7,7,100,96,7,3,,featHeavyEater/3,"rsWeightLifting 3
+rsPerform 2
+rsDetection 3",頭|首|体|背|手|脚|足|脚|足|,6,,,,,Bite,,,53,"1,15",80,920,150,fiber/wool,,,,,
+catgod,猫の神,catgod,9,"noRide,god,humanSpeak",140,80,,25,,,,,12,13,21,28,8,13,12,25,800,524,100,6,,"featFluffyTail/1,food_cat/-1,seeInvisible","rsEvade 3
+rsEvadePlus 3
+rsCritical 2",頭|首|体|手|指|腕|脚|足|,,,,,,Claw,,all,0,"10000,100000",120,5,,,,,,,
+machinegod,機械の神,machinegod,9,"machine,god,humanSpeak",200,80,,,15,,,,15,14,11,24,12,15,8,10,100,116,100,8,,"featGolem/1,seeInvisible,swimming/5",rsGun 30,頭|体|背|手|手|腕|腰|脚|足|,,steel,"ore,1000",,10,,,all,53,"10000,100000",3000,5,,,,,,,
+undeadgod,死霊の神,undeadgod,9,"undead,god,humanSpeak",80,500,,,,,,,10,13,14,12,16,18,28,7,180,224,100,4,,"featUndead/1,featLightEater/3,seeInvisible,featElder/1,featManaMeat/3,featAshborn/1","rsMagicControl 3
+rsMagicCapacity 5",首|体|背|手|手|指|指|,,,,,3,,,all,53,"10000,100000",1500,5,,,,,,,
+catsister,妹猫,catsister,9,"noRide,human,mofu",25,100,,,,,30,60,7,5,13,15,8,10,13,22,280,193,10,5,,"featFluffyTail/1,food_cat/-1,featRoran/1","rsTwoHand 6
+rsTactics 4",頭|首|体|背|手|手|指|指|腕|腰|脚|足|,6,,,tail_cat/10,,Claw,,all,0,,140,5,50,,,,,,
+demon,悪魔,demon,9,"horror,humanSpeak",110,190,,,,20,40,,13,10,8,9,17,7,15,11,150,150,20,5,,"featDemon/2,featElder,manaCapacity/3,casting/5,meditation/4",,頭|首|体|背|手|手|指|指|腕|腰|脚|足|,2,,,,,,,all,52,"50,300",165,20,,,,,,,
+servant,使徒,apostle,9,"human,ride,god",100,150,,,,,20,,7,7,7,7,7,7,7,7,100,110,20,3,,"featServant/1,tactics/4,casting/4,regeneration/2,meditation/3","rsTactics 3
+rsCasting 4
+rsTrade 3
+rsThrow 3
+rsTwoWield 4
+rsGun 4
+rsTwoHand 3",頭|首|体|背|手|手|指|指|腕|腰|脚|足|,,,,,,,,all,52,"50,300",165,5,,,,,,,
+god,神,god,9,"noRide,humanSpeak,god",200,200,,30,20,,,,17,13,19,17,16,25,24,21,200,200,100,8,,"food_god/40,seeInvisible,featElder,resEther/100","rsEvade 3
+rsEvadePlus 3
+rsCritical 2
+rsGun 8
+rsBow 7
+rsTwoWield 7
+rsTwohand 5
+rsTactics 7",手|手|,999,,,,,,,all,0,"10000,100000",180,1,,,,,,,

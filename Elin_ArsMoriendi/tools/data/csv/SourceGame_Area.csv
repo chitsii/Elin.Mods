@@ -1,0 +1,14 @@
+id,name_JP,name,textAssign_JP,textAssign,detail_JP,tag,detail
+string,string,string,string,string,string,string,string
+Room,部屋,Room,入居させる,Move In,住人が生活する空間,,
+PrivateRoom,個室,Private Room,入居させる,Move In,住人が生活する空間,,
+Workplace,仕事場,Workplace,雇う,Hire,,hide,
+Stockpile,ストックパイル,Stockpile,,,,hide,
+Dump,ゴミ捨て場,Garbage Dump,,,,hide,
+Farm,畑,Farm,,,作物を育て収穫する場所,hide,
+Ranch,牧場,Ranch,放牧する,Graze,家畜を育てる場所,hide,
+Gather,採取スポット,Gathering Spot,,,,hide,
+Prison,牢,Jail,ぶちこむ,Imprison,,hide,
+Bath,浴場,Public Bath,,,,hide,
+Guest,ゲストルーム,Guest Room,,,,,
+Drawing,応接室,Drawing Room,,,,,

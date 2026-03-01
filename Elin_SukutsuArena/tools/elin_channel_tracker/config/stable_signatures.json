@@ -1,0 +1,46 @@
+{
+  "kind": "signature_catalog",
+  "schema_version": "1.0.0",
+  "symbols": {
+    "Zone.Activate": [
+      "void()"
+    ],
+    "Zone.get_ShouldAutoRevive": [
+      "System.Boolean()"
+    ],
+    "Zone.ShouldAutoRevive": [
+      "System.Boolean()"
+    ],
+    "LayerDrama.OnKill": [
+      "void()"
+    ],
+    "Chara.TickConditions": [
+      "void()"
+    ],
+    "Region.CheckRandomSites": [
+      "void()"
+    ],
+    "DramaManager.ParseLine": [
+      "observed"
+    ],
+    "Card.DamageHP": [
+      "void(System.Int64,System.Int32,System.Int32,AttackSource,Card,System.Boolean,Thing,Chara)"
+    ],
+    "Card.HealHP": [
+      "void(System.Int32,HealSource)"
+    ],
+    "Cwl.API.Custom.CustomZone.Managed": [
+      "System.Collections.IDictionary"
+    ],
+    "Cwl.API.Custom.CustomZone.get_Managed": [
+      "System.Collections.IDictionary()"
+    ],
+    "Cwl.API.Custom.CustomMerchant.AddStock": [
+      "void(System.String,System.String)",
+      "void(System.String)"
+    ],
+    "Cwl.API.Custom.CustomMerchant.ClearStock": [
+      "void(System.String)"
+    ]
+  }
+}

@@ -109,7 +109,8 @@ tools/elin_channel_tracker/*_decompiled_*/
 
 # Keep local planning and extracted game source excels private
 **/.planning/
-SourceExcels/
+SourceExcels/*
+!SourceExcels/convert_source_excel.py
 
 # Do not publish release note logs in this mono-repo
 **/docs/release_notes/

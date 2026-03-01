@@ -71,20 +71,20 @@
 
 ### CSV変換済みデータ
 
-`tools/data/csv/` に全シートをCSV化してある。grep/Python で即検索可能。
+`../SourceExcels/csv/`（= `Elin.Mods/SourceExcels/csv/`）に全シートをCSV化してある。grep/Python で即検索可能。
 
 ```bash
 # 再生成（ゲーム更新時）
-python tools/data/convert_source_excel.py
+python ../SourceExcels/convert_source_excel.py
 
 # 使用例: カテゴリ "booze" に属するアイテムを探す
-grep "booze" tools/data/csv/SourceCard_ThingV.csv
+grep "booze" ../SourceExcels/csv/SourceCard_ThingV.csv
 
 # 使用例: アイテムIDで逆引き
-grep "^crimAle," tools/data/csv/SourceCard_ThingV.csv
+grep "^crimAle," ../SourceExcels/csv/SourceCard_ThingV.csv
 
 # 使用例: カテゴリ階層を確認
-grep "drink" tools/data/csv/SourceCard_Category.csv
+grep "drink" ../SourceExcels/csv/SourceCard_Category.csv
 ```
 
 ### シート間の関係

@@ -246,7 +246,6 @@ class DramaBuilder:
     def __init__(
         self,
         mod_name: str = "CWLMod",
-        allow_mod_invoke: bool = False,
     ) -> None:
         """
         Args:
@@ -259,7 +258,6 @@ class DramaBuilder:
         self._mod_name = mod_name
         self._validation_errors: List[str] = []
         self._choice_id_counter: int = 0
-        self._allow_mod_invoke = allow_mod_invoke
 
     def _next_choice_id(self) -> str:
         """text_id 未指定の選択肢用に自動IDを生成"""
@@ -432,19 +430,6 @@ class DramaBuilder:
 
         return self
 
-    def switch_flag(
-        self,
-        flag: str,
-        cases: List[Union[str, DramaLabel]],
-        fallback: Union[str, DramaLabel] = None,
-        actor: Union[str, DramaActor] = None,
-    ) -> "DramaBuilder":
-        """非推奨: modInvoke 依存のため使用禁止。switch_on_flag を使うこと。"""
-        raise ValueError(
-            "switch_flag() is disabled in CWL-only mode. "
-            "Use switch_on_flag() with explicit value->label mapping."
-        )
-
     def choice_block(
         self,
         choices: List["ChoiceReaction"],
@@ -482,11 +467,15 @@ class DramaBuilder:
         return self
 
     def check_quests(
-        self, checks: list, actor: Union[str, DramaActor] = None
+        self,
+        checks: List[tuple[str, Union[str, DramaLabel]]],
+        actor: Union[str, DramaActor] = None,
     ) -> "DramaBuilder":
-        """複数のクエスト利用可能チェックを一括で実行。"""
-        for quest_id, jump_target in checks:
-            self.check_quest_available(quest_id, jump_target, actor)
+        """複数のクエスト開始条件を順次評価し、成立時に対応ラベルへジャンプ。"""
+        for i, (quest_id, jump_target) in enumerate(checks):
+            temp_flag = f"tmp.quest_check.{i}"
+            self.quest_check(quest_id, temp_flag, actor=actor)
+            self.branch_if(temp_flag, "==", 1, jump_target, actor=actor)
         return self
 
     def set_flag(self, flag: str, value: int = 1) -> "DramaBuilder":
@@ -1040,20 +1029,22 @@ class DramaBuilder:
     ) -> "DramaBuilder":
         """複数フラグのAND判定結果を target_flag_key(1/0) に同期する。"""
         flags_csv = ",".join(
-            flag.strip() for flag in source_flags if isinstance(flag, str) and flag.strip()
+            flag.strip()
+            for flag in source_flags
+            if isinstance(flag, str) and flag.strip()
         )
         code = (
-            f'var __flags=EClass.player?.dialogFlags;'
-            f'if(__flags!=null){{'
-            f'var __keys="{flags_csv}".Split(\',\');'
-            f'bool __ok=true;'
-            f'for(int __i=0;__i<__keys.Length;__i++){{'
-            f'var __k=__keys[__i].Trim();'
-            f'if(__k.Length==0)continue;'
-            f'if(!__flags.TryGetValue(__k,out var __v)||__v==0){{__ok=false;break;}}'
-            f'}}'
+            f"var __flags=EClass.player?.dialogFlags;"
+            f"if(__flags!=null){{"
+            f"var __keys=\"{flags_csv}\".Split(',');"
+            f"bool __ok=true;"
+            f"for(int __i=0;__i<__keys.Length;__i++){{"
+            f"var __k=__keys[__i].Trim();"
+            f"if(__k.Length==0)continue;"
+            f"if(!__flags.TryGetValue(__k,out var __v)||__v==0){{__ok=false;break;}}"
+            f"}}"
             f'__flags["{target_flag_key}"]=__ok?1:0;'
-            f'}}'
+            f"}}"
         )
         return self.cs_eval(code, actor=actor)
 
@@ -1065,20 +1056,22 @@ class DramaBuilder:
     ) -> "DramaBuilder":
         """複数フラグのOR判定結果を target_flag_key(1/0) に同期する。"""
         flags_csv = ",".join(
-            flag.strip() for flag in source_flags if isinstance(flag, str) and flag.strip()
+            flag.strip()
+            for flag in source_flags
+            if isinstance(flag, str) and flag.strip()
         )
         code = (
-            f'var __flags=EClass.player?.dialogFlags;'
-            f'if(__flags!=null){{'
-            f'var __keys="{flags_csv}".Split(\',\');'
-            f'bool __ok=false;'
-            f'for(int __i=0;__i<__keys.Length;__i++){{'
-            f'var __k=__keys[__i].Trim();'
-            f'if(__k.Length==0)continue;'
-            f'if(__flags.TryGetValue(__k,out var __v)&&__v!=0){{__ok=true;break;}}'
-            f'}}'
+            f"var __flags=EClass.player?.dialogFlags;"
+            f"if(__flags!=null){{"
+            f"var __keys=\"{flags_csv}\".Split(',');"
+            f"bool __ok=false;"
+            f"for(int __i=0;__i<__keys.Length;__i++){{"
+            f"var __k=__keys[__i].Trim();"
+            f"if(__k.Length==0)continue;"
+            f"if(__flags.TryGetValue(__k,out var __v)&&__v!=0){{__ok=true;break;}}"
+            f"}}"
             f'__flags["{target_flag_key}"]=__ok?1:0;'
-            f'}}'
+            f"}}"
         )
         return self.cs_eval(code, actor=actor)
 
@@ -1091,15 +1084,15 @@ class DramaBuilder:
     ) -> "DramaBuilder":
         """最終時刻フラグとの差分(raw分)を判定し、結果を target_flag_key(1/0) に同期する。"""
         code = (
-            f'var __flags=EClass.player?.dialogFlags;'
-            f'if(__flags!=null&&EClass.world?.date!=null){{'
-            f'int __last=0;'
+            f"var __flags=EClass.player?.dialogFlags;"
+            f"if(__flags!=null&&EClass.world?.date!=null){{"
+            f"int __last=0;"
             f'if(!string.IsNullOrEmpty("{last_raw_flag_key}")){{__flags.TryGetValue("{last_raw_flag_key}",out __last);}}'
-            f'int __cur=EClass.world.date.GetRaw();'
-            f'int __th={threshold_raw_minutes};'
-            f'bool __ok=__th<=0||(__last>0&&(__cur-__last)>=__th);'
+            f"int __cur=EClass.world.date.GetRaw();"
+            f"int __th={threshold_raw_minutes};"
+            f"bool __ok=__th<=0||(__last>0&&(__cur-__last)>=__th);"
             f'__flags["{target_flag_key}"]=__ok?1:0;'
-            f'}}'
+            f"}}"
         )
         return self.cs_eval(code, actor=actor)
 
@@ -1125,10 +1118,10 @@ class DramaBuilder:
     ) -> "DramaBuilder":
         """現在の world.date raw 値をフラグへ保存する。"""
         code = (
-            f'var __flags=EClass.player?.dialogFlags;'
-            f'if(__flags!=null&&EClass.world?.date!=null){{'
+            f"var __flags=EClass.player?.dialogFlags;"
+            f"if(__flags!=null&&EClass.world?.date!=null){{"
             f'__flags["{target_flag_key}"]=EClass.world.date.GetRaw();'
-            f'}}'
+            f"}}"
         )
         return self.cs_eval(code, actor=actor)
 
@@ -1857,83 +1850,6 @@ class DramaBuilder:
         return self
 
     # ============================================================================
-    # Quest System: modInvoke Actions
-    # ============================================================================
-
-    def mod_invoke(
-        self, method_call: str, actor: Union[str, DramaActor] = None
-    ) -> "DramaBuilder":
-        """C# メソッドを modInvoke アクションで呼び出す（既定では禁止）。"""
-        if not self._allow_mod_invoke:
-            raise ValueError(
-                "modInvoke is disabled in CWL-only mode. "
-                "Use CWL standard actions/invoke* helpers instead."
-            )
-        actor_key = self._resolve_key(actor) if actor else "pc"
-        self.entries.append(
-            {
-                "action": "modInvoke",
-                "param": method_call,
-                "actor": actor_key,
-            }
-        )
-        return self
-
-    def check_quest_available(
-        self,
-        quest_id: str,
-        jump_to: Union[str, DramaLabel],
-        actor: Union[str, DramaActor] = None,
-    ) -> "DramaBuilder":
-        """非推奨: modInvoke 依存のため使用禁止。quest_check + branch_if を使うこと。"""
-        raise ValueError(
-            "check_quest_available() is disabled in CWL-only mode. "
-            "Use quest_check() and branch_if() instead."
-        )
-
-    def if_flag_string(
-        self,
-        flag: str,
-        operator: str,
-        value: str,
-        jump_to: Union[str, DramaLabel],
-        actor: Union[str, DramaActor] = None,
-    ) -> "DramaBuilder":
-        """非推奨: modInvoke 依存のため使用禁止。CWLの数値フラグ比較を使うこと。"""
-        raise ValueError(
-            "if_flag_string() is disabled in CWL-only mode. "
-            "Use branch_if()/switch_on_flag() with numeric flags."
-        )
-
-    def debug_log_flags(self, actor: Union[str, DramaActor] = None) -> "DramaBuilder":
-        """デバッグ: 全フラグをログ出力"""
-        raise ValueError(
-            "debug_log_flags() is disabled in CWL-only mode. "
-            "Use eval() with explicit debug code if needed."
-        )
-
-    def debug_log_quests(self, actor: Union[str, DramaActor] = None) -> "DramaBuilder":
-        """デバッグ: 全クエスト状態をログ出力"""
-        raise ValueError(
-            "debug_log_quests() is disabled in CWL-only mode. "
-            "Use eval() with explicit debug code if needed."
-        )
-
-    def check_available_quests_for_npc(
-        self, npc_id: str, actor: Union[str, DramaActor] = None
-    ) -> "DramaBuilder":
-        """NPCごとの利用可能クエストをチェックしフラグを設定"""
-        raise ValueError(
-            "check_available_quests_for_npc() is disabled in CWL-only mode."
-        )
-
-    def check_quests_for_dispatch(
-        self, flag_name: str, quest_ids: List[str]
-    ) -> "DramaBuilder":
-        """クエストディスパッチ用のチェック"""
-        raise ValueError("check_quests_for_dispatch() is disabled in CWL-only mode.")
-
-    # ============================================================================
     # 検証・出力
     # ============================================================================
 
@@ -1992,7 +1908,7 @@ class DramaBuilder:
                 current_step_has_terminator = True
                 jump_targets.add(jump)
 
-            if action in ("modInvoke", "invoke*") and param:
+            if action == "invoke*" and param:
                 # if_flag パターン
                 match = re.search(r"if_flag\([^,]+,\s*[^,]+,\s*([^)]+)\)", param)
                 if match:
@@ -2000,22 +1916,6 @@ class DramaBuilder:
                     jump_targets.add(target)
                     if "==0" in param:
                         current_step_has_fallback = True
-
-                # check_quest_available パターン
-                match = re.search(r"check_quest_available\([^,]+,\s*([^)]+)\)", param)
-                if match:
-                    target = match.group(1).strip()
-                    jump_targets.add(target)
-
-                # switch_flag パターン: switch_flag(flag, target1, target2, ...)
-                match = re.search(r"switch_flag\([^,]+,\s*(.+)\)", param)
-                if match:
-                    targets_str = match.group(1)
-                    for target in targets_str.split(","):
-                        target = target.strip()
-                        if target:
-                            jump_targets.add(target)
-                    current_step_has_terminator = True  # switch_flag は terminator
 
         if (
             current_step

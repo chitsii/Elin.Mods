@@ -200,6 +200,20 @@ class CommonRuntimeApiTests(unittest.TestCase):
             builder.entries[0]["param"],
         )
 
+    def test_check_quests_uses_quest_check_and_branch_if(self):
+        builder = DramaBuilder(mod_name="QuestMod")
+        target = builder.label("next")
+        builder.check_quests([("quest_drama_feature_showcase", target)])
+
+        self.assertEqual("eval", builder.entries[0]["action"])
+        self.assertIn(
+            'ResolveFlag("state.quest.can_start.quest_drama_feature_showcase", "tmp.quest_check.0")',
+            builder.entries[0]["param"],
+        )
+        self.assertEqual("invoke*", builder.entries[1]["action"])
+        self.assertEqual("if_flag(tmp.quest_check.0, ==1)", builder.entries[1]["param"])
+        self.assertEqual("next", builder.entries[1]["jump"])
+
     def test_quest_try_start_uses_quest_start_command_key(self):
         builder = DramaBuilder(mod_name="QuestMod")
         builder.quest_try_start("quest_drama_feature_showcase")
@@ -246,20 +260,11 @@ class CommonRuntimeApiTests(unittest.TestCase):
         self.assertEqual("completeQuest", reaction.actions[0]["action"])
         self.assertEqual("quest_drama_feature_showcase", reaction.actions[0]["param"])
 
-    def test_mod_invoke_is_disabled_by_default(self):
+    def test_legacy_modinvoke_apis_are_removed(self):
         builder = DramaBuilder(mod_name="QuestMod")
-        with self.assertRaises(ValueError):
-            builder.mod_invoke("debug_log_flags()")
-
-    def test_switch_flag_is_disabled_in_cwl_only_mode(self):
-        builder = DramaBuilder(mod_name="QuestMod")
-        with self.assertRaises(ValueError):
-            builder.switch_flag("tmp.flag", [builder.label("a"), builder.label("b")], builder.label("end"))
-
-    def test_check_quest_available_is_disabled_in_cwl_only_mode(self):
-        builder = DramaBuilder(mod_name="QuestMod")
-        with self.assertRaises(ValueError):
-            builder.check_quest_available("quest_drama_feature_showcase", builder.label("next"))
+        self.assertFalse(hasattr(builder, "mod_invoke"))
+        self.assertFalse(hasattr(builder, "switch_flag"))
+        self.assertFalse(hasattr(builder, "check_quest_available"))
 
     def test_add_temp_actor_uses_standard_action(self):
         builder = DramaBuilder(mod_name="QuestMod")

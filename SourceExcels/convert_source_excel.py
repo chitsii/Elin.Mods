@@ -1,9 +1,9 @@
 """SourceExcel (xlsx) を CSV に変換する。
 
 使い方:
-    python tools/data/convert_source_excel.py
+    python SourceExcels/convert_source_excel.py
 
-出力先: tools/data/csv/<ファイル名>_<シート名>.csv
+出力先: SourceExcels/csv/<ファイル名>_<シート名>.csv
 ゲーム更新時に再実行すること。
 """
 
@@ -18,9 +18,8 @@ except ImportError:
     sys.exit(1)
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.join(SCRIPT_DIR, "..", "..")
-SOURCE_EXCELS_DIR = os.path.join(PROJECT_ROOT, "..", "SourceExcels")
-OUTPUT_DIR = os.path.join(SCRIPT_DIR, "csv")
+SOURCE_EXCELS_DIR = SCRIPT_DIR
+OUTPUT_DIR = os.path.join(SOURCE_EXCELS_DIR, "csv")
 
 MAX_ROWS = 100_000  # これを超えるシートはプレースホルダとみなしスキップ
 

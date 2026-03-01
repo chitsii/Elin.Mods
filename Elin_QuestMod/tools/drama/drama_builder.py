@@ -243,13 +243,27 @@ class DramaBuilder:
         drama.save("drama.xlsx", sheet_name="master")
     """
 
+    # QuestMod の DLL ランタイム(Elin_QuestMod.Drama.DramaRuntime)に依存する API 群。
+    MOD_DLL_DEPENDENT_APIS: Set[str] = {
+        "cs_call_common_runtime",
+        "resolve_flag",
+        "resolve_run",
+        "play_pc_effect",
+        "play_pc_effect_with_sound",
+        "run_cue",
+        "quest_check",
+        "quest_try_start",
+        "quest_try_start_repeatable",
+        "quest_try_start_until_complete",
+    }
+
     def __init__(
         self,
         mod_name: str = "CWLMod",
     ) -> None:
         """
         Args:
-            mod_name: Mod name for debug logs (e.g., "SukutsuArena")
+            mod_name: Mod name for debug logs (e.g., "QuestMod")
         """
         self.entries: List[Dict[str, Any]] = []
         self.actors: Dict[str, Dict[str, str]] = {}
@@ -258,6 +272,11 @@ class DramaBuilder:
         self._mod_name = mod_name
         self._validation_errors: List[str] = []
         self._choice_id_counter: int = 0
+
+    @classmethod
+    def get_mod_dll_dependent_apis(cls) -> Set[str]:
+        """Mod DLL 依存 API 名の一覧を返す。"""
+        return set(cls.MOD_DLL_DEPENDENT_APIS)
 
     def _next_choice_id(self) -> str:
         """text_id 未指定の選択肢用に自動IDを生成"""
@@ -922,7 +941,7 @@ class DramaBuilder:
         return self
 
     # ============================================================================
-    # CWL 拡張機能: ランタイムスクリプト
+    # CWL 機能: eval / invoke* ベースの汎用ユーティリティ
     # ============================================================================
 
     def cs_eval(
@@ -966,7 +985,7 @@ class DramaBuilder:
         actor: Union[str, DramaActor] = None,
         runtime_type: str = "Elin_QuestMod.Drama.DramaRuntime",
     ) -> "DramaBuilder":
-        """共通ドラマランタイム呼び出しのショートハンド。
+        """[Mod DLL依存] 共通ドラマランタイム呼び出しのショートハンド。
 
         他Modへ移植しやすいよう、シナリオ側から eval 文字列を隠蔽する。
         """
@@ -1013,7 +1032,7 @@ class DramaBuilder:
         target_flag_key: str,
         actor: Union[str, DramaActor] = None,
     ) -> "DramaBuilder":
-        """依存キーを評価し、結果をdialogFlagに同期する。"""
+        """[Mod DLL依存] 依存キーを評価し、結果をdialogFlagに同期する。"""
         return self.cs_call_common_runtime(
             "ResolveFlag",
             f'"{dependency_key}"',
@@ -1158,28 +1177,12 @@ class DramaBuilder:
         dependency_key: str,
         actor: Union[str, DramaActor] = None,
     ) -> "DramaBuilder":
-        """依存キーに対応するコマンドを実行する。"""
+        """[Mod DLL依存] 依存キーに対応するコマンドを実行する。"""
         return self.cs_call_common_runtime(
             "ResolveRun",
             f'"{dependency_key}"',
             actor=actor,
         )
-
-    # Backward-compatible wrappers (scheduled for removal)
-    def sync_flag_from_dependency(
-        self,
-        dependency_key: str,
-        target_flag_key: str,
-        actor: Union[str, DramaActor] = None,
-    ) -> "DramaBuilder":
-        return self.resolve_flag(dependency_key, target_flag_key, actor=actor)
-
-    def run_dependency_command(
-        self,
-        dependency_key: str,
-        actor: Union[str, DramaActor] = None,
-    ) -> "DramaBuilder":
-        return self.resolve_run(dependency_key, actor=actor)
 
     def quest_check(
         self,
@@ -1187,7 +1190,7 @@ class DramaBuilder:
         target_flag_key: str,
         actor: Union[str, DramaActor] = None,
     ) -> "DramaBuilder":
-        """ドラマ開始条件を評価し、結果をフラグへ同期する。"""
+        """[Mod DLL依存] ドラマ開始条件を評価し、結果をフラグへ同期する。"""
         return self.resolve_flag(
             f"state.quest.can_start.{drama_id}",
             target_flag_key,
@@ -1199,7 +1202,7 @@ class DramaBuilder:
         drama_id: str,
         actor: Union[str, DramaActor] = None,
     ) -> "DramaBuilder":
-        """ドラマ開始コマンドを実行する（idempotent）。"""
+        """[Mod DLL依存] ドラマ開始コマンドを実行する（idempotent）。"""
         return self.resolve_run(
             f"cmd.quest.try_start.{drama_id}",
             actor=actor,
@@ -1210,7 +1213,7 @@ class DramaBuilder:
         drama_id: str,
         actor: Union[str, DramaActor] = None,
     ) -> "DramaBuilder":
-        """ドラマ開始コマンドを実行する（完了まで再試行可能）。"""
+        """[Mod DLL依存] ドラマ開始コマンドを実行する（完了まで再試行可能）。"""
         return self.resolve_run(
             f"cmd.quest.try_start_repeatable.{drama_id}",
             actor=actor,
@@ -1221,7 +1224,7 @@ class DramaBuilder:
         drama_id: str,
         actor: Union[str, DramaActor] = None,
     ) -> "DramaBuilder":
-        """ドラマ開始コマンドを実行する（完了まで再試行可能）。"""
+        """[Mod DLL依存] ドラマ開始コマンドを実行する（完了まで再試行可能）。"""
         return self.resolve_run(
             f"cmd.quest.try_start_until_complete.{drama_id}",
             actor=actor,
@@ -1398,27 +1401,6 @@ class DramaBuilder:
         """フェードアウト（画面が暗くなる）"""
         param = f"{duration},{color}"
         self.entries.append({"action": "fadeOut", "param": param})
-        return self
-
-    def flash_lut(
-        self, lut_name: str, duration: float = 2.0, fade_time: float = 0.3
-    ) -> "DramaBuilder":
-        """
-        LUTを一時的に切り替える（フェードトランジション付き）
-
-        明度を下げる → LUT切替 → 明度を戻す → 待機 → 明度を下げる → LUT戻し → 明度を戻す
-
-        Args:
-            lut_name: LUT名（例: "LUT_Invert", "LUT_Horror1"）
-            duration: 効果時間（秒）デフォルト2秒
-            fade_time: フェード時間（秒）デフォルト0.3秒
-
-        使用例:
-            builder.flash_lut("LUT_Invert", duration=2.0)  # 狂気的な演出
-            builder.flash_lut("LUT_Horror1", duration=3.0, fade_time=0.5)  # ホラー演出
-        """
-        code = f'Elin_SukutsuArena.Effects.LutEffect.Flash("{lut_name}", {duration}f, {fade_time}f);'
-        self.entries.append({"action": "eval", "param": code})
         return self
 
     def set_background(self, bg_id: str = "") -> "DramaBuilder":
@@ -1835,7 +1817,7 @@ class DramaBuilder:
         """CWLネイティブのstartQuestアクション（ジャーナル表示用）
 
         SourceQuest.xlsxで定義したクエストをジャーナルに表示する。
-        ArenaQuestManagerとは別のシステムで、ジャーナル表示のみを担当。
+        クエストロジック側とは独立して、ジャーナル表示のみを担当。
         """
         self.entries.append({"action": "startQuest", "param": quest_id})
         return self

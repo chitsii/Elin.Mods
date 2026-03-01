@@ -265,6 +265,7 @@ class CommonRuntimeApiTests(unittest.TestCase):
         self.assertFalse(hasattr(builder, "mod_invoke"))
         self.assertFalse(hasattr(builder, "switch_flag"))
         self.assertFalse(hasattr(builder, "check_quest_available"))
+        self.assertFalse(hasattr(builder, "flash_lut"))
 
     def test_add_temp_actor_uses_standard_action(self):
         builder = DramaBuilder(mod_name="QuestMod")

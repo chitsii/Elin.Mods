@@ -18,20 +18,20 @@
 ## 実行例（リポジトリルートから）
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\runtime-test-v2\runner\run_runtime_suite_v2.ps1 `
-  -ModRoot .\Elin_TheVileArtOfNecromancy `
+  -ModRoot .\Elin_ArsMoriendi `
   -Suite drama
 ```
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\runtime-test-v2\runner\run_runtime_suite_v2.ps1 `
-  -ModRoot .\Elin_TheVileArtOfNecromancy `
+  -ModRoot .\Elin_ArsMoriendi `
   -Suite drama `
   -CaseId ars_first_soul
 ```
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\runtime-test-v2\runner\run_runtime_suite_v2.ps1 `
-  -ModRoot .\Elin_TheVileArtOfNecromancy `
+  -ModRoot .\Elin_ArsMoriendi `
   -Suite smoke `
   -CaseId patch.targets.spawnloot_and_oncharadie
 ```

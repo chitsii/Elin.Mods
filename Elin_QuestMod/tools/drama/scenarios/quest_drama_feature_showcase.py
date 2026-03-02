@@ -27,11 +27,17 @@ def define_quest_drama_feature_showcase(builder: DramaBuilder) -> None:
     builder.set_flag("yourname.elin_quest_mod.tmp.feature_followup.error_count", 0)
     builder.set_flag("yourname.elin_quest_mod.tmp.can_start.feature_followup", 0)
     builder.set_flag("yourname.elin_quest_mod.tmp.is_done.feature_followup", 0)
-    builder.set_flag("yourname.elin_quest_mod.tmp.feature_showcase.done_at_followup_entry", 0)
-    builder.set_flag("yourname.elin_quest_mod.tmp.feature_followup.diag.resolve_status", -1)
+    builder.set_flag(
+        "yourname.elin_quest_mod.tmp.feature_showcase.done_at_followup_entry", 0
+    )
+    builder.set_flag(
+        "yourname.elin_quest_mod.tmp.feature_followup.diag.resolve_status", -1
+    )
     builder.set_flag("yourname.elin_quest_mod.tmp.feature_followup.start_cond.all", 0)
     builder.set_flag("yourname.elin_quest_mod.tmp.feature_followup.cooldown_ready", 0)
-    builder.set_flag("yourname.elin_quest_mod.flag.feature_followup.last_advance_raw", 0)
+    builder.set_flag(
+        "yourname.elin_quest_mod.flag.feature_followup.last_advance_raw", 0
+    )
     builder.set_flag("yourname.elin_quest_mod.flag.feature.branch.last_choice", 0)
 
     # Sync quest conditions to temporary flags.
@@ -181,7 +187,7 @@ def define_quest_drama_feature_showcase(builder: DramaBuilder) -> None:
     builder.wait(0.6)
     builder.say(
         "feature_route_visual_6",
-        "案内役: 手順6。Vile由来の Texture/ars_hecatia.png を使って、set_sprite(ars_hecatia) を実行します。",
+        "案内役: 手順6。 Texture/ars_hecatia.png を使って、set_sprite(ars_hecatia) を実行します。",
         "Guide: Step 6. Apply set_sprite(ars_hecatia) using Vile's Texture/ars_hecatia.png.",
         actor=guide,
     )
@@ -253,7 +259,9 @@ def define_quest_drama_feature_showcase(builder: DramaBuilder) -> None:
         "Guide: Marking showcase complete, then starting the follow-up diagnostic drama.",
         actor=guide,
     )
-    builder.stamp_current_raw_time("yourname.elin_quest_mod.flag.feature_followup.last_advance_raw")
+    builder.stamp_current_raw_time(
+        "yourname.elin_quest_mod.flag.feature_followup.last_advance_raw"
+    )
     builder.resolve_run("cmd.quest.complete.quest_drama_feature_showcase")
     builder.action("stopBGM")
     builder.wait(0.2)

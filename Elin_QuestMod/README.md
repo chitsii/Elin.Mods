@@ -70,7 +70,7 @@ Elin_QuestMod/
   - フェーズ遷移のステートマシン定義
   - `Pulse` の実行順序
 - `src/CommonQuest/StateMachine/*.cs`
-  - Vile由来の汎用ステートマシン（重複遷移/後退遷移を拒否）
+  - 汎用ステートマシン（重複遷移/後退遷移を拒否）
 - `src/Patches/Patch_Zone_Activate_QuestPulse.cs`
   - `Zone.Activate` への Postfix
 - `src/Compat/PointCompat.cs`

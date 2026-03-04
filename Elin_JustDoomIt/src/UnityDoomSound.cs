@@ -59,6 +59,7 @@ namespace Elin_ModTemplate
             _source.playOnAwake = false;
             _source.loop = false;
             _source.spatialBlend = 0f;
+            _source.ignoreListenerPause = true;
             _source.volume = _externalVolumeScale;
         }
 

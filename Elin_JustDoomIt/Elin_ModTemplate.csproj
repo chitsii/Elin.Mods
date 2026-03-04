@@ -73,6 +73,10 @@
       <HintPath>elin_link\Elin_Data\Managed\Plugins.Util.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Plugins.Sound">
+      <HintPath>elin_link\Elin_Data\Managed\Plugins.Sound.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="DoomNetFrameworkEngine">
       <HintPath>_ext\DoomNetFrameworkEngine\lib\net48\DoomNetFrameworkEngine.dll</HintPath>
       <Private>True</Private>

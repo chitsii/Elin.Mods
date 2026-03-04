@@ -211,6 +211,7 @@ def build_rows(lang: str):
         set_cell(row, "_tileType", thing.tile_type)
         set_cell(row, "_idRenderData", thing.render_data)
         set_cell(row, "tiles", thing.tiles)
+        set_cell(row, "defMat", thing.def_mat)
         set_cell(row, "value", thing.value)
         set_cell(row, "weight", thing.weight)
         set_cell(row, "electricity", thing.electricity)

@@ -16,10 +16,11 @@ class ThingDefinition:
     tile_type: str = "ObjBig"
     render_data: str = "obj"
     tiles: str = "3033"
-    value: int = 14000
+    value: int = 45000
     weight: int = 120000
     electricity: int = -10
     trait: str = "SlotMachine"
+    def_mat: str = ""
 
 
 THING_DEFINITIONS: List[ThingDefinition] = [
@@ -31,5 +32,6 @@ THING_DEFINITIONS: List[ThingDefinition] = [
         detail_jp="Doomをプレイできるアーケード筐体。",
         detail_en="An arcade cabinet that launches FreeDoom.",
         detail_cn="可启动 FreeDoom 的街机柜。",
+        def_mat="eternity",
     ),
 ]

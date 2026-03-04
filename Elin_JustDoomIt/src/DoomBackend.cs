@@ -7,10 +7,26 @@ using DoomNetFrameworkEngine.DoomEntity.MathUtils;
 using DoomNetFrameworkEngine.DoomEntity.World;
 using DoomNetFrameworkEngine.UserInput;
 using DoomNetFrameworkEngine.Video;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Elin_ModTemplate
 {
+    public struct DoomKillEvent
+    {
+        public int TotalKills;
+        public int CurrentKillStreak;
+        public int Reward;
+        public string Enemy;
+        public int Health;
+        public int Armor;
+        public string Weapon;
+        public string MapCode;
+        public string MapTitle;
+        public int MapKills;
+        public int MapKillTotal;
+    }
+
     public struct DoomRunStats
     {
         public int TotalKills;
@@ -29,6 +45,7 @@ namespace Elin_ModTemplate
         DoomRunStats Stats { get; }
         bool Initialize(string wadPath, ManualLogSource logger);
         void SubmitInput(DoomInputState input);
+        bool TryDequeueKillEvent(out DoomKillEvent killEvent);
         void SetSfxDucking(bool ducked);
         void Tick(float deltaTime);
         Color32[] GetFrameBuffer();
@@ -59,6 +76,7 @@ namespace Elin_ModTemplate
         private GameState _lastGameState = GameState.Level;
         private int _lastHealth = -1;
         private int _lastDamageCount = -1;
+        private readonly Queue<DoomKillEvent> _killEvents = new Queue<DoomKillEvent>();
 
         public int Width => _video?.Width ?? Mathf.Max(160, _requestedWidth);
         public int Height => _video?.Height ?? Mathf.Max(100, _requestedHeight);
@@ -118,6 +136,7 @@ namespace Elin_ModTemplate
                 _lastGameState = GameState.Level;
                 _lastHealth = -1;
                 _lastDamageCount = -1;
+                _killEvents.Clear();
                 _running = true;
                 logger.LogInfo("[JustDoomIt] Managed Doom initialized.");
                 return true;
@@ -133,6 +152,18 @@ namespace Elin_ModTemplate
         public void SubmitInput(DoomInputState input)
         {
             _currentInput = input;
+        }
+
+        public bool TryDequeueKillEvent(out DoomKillEvent killEvent)
+        {
+            if (_killEvents.Count > 0)
+            {
+                killEvent = _killEvents.Dequeue();
+                return true;
+            }
+
+            killEvent = default;
+            return false;
         }
 
         public void SetSfxDucking(bool ducked)
@@ -198,6 +229,7 @@ namespace Elin_ModTemplate
             _lastGameState = GameState.Level;
             _lastHealth = -1;
             _lastDamageCount = -1;
+            _killEvents.Clear();
         }
 
         private void UpdateRunStats()
@@ -257,13 +289,29 @@ namespace Elin_ModTemplate
                 for (var i = 0; i < gained; i++)
                 {
                     _killStreak++;
+                    var reward = GetKillRewardByStreak(_killStreak);
                     _stats.TotalKills++;
-                    _stats.KillChipPayout += GetKillRewardByStreak(_killStreak);
+                    _stats.KillChipPayout += reward;
                     _stats.CurrentKillStreak = _killStreak;
                     if (_killStreak > _stats.MaxKillStreak)
                     {
                         _stats.MaxKillStreak = _killStreak;
                     }
+
+                    _killEvents.Enqueue(new DoomKillEvent
+                    {
+                        TotalKills = _stats.TotalKills,
+                        CurrentKillStreak = _killStreak,
+                        Reward = reward,
+                        Enemy = DoomKillFeed.TryDequeueEnemy(out var enemyName) ? enemyName : "Unknown",
+                        Health = player.Health,
+                        Armor = player.ArmorPoints,
+                        Weapon = GetWeaponName(player.ReadyWeapon),
+                        MapCode = "E" + episode + "M" + map,
+                        MapTitle = world.Map?.Title ?? "",
+                        MapKills = player.KillCount,
+                        MapKillTotal = world.TotalKills
+                    });
                 }
             }
             _lastKillCount = currentKillCount;
@@ -322,6 +370,23 @@ namespace Elin_ModTemplate
             // First kill is 50, and per-kill payout is capped at 10000.
             var scaled = Mathf.CeilToInt(50f * Mathf.Pow(1.5f, streak - 1));
             return Mathf.Clamp(scaled, 50, 10000);
+        }
+
+        private static string GetWeaponName(WeaponType weapon)
+        {
+            switch (weapon)
+            {
+                case WeaponType.Fist: return "Fist";
+                case WeaponType.Pistol: return "Pistol";
+                case WeaponType.Shotgun: return "Shotgun";
+                case WeaponType.Chaingun: return "Chaingun";
+                case WeaponType.Missile: return "Rocket";
+                case WeaponType.Plasma: return "Plasma";
+                case WeaponType.Bfg: return "BFG";
+                case WeaponType.Chainsaw: return "Chainsaw";
+                case WeaponType.SuperShotgun: return "Super Shotgun";
+                default: return weapon.ToString();
+            }
         }
     }
 

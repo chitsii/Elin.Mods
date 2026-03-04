@@ -25,12 +25,12 @@ namespace Elin_ModTemplate
             DoomSfxVolume = config.Bind(
                 "DOOM",
                 "SfxVolume",
-                12,
+                6,
                 new ConfigDescription("DOOM sound effect volume (0-15).", new AcceptableValueRange<int>(0, 15)));
             MouseTurnSensitivity = config.Bind(
                 "DOOM",
                 "MouseTurnSensitivity",
-                10f,
+                5f,
                 new ConfigDescription(
                     "Horizontal mouse turn sensitivity.",
                     new AcceptableValueRange<float>(1f, 40f)));
@@ -49,9 +49,9 @@ namespace Elin_ModTemplate
             BackdropAlpha = config.Bind(
                 "Overlay",
                 "BackdropAlpha",
-                0.55f,
+                0.80f,
                 new ConfigDescription(
-                    "Backdrop darkness alpha. 0 = transparent, 1 = fully black.",
+                    "DOOM frame shadow intensity. 0 = no shadow, 1 = strongest shadow.",
                     new AcceptableValueRange<float>(0.0f, 1.0f)));
 
             // TODO: Bind your config entries here

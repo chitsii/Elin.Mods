@@ -10,6 +10,7 @@ namespace Elin_ModTemplate
     public sealed class DoomSessionManager : MonoBehaviour
     {
         private const float KillVoiceDelaySeconds = 0.18f;
+        private const string DoomPlaylistId = "Zone_Casino";
 
         private struct KillVoiceRequest
         {
@@ -72,6 +73,7 @@ namespace Elin_ModTemplate
         private int _lastAnnouncedStreak;
         private int _lastPopupStreak;
         private bool _isSfxDucked;
+        private bool _exitConfirmOpen;
 
         public static void Ensure(ManualLogSource logger)
         {
@@ -129,8 +131,10 @@ namespace Elin_ModTemplate
                 _lastAnnouncedStreak = 0;
                 _lastPopupStreak = 0;
                 _isSfxDucked = false;
+                DoomKillFeed.Reset();
                 EnsureKillVoiceSource();
                 EnsureKillVoiceClipsLoaded();
+                StartDoomPlaylist();
                 SetCursorCaptured(true);
                 EInput.Consume(consumeAxis: true, _skipFrame: 2);
                 DoomDiagnostics.Info("[JustDoomIt] DOOM session started: " + wad);
@@ -159,8 +163,14 @@ namespace Elin_ModTemplate
 
                 if (Input.GetKeyDown(KeyCode.Escape) || EInput.isCancel)
                 {
-                    StopSession();
+                    RequestExitConfirmation();
                     EInput.Consume(consumeAxis: true, _skipFrame: 1);
+                    return;
+                }
+
+                if (_exitConfirmOpen)
+                {
+                    _backend.SubmitInput(default);
                     return;
                 }
 
@@ -221,11 +231,43 @@ namespace Elin_ModTemplate
             _lastPopupStreak = 0;
             _isSfxDucked = false;
             _killVoiceQueue.Clear();
+            DoomKillFeed.Reset();
+            _exitConfirmOpen = false;
             if (_killVoiceSource != null)
             {
                 _killVoiceSource.Stop();
             }
+            StopDoomPlaylist();
             _backend?.SetSfxDucking(false);
+        }
+
+        private void RequestExitConfirmation()
+        {
+            if (_exitConfirmOpen)
+            {
+                return;
+            }
+
+            _exitConfirmOpen = true;
+            SetCursorCaptured(false);
+            Dialog.YesNo(
+                Localize(
+                    "DOOMプレイを停止しますか？",
+                    "Stop DOOM play?",
+                    "要停止DOOM游玩吗？"),
+                () =>
+                {
+                    _exitConfirmOpen = false;
+                    StopSession();
+                },
+                () =>
+                {
+                    _exitConfirmOpen = false;
+                    SetCursorCaptured(true);
+                    EInput.Consume(consumeAxis: true, _skipFrame: 1);
+                },
+                Localize("はい", "Yes", "是"),
+                Localize("いいえ", "No", "否"));
         }
 
         private void OnDestroy()
@@ -264,6 +306,13 @@ namespace Elin_ModTemplate
 
         private void ProcessChipRewards(DoomRunStats stats)
         {
+            while (_backend != null && _backend.TryDequeueKillEvent(out var killEvent))
+            {
+                _processedKillCount++;
+                EnqueueNextKillVoice();
+                LogKillCommentary(killEvent);
+            }
+
             while (_processedKillCount < stats.TotalKills)
             {
                 _processedKillCount++;
@@ -322,6 +371,22 @@ namespace Elin_ModTemplate
             }
         }
 
+        private static void LogKillCommentary(DoomKillEvent e)
+        {
+            var mapPart = string.IsNullOrWhiteSpace(e.MapTitle) ? e.MapCode : (e.MapCode + " " + e.MapTitle);
+            var streakPart = "x" + e.CurrentKillStreak;
+            var weapon = LocalizeWeapon(e.Weapon);
+            var enemy = LocalizeEnemy(e.Enemy);
+
+            var line = Localize(
+                "【DOOM " + mapPart + "】" + enemy + "に" + weapon + "を向けた！ " + enemy + "をミンチにした！ キルストリーク" + streakPart + "！ +" + e.Reward + "チップ",
+                "[DOOM " + mapPart + "] Lined up " + weapon + " on " + enemy + "! Turned " + enemy + " into mince! Kill streak " + streakPart + "! +" + e.Reward + " chips",
+                "【DOOM " + mapPart + "】用" + weapon + "瞄准了" + enemy + "！ 把" + enemy + "打成了肉酱！ 连杀" + streakPart + "！ +" + e.Reward + "筹码");
+
+            DoomDiagnostics.Info("[JustDoomIt] " + line);
+            Msg.SayRaw(line);
+        }
+
         private void EnsureKillVoiceSource()
         {
             if (_killVoiceSource != null)
@@ -335,6 +400,7 @@ namespace Elin_ModTemplate
             _killVoiceSource.playOnAwake = false;
             _killVoiceSource.loop = false;
             _killVoiceSource.spatialBlend = 0f;
+            _killVoiceSource.ignoreListenerPause = true;
             _killVoiceSource.volume = 1f;
         }
 
@@ -398,6 +464,7 @@ namespace Elin_ModTemplate
                 DoomDiagnostics.Warn("[JustDoomIt] No kill voice clips loaded.");
             }
         }
+
 
         private void EnqueueNextKillVoice()
         {
@@ -518,6 +585,47 @@ namespace Elin_ModTemplate
             return candidates[0];
         }
 
+        private static void StartDoomPlaylist()
+        {
+            try
+            {
+                if (EClass.Sound == null)
+                {
+                    return;
+                }
+
+                var playlist = EClass.Sound.GetPlaylist(DoomPlaylistId);
+
+                if (playlist == null)
+                {
+                    DoomDiagnostics.Warn("[JustDoomIt] Playlist not found: " + DoomPlaylistId);
+                    return;
+                }
+
+                EClass.Sound.SetBGMPlaylist(playlist);
+                EClass.Sound.NextBGM();
+                DoomDiagnostics.Info("[JustDoomIt] Playlist started: " + DoomPlaylistId);
+            }
+            catch (System.Exception ex)
+            {
+                DoomDiagnostics.Warn("[JustDoomIt] Failed to start playlist: " + ex.Message);
+            }
+        }
+
+        private static void StopDoomPlaylist()
+        {
+            try
+            {
+                EClass.Sound?.StopBGM();
+                EClass.Sound?.ResetPlaylist();
+                DoomDiagnostics.Info("[JustDoomIt] Playlist stopped.");
+            }
+            catch (System.Exception ex)
+            {
+                DoomDiagnostics.Warn("[JustDoomIt] Failed to stop playlist: " + ex.Message);
+            }
+        }
+
         private void GrantCasinoChips(int amount)
         {
             if (amount <= 0 || EClass.pc == null)
@@ -545,6 +653,62 @@ namespace Elin_ModTemplate
             }
 
             return Lang.isJP ? jp : en;
+        }
+
+        private static string LocalizeWeapon(string weapon)
+        {
+            if (!Lang.isJP && Lang.langCode != "CN")
+            {
+                return weapon;
+            }
+
+            switch (weapon)
+            {
+                case "Fist": return Lang.langCode == "CN" ? "拳头" : "拳";
+                case "Pistol": return Lang.langCode == "CN" ? "手枪" : "ピストル";
+                case "Shotgun": return Lang.langCode == "CN" ? "霰弹枪" : "ショットガン";
+                case "Chaingun": return Lang.langCode == "CN" ? "机枪" : "チェインガン";
+                case "Rocket": return Lang.langCode == "CN" ? "火箭炮" : "ロケット";
+                case "Plasma": return Lang.langCode == "CN" ? "等离子枪" : "プラズマ";
+                case "BFG": return "BFG";
+                case "Chainsaw": return Lang.langCode == "CN" ? "电锯" : "チェーンソー";
+                case "Super Shotgun": return Lang.langCode == "CN" ? "超级霰弹枪" : "スーパーショットガン";
+                default: return weapon;
+            }
+        }
+
+        private static string LocalizeEnemy(string enemy)
+        {
+            if (!Lang.isJP && Lang.langCode != "CN")
+            {
+                return enemy;
+            }
+
+            switch (enemy)
+            {
+                case "Zombieman": return Lang.langCode == "CN" ? "僵尸士兵" : "ゾンビマン";
+                case "Shotgun Guy": return Lang.langCode == "CN" ? "霰弹枪僵尸" : "ショットガンガイ";
+                case "Heavy Weapon Dude": return Lang.langCode == "CN" ? "重机枪兵" : "ヘビーウェポンデュード";
+                case "Imp": return Lang.langCode == "CN" ? "小恶魔" : "インプ";
+                case "Demon": return Lang.langCode == "CN" ? "恶魔" : "デーモン";
+                case "Spectre": return Lang.langCode == "CN" ? "幽灵恶魔" : "スペクター";
+                case "Cacodemon": return Lang.langCode == "CN" ? "卡考恶魔" : "カコデーモン";
+                case "Baron of Hell": return Lang.langCode == "CN" ? "地狱男爵" : "ヘルバロン";
+                case "Hell Knight": return Lang.langCode == "CN" ? "地狱骑士" : "ヘルナイト";
+                case "Lost Soul": return Lang.langCode == "CN" ? "失魂" : "ロストソウル";
+                case "Spider Mastermind": return Lang.langCode == "CN" ? "蜘蛛首脑" : "スパイダーマスターマインド";
+                case "Arachnotron": return Lang.langCode == "CN" ? "蛛魔" : "アラクノトロン";
+                case "Cyberdemon": return Lang.langCode == "CN" ? "机械巨魔" : "サイバーデーモン";
+                case "Pain Elemental": return Lang.langCode == "CN" ? "痛苦元素" : "ペインエレメンタル";
+                case "Arch-vile": return Lang.langCode == "CN" ? "大恶灵" : "アークバイル";
+                case "Revenant": return Lang.langCode == "CN" ? "亡魂战士" : "レヴナント";
+                case "Mancubus": return Lang.langCode == "CN" ? "肥魔" : "マンキュバス";
+                case "Wolfenstein SS": return Lang.langCode == "CN" ? "党卫军" : "SS兵";
+                case "Commander Keen": return Lang.langCode == "CN" ? "指挥官Keen" : "コマンダー・キーン";
+                case "Icon of Sin": return Lang.langCode == "CN" ? "罪恶之像" : "アイコン・オブ・シン";
+                case "Unknown": return Lang.langCode == "CN" ? "不明" : "不明";
+                default: return enemy;
+            }
         }
 
         private static void LogRewardRules()

@@ -7,14 +7,17 @@ namespace Elin_ModTemplate
     {
         private Canvas _canvas;
         private RawImage _image;
-        private Image _backdrop;
+        private Image[] _shadowLayers;
+        private readonly float[] _shadowSpreads = { 72f, 140f, 220f };
+        private readonly float[] _shadowStrengths = { 0.75f, 0.45f, 0.25f };
         private Text _noticeText;
+        private RectTransform _noticeRt;
         private Texture2D _frameTex;
         private RenderTexture _target;
         private float _noticeUntil;
 
         private float CurrentScale => Mathf.Clamp(ModConfig.OverlayScale?.Value ?? 0.60f, 0.30f, 0.95f);
-        private float CurrentBackdropAlpha => Mathf.Clamp01(ModConfig.BackdropAlpha?.Value ?? 0.55f);
+        private float CurrentShadowAlpha => Mathf.Clamp01(ModConfig.BackdropAlpha?.Value ?? 0.55f);
 
         public static DoomOverlayDisplay Create()
         {
@@ -54,7 +57,7 @@ namespace Elin_ModTemplate
             }
 
             _noticeText.text = text;
-            _noticeText.color = color;
+            _noticeText.color = Color.white;
             _noticeText.enabled = true;
             _noticeUntil = Time.unscaledTime + Mathf.Max(0.2f, durationSeconds);
         }
@@ -67,16 +70,6 @@ namespace Elin_ModTemplate
             gameObject.AddComponent<CanvasScaler>();
             gameObject.AddComponent<GraphicRaycaster>();
 
-            var backdropGo = new GameObject("Backdrop");
-            backdropGo.transform.SetParent(transform, false);
-            _backdrop = backdropGo.AddComponent<Image>();
-            _backdrop.color = new Color(0f, 0f, 0f, CurrentBackdropAlpha);
-            var backdropRt = backdropGo.GetComponent<RectTransform>();
-            backdropRt.anchorMin = Vector2.zero;
-            backdropRt.anchorMax = Vector2.one;
-            backdropRt.offsetMin = Vector2.zero;
-            backdropRt.offsetMax = Vector2.zero;
-
             var frameGo = new GameObject("Screen");
             frameGo.transform.SetParent(transform, false);
             _image = frameGo.AddComponent<RawImage>();
@@ -85,42 +78,49 @@ namespace Elin_ModTemplate
             frameRt.anchorMin = new Vector2(0.5f, 0.5f);
             frameRt.anchorMax = new Vector2(0.5f, 0.5f);
             frameRt.pivot = new Vector2(0.5f, 0.5f);
-            var scale = CurrentScale;
-            frameRt.sizeDelta = new Vector2(Screen.width * scale, Screen.height * scale);
+
+            _shadowLayers = new Image[_shadowSpreads.Length];
+            for (var i = 0; i < _shadowLayers.Length; i++)
+            {
+                var shadowGo = new GameObject("Shadow_" + i);
+                shadowGo.transform.SetParent(transform, false);
+                shadowGo.transform.SetSiblingIndex(frameGo.transform.GetSiblingIndex());
+                var shadow = shadowGo.AddComponent<Image>();
+                shadow.raycastTarget = false;
+                shadow.color = new Color(0f, 0f, 0f, CurrentShadowAlpha * _shadowStrengths[i]);
+                var srt = shadow.GetComponent<RectTransform>();
+                srt.anchorMin = new Vector2(0.5f, 0.5f);
+                srt.anchorMax = new Vector2(0.5f, 0.5f);
+                srt.pivot = new Vector2(0.5f, 0.5f);
+                _shadowLayers[i] = shadow;
+            }
 
             var noticeGo = new GameObject("Notice");
-            noticeGo.transform.SetParent(frameGo.transform, false);
+            noticeGo.transform.SetParent(transform, false);
             _noticeText = noticeGo.AddComponent<Text>();
             _noticeText.raycastTarget = false;
-            _noticeText.alignment = TextAnchor.UpperCenter;
-            _noticeText.fontSize = 24;
+            _noticeText.alignment = TextAnchor.MiddleCenter;
+            _noticeText.fontSize = 25;
             _noticeText.fontStyle = FontStyle.Bold;
             _noticeText.horizontalOverflow = HorizontalWrapMode.Wrap;
             _noticeText.verticalOverflow = VerticalWrapMode.Overflow;
-            _noticeText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            _noticeText.font = ResolveElinFont();
             _noticeText.color = Color.white;
             _noticeText.enabled = false;
+            var outline = noticeGo.AddComponent<Outline>();
+            outline.effectColor = new Color(0f, 0f, 0f, 0.92f);
+            outline.effectDistance = new Vector2(1f, -1f);
 
-            var noticeRt = noticeGo.GetComponent<RectTransform>();
-            noticeRt.anchorMin = new Vector2(0.05f, 0.72f);
-            noticeRt.anchorMax = new Vector2(0.95f, 0.98f);
-            noticeRt.offsetMin = Vector2.zero;
-            noticeRt.offsetMax = Vector2.zero;
+            _noticeRt = noticeGo.GetComponent<RectTransform>();
+            _noticeRt.anchorMin = new Vector2(0.5f, 0.5f);
+            _noticeRt.anchorMax = new Vector2(0.5f, 0.5f);
+            _noticeRt.pivot = new Vector2(0.5f, 0.5f);
+            _noticeRt.sizeDelta = new Vector2(700f, 72f);
         }
 
         private void Update()
         {
             if (_image == null || _target == null) return;
-
-            if (_backdrop != null)
-            {
-                var c = _backdrop.color;
-                var a = CurrentBackdropAlpha;
-                if (!Mathf.Approximately(c.a, a))
-                {
-                    _backdrop.color = new Color(c.r, c.g, c.b, a);
-                }
-            }
 
             var rt = _image.rectTransform;
             var scale = CurrentScale;
@@ -138,6 +138,36 @@ namespace Elin_ModTemplate
                 rt.sizeDelta = new Vector2(maxW, maxW / texAspect);
             }
 
+            if (_noticeRt != null)
+            {
+                _noticeRt.sizeDelta = new Vector2(rt.sizeDelta.x + 180f, 78f);
+                _noticeRt.anchoredPosition = new Vector2(0f, -rt.sizeDelta.y * 0.5f - 34f);
+            }
+
+            if (_shadowLayers != null)
+            {
+                var shadowAlpha = CurrentShadowAlpha;
+                for (var i = 0; i < _shadowLayers.Length; i++)
+                {
+                    var shadow = _shadowLayers[i];
+                    if (shadow == null)
+                    {
+                        continue;
+                    }
+
+                    var c = shadow.color;
+                    var targetA = shadowAlpha * _shadowStrengths[i];
+                    if (!Mathf.Approximately(c.a, targetA))
+                    {
+                        shadow.color = new Color(0f, 0f, 0f, targetA);
+                    }
+
+                    var srt = shadow.rectTransform;
+                    var spread = _shadowSpreads[i];
+                    srt.sizeDelta = rt.sizeDelta + new Vector2(spread, spread);
+                }
+            }
+
             if (_noticeText != null && _noticeText.enabled && Time.unscaledTime >= _noticeUntil)
             {
                 _noticeText.enabled = false;
@@ -153,6 +183,24 @@ namespace Elin_ModTemplate
                 Destroy(_target);
             }
             if (_frameTex != null) Destroy(_frameTex);
+        }
+
+        private static Font ResolveElinFont()
+        {
+            try
+            {
+                var skin = SkinManager.Instance;
+                var font = skin?.fontSet?.widget?.source?.font;
+                if (font != null)
+                {
+                    return font;
+                }
+            }
+            catch
+            {
+            }
+
+            return Resources.GetBuiltinResource<Font>("Arial.ttf");
         }
     }
 }

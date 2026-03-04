@@ -21,6 +21,7 @@ namespace Elin_ArsMoriendi.DramaKeys
         public const string ERENOS_BORROW = "cmd.erenos.borrow";
         public const string SCENE_STOP_BGM = "cmd.scene.stop_bgm";
         public const string HECATIA_PARTY_SHOW = "cmd.hecatia.party_show";
+        public const string HECATIA_SET_PARTY_PORTRAIT = "cmd.hecatia.set_party_portrait";
     }
     public static class CueKeys
     {

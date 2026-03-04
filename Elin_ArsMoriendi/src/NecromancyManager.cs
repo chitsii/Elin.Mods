@@ -18,7 +18,6 @@ namespace Elin_ArsMoriendi
         internal const string ServantAuraFxId = "FxServantShadowTentacleAura_SmokeDrip"; // V1
         private const string LegacyServantAuraFxId = "FxServantShadowTentacleAura";
         private const string ServantAuraFxV2Id = "FxServantShadowTentacleAura_SmokeDrip_v2";
-        private const string ServantAuraOwnerKey = "NecromancyManager.ServantAura";
 
         public static NecromancyManager Instance { get; } = new();
 
@@ -970,12 +969,10 @@ namespace Elin_ArsMoriendi
         private static void TryEnsureServantAuraFx(Card card)
         {
             if (card == null) return;
-            CustomAssetFx.TryEnsureOwnedLoopAttachedToCard(
-                ServantAuraFxId,
-                card,
-                ServantAuraOwnerKey,
-                casterUid: EClass.pc?.uid ?? 0,
-                leaseTurns: 2);
+            // Servant aura is a persistent marker effect; do not lease it by turn.
+            // Lease-based loops can be swept/recreated around turn boundaries, which
+            // visibly resets long-running particle simulation.
+            CustomAssetFx.TryEnsureLoopAttachedToCard(ServantAuraFxId, card);
             // Remove stale variants so switching between V0/V1/V2 is immediate.
             if (!string.Equals(ServantAuraFxId, LegacyServantAuraFxId, StringComparison.Ordinal))
                 CustomAssetFx.StopAttachedFx(LegacyServantAuraFxId, card);

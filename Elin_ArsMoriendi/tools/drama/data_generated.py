@@ -23,6 +23,7 @@ class CommandKeys:
     ERENOS_BORROW = "cmd.erenos.borrow"
     SCENE_STOP_BGM = "cmd.scene.stop_bgm"
     HECATIA_PARTY_SHOW = "cmd.hecatia.party_show"
+    HECATIA_SET_PARTY_PORTRAIT = "cmd.hecatia.set_party_portrait"
 
 class CueKeys:
     """Generated constants."""

@@ -70,7 +70,7 @@ Elin_QuestMod/
   - State machine definition for phase transitions
   - `Pulse` execution order
 - `src/CommonQuest/StateMachine/*.cs`
-  - Generic state machine (originally from Vile; rejects duplicate/backward transitions)
+  - Generic state machine
 - `src/Patches/Patch_Zone_Activate_QuestPulse.cs`
   - Postfix on `Zone.Activate`
 - `src/Compat/PointCompat.cs`

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Meta>
+  <title>NiComment</title>
+  <id>tishi.elin_nicomment</id>
+  <loadPriority>100</loadPriority>
+  <author>tishi</author>
+  <version>0.23.267</version>
+  <tags>General</tags>
+  <description>
+Niconico-style scrolling comments overlay.
+  </description>
+  <builtin>false</builtin>
+</Meta>

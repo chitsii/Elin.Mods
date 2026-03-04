@@ -1,15 +1,15 @@
 ManifestFileVersion: 0
-CRC: 4027304830
+CRC: 3517497546
 Hashes:
   AssetFileHash:
     serializedVersion: 2
-    Hash: 469a5b452042066457af142fe2645738
+    Hash: 60ff93948efb704913335cedccc8486e
   TypeTreeHash:
     serializedVersion: 2
     Hash: 7c3a5806348e9a69782900c40c0ec2b7
   IncrementalBuildHash:
     serializedVersion: 2
-    Hash: 469a5b452042066457af142fe2645738
+    Hash: 60ff93948efb704913335cedccc8486e
 HashAppended: 0
 ClassTypes:
 - Class: 1
@@ -30,15 +30,18 @@ ClassTypes:
   Script: {instanceID: 0}
 SerializeReferenceClassIdentifiers: []
 Assets:
+- Assets/Materials/NecroParticleCutout.mat
 - Assets/Prefabs/FxGraveQuagmire.prefab
-- Assets/Prefabs/FxBoneAegisLegion.prefab
 - Assets/Prefabs/FxServantShadowTentacleAura_SmokeDrip.prefab
-- Assets/Prefabs/FxPreserveCorpseAura.prefab
+- Assets/Prefabs/FxServantShadowTentacleAura_SmokeDrip_bk.prefab
 - Assets/Prefabs/FxServantShadowTentacleAura.prefab
 - Assets/Prefabs/FxHecatiaPartyStage.prefab
 - Assets/Prefabs/FxServantShadowTentacleAura_SmokeDrip_v2.prefab
+- Assets/Prefabs/FxSoulBind.prefab
 - Assets/Prefabs/FxGraveExile.prefab
 - Assets/Prefabs/FxPulse_Test.prefab
-- Assets/Prefabs/FxSoulBind.prefab
+- Assets/Shaders/ArsParticleCutout.shader
+- Assets/Prefabs/FxPreserveCorpseAura.prefab
 - Assets/Prefabs/FxFuneralMarch.prefab
+- Assets/Prefabs/FxBoneAegisLegion.prefab
 Dependencies: []

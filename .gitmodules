@@ -1,0 +1,6 @@
+[submodule "Elin_QuestMod/tools/vendor/drama_v2"]
+	path = Elin_QuestMod/tools/vendor/drama_v2
+	url = ../Elin.DramaDsl
+[submodule "Elin_ArsMoriendi/tools/vendor/drama_v2"]
+	path = Elin_ArsMoriendi/tools/vendor/drama_v2
+	url = ../Elin.DramaDsl

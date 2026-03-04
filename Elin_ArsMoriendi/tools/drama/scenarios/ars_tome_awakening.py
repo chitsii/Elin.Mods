@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Drama 2: ars_tome_awakening (Stage 1->2: Opening the tome for the first time)"""
 
-from drama.drama_builder import DramaBuilder
+from drama_v2.compat import DramaBuilder
 from drama.data import Actors, BGM
 
 

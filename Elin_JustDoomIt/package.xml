@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Meta>
+  <title>Elin_JustDoomIt</title>
+  <id>chitsii.elin_justdoomit</id>
+  <loadPriority>100</loadPriority>
+  <author>chitsii</author>
+  <version>0.23.254</version>
+  <tags>General</tags>
+  <description>
+Play FreeDoom in an overlay from a custom CWL arcade cabinet.
+  </description>
+  <builtin>false</builtin>
+</Meta>

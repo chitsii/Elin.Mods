@@ -35,6 +35,16 @@
   - `build.bat debug`
   - `build.bat debug regen`
 
+## Drama v2 移行時のチェック運用 (Ars)
+
+- 1シナリオ移行ごとに `build.bat` を実行して fail-fast を通す
+- 生成物更新が必要なケースのみ `build.bat regen` を実行する
+- 差分確認対象は `LangMod/EN/Dialog/Drama/*.xlsx` を基本とする
+- 差分レビューでは以下を分離して判定する
+  - 許容: text id 自動化（移行時は常時発生）、整形由来の空セル整理
+  - 不許容: 分岐先、条件式、action/param の意味変更
+- `id` 列は一致判定に使わず、`jump/if/action/param/text_*` を主判定にする
+
 ## Fail-fast 検証順序
 
 `build.bat` 先頭で以下を実行:

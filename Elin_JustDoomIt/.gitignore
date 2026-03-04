@@ -1,0 +1,10 @@
+_bin/
+_obj/
+elin_link/
+.tools
+_ext
+_tmp_freedoom
+_obj
+_tmp_*
+__pycache__/
+*.pyc

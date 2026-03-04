@@ -12,6 +12,7 @@ from .drama_dsl import (
     compile_xlsx,
     save_xlsx,
 )
+from .mod_commands import ModCommands
 
 __all__ = [
     "Chara",
@@ -24,6 +25,7 @@ __all__ = [
     "OptionSpec",
     "StepSpec",
     "StorySpec",
+    "ModCommands",
     "compile_xlsx",
     "save_xlsx",
 ]

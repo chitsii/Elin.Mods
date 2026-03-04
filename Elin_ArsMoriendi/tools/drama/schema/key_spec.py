@@ -27,6 +27,7 @@ KEY_SPECS = [
     KeySpec("command", "ERENOS_BORROW", "cmd.erenos.borrow"),
     KeySpec("command", "SCENE_STOP_BGM", "cmd.scene.stop_bgm"),
     KeySpec("command", "HECATIA_PARTY_SHOW", "cmd.hecatia.party_show"),
+    KeySpec("command", "HECATIA_SET_PARTY_PORTRAIT", "cmd.hecatia.set_party_portrait"),
     # Cue keys
     KeySpec("cue", "APOTHEOSIS_SILENCE", "cue.apotheosis.silence"),
     KeySpec("cue", "APOTHEOSIS_DARKWOMB", "cue.apotheosis.darkwomb"),

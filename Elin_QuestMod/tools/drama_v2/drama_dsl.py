@@ -258,6 +258,15 @@ class DramaDsl:
     def sound(self, snd: Id) -> StepSpec:
         return StepSpec("sound", {"snd": snd})
 
+    def play_bgm(self, bgm: Id | str) -> StepSpec:
+        return StepSpec(
+            "play_bgm",
+            {
+                "bgm": bgm.value if isinstance(bgm, Id) else str(bgm),
+                "mod_name": self.mod_name,
+            },
+        )
+
     def effect(self, fx: Id, actor: Union[Chara, str, None] = None) -> StepSpec:
         return StepSpec("effect", {"fx": fx, "actor": _actor_alias(actor)})
 
@@ -337,6 +346,21 @@ class DramaDsl:
         return StepSpec(
             "set_sprite",
             {"actor": _actor_alias(actor), "sprite_id": sprite_id},
+        )
+
+    def set_flag(
+        self,
+        flag_id: Union[Id, str],
+        value: int = 1,
+        actor: Union[Chara, str] = "pc",
+    ) -> StepSpec:
+        return StepSpec(
+            "set_flag",
+            {
+                "flag_id": flag_id.value if isinstance(flag_id, Id) else str(flag_id),
+                "value": int(value),
+                "actor": _actor_alias(actor),
+            },
         )
 
     def quest_begin(
@@ -470,6 +494,11 @@ def _target_name(target: Union[NodeRef, str, None]) -> Optional[str]:
     if target is None:
         return None
     return _as_ref(target).name
+
+
+def _cs_quote(raw: str) -> str:
+    escaped = str(raw).replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
 
 
 def _iter_targets(step: StepSpec) -> Iterable[str]:
@@ -753,6 +782,29 @@ def _compile_step(node_name: str, step_index: int, step: StepSpec) -> list[dict[
     if kind == "sound":
         return [{"action": "sound", "param": p["snd"].value}]
 
+    if kind == "play_bgm":
+        bgm_id = p["bgm"]
+        mod_name = str(p.get("mod_name", node_name))
+        code = (
+            f'Debug.Log("[{mod_name}] Attempting to play BGM: {bgm_id}"); '
+            f'var data = SoundManager.current.GetData("{bgm_id}"); '
+            "if (data != null) { "
+            f'Debug.Log("[{mod_name}] Found BGM data, type: " + data.GetType().Name); '
+            "if (data is BGMData bgm) { "
+            f'Debug.Log("[{mod_name}] Playing as BGM"); '
+            "LayerDrama.haltPlaylist = true; "
+            "LayerDrama.maxBGMVolume = true; "
+            "SoundManager.current.PlayBGM(bgm); "
+            "} else { "
+            f'Debug.Log("[{mod_name}] Playing as Sound"); '
+            "SoundManager.current.Play(data); "
+            "} "
+            "} else { "
+            f'Debug.LogWarning("[{mod_name}] BGM not found: {bgm_id}"); '
+            "}"
+        )
+        return [{"action": "eval", "param": code}]
+
     if kind == "effect":
         entry = {"action": "invoke*", "param": f"play_effect_ext({p['fx'].value})"}
         if p.get("actor"):
@@ -832,6 +884,15 @@ def _compile_step(node_name: str, step_index: int, step: StepSpec) -> list[dict[
             entry["actor"] = p["actor"]
         return [entry]
 
+    if kind == "set_flag":
+        entry = {
+            "action": "setFlag",
+            "param": f"{p['flag_id']},{p['value']}",
+        }
+        if p.get("actor"):
+            entry["actor"] = p["actor"]
+        return [entry]
+
     if kind == "quest_begin":
         quest_id = p["quest_id"].value
         out = [
@@ -860,6 +921,55 @@ def _compile_step(node_name: str, step_index: int, step: StepSpec) -> list[dict[
         if p.get("journal"):
             out.append({"action": "updateJournal"})
         return out
+
+    if kind == "resolve_flag":
+        runtime_type = str(p.get("runtime_type", "Elin_CommonDrama.DramaRuntime"))
+        code = (
+            f"{runtime_type}.ResolveFlag("
+            f"{_cs_quote(p['dependency_key'])}, {_cs_quote(p['out_flag'])}"
+            ");"
+        )
+        entry: dict[str, Any] = {"action": "eval", "param": code}
+        if p.get("actor"):
+            entry["actor"] = p["actor"]
+        return [entry]
+
+    if kind == "resolve_run":
+        runtime_type = str(p.get("runtime_type", "Elin_CommonDrama.DramaRuntime"))
+        code = f"{runtime_type}.ResolveRun({_cs_quote(p['dependency_key'])});"
+        entry = {"action": "eval", "param": code}
+        if p.get("actor"):
+            entry["actor"] = p["actor"]
+        return [entry]
+
+    if kind in {"resolve_flags_all", "resolve_flags_any"}:
+        keys: list[str] = [str(x) for x in p.get("dependency_keys", [])]
+        joiner = " && " if kind == "resolve_flags_all" else " || "
+        seed = "true" if kind == "resolve_flags_all" else "false"
+        checks = joiner.join(
+            [
+                f'(dialogFlags.Contains({_cs_quote(k)}) && '
+                f'System.Convert.ToInt32(dialogFlags[{_cs_quote(k)}]) >= 1)'
+                for i, k in enumerate(keys)
+            ]
+        )
+        expr = checks if checks else seed
+        code = (
+            "var drama = LayerDrama.GetDrama(); "
+            "if (drama != null && drama.sequence != null) { "
+            "var t = drama.sequence.GetType(); "
+            "var prop = t.GetProperty(\"dialogFlags\"); "
+            "var obj = prop != null ? prop.GetValue(drama.sequence) : null; "
+            "var dialogFlags = obj as System.Collections.IDictionary; "
+            "if (dialogFlags != null) { "
+            f"dialogFlags[{_cs_quote(p['out_flag'])}] = ({expr}) ? 1 : 0; "
+            "} "
+            "}"
+        )
+        entry = {"action": "eval", "param": code}
+        if p.get("actor"):
+            entry["actor"] = p["actor"]
+        return [entry]
 
     raise ValueError(f"Unsupported step kind: {kind}")
 

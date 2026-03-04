@@ -7,16 +7,16 @@ BUILDER_DIR = os.path.dirname(os.path.abspath(__file__))
 TOOLS_DIR = os.path.dirname(BUILDER_DIR)
 PROJECT_ROOT = os.path.dirname(TOOLS_DIR)
 
-# CWLサンプルファイルのパス（環境変数で上書き可能）
-DEFAULT_SAMPLE_PATH = r"c:\Users\tishi\programming\elin_modding\CWL_AddLocation_Example\LangMod\EN\SourceSSS.xlsx"
-SAMPLE_PATH = os.environ.get("CWL_SAMPLE_PATH", DEFAULT_SAMPLE_PATH)
+# バニラSourceExcelsのパス（環境変数で上書き可能）
+DEFAULT_SOURCE_GAME_PATH = os.path.join(PROJECT_ROOT, "..", "SourceExcels", "SourceGame.xlsx")
+SOURCE_GAME_PATH = os.environ.get("SOURCE_GAME_XLSX", DEFAULT_SOURCE_GAME_PATH)
 OUTPUT_EN_TSV = os.path.join(PROJECT_ROOT, "LangMod", "EN", "Zone.tsv")
 OUTPUT_CN_TSV = os.path.join(PROJECT_ROOT, "LangMod", "CN", "Zone.tsv")
 
-print(f"Reading sample file from: {SAMPLE_PATH}")
+print(f"Reading source file from: {SOURCE_GAME_PATH}")
 
-# サンプル読み込み
-sample_wb = openpyxl.load_workbook(SAMPLE_PATH)
+# SourceGame 読み込み
+sample_wb = openpyxl.load_workbook(SOURCE_GAME_PATH)
 sample_ws = sample_wb["Zone"]
 
 # Row 1-3 (Header, Type, Default) Copy

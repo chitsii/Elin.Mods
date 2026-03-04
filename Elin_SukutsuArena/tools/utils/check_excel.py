@@ -1,9 +1,12 @@
 import openpyxl
 import os
 
-SAMPLE_PATH = r"c:\Users\tishi\programming\elin_modding\CWL_AddLocation_Example\LangMod\EN\SourceSSS.xlsx"
+TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(TOOLS_DIR))
+DEFAULT_SOURCE_GAME_PATH = os.path.join(PROJECT_ROOT, "..", "SourceExcels", "SourceGame.xlsx")
+SOURCE_GAME_PATH = os.environ.get("SOURCE_GAME_XLSX", DEFAULT_SOURCE_GAME_PATH)
 
-wb = openpyxl.load_workbook(SAMPLE_PATH)
+wb = openpyxl.load_workbook(SOURCE_GAME_PATH)
 ws = wb["Chara"]
 
 # Header (Row 1)

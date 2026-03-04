@@ -2,11 +2,12 @@ import openpyxl
 import os
 
 TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
-# ユーザーのパス環境に合わせて調整
-SamplePath = r"c:\Users\tishi\programming\elin_modding\CWL_AddLocation_Example\LangMod\EN\SourceSSS.xlsx"
+PROJECT_ROOT = os.path.dirname(os.path.dirname(TOOLS_DIR))
+DEFAULT_SOURCE_GAME_PATH = os.path.join(PROJECT_ROOT, "..", "SourceExcels", "SourceGame.xlsx")
+SOURCE_GAME_PATH = os.environ.get("SOURCE_GAME_XLSX", DEFAULT_SOURCE_GAME_PATH)
 
-if os.path.exists(SamplePath):
-    wb = openpyxl.load_workbook(SamplePath)
+if os.path.exists(SOURCE_GAME_PATH):
+    wb = openpyxl.load_workbook(SOURCE_GAME_PATH)
     if "Chara" in wb.sheetnames:
         ws = wb["Chara"]
         headers = []
@@ -18,4 +19,4 @@ if os.path.exists(SamplePath):
     else:
         print("Chara sheet not found.")
 else:
-    print(f"Sample file not found at {SamplePath}")
+    print(f"SourceGame file not found at {SOURCE_GAME_PATH}")

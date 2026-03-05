@@ -10,7 +10,8 @@ namespace Elin_ModTemplate
     public sealed class DoomSessionManager : MonoBehaviour
     {
         private const float KillVoiceDelaySeconds = 0.18f;
-        private const string DoomPlaylistId = "Zone_Casino";
+        private const float DoomTickStep = 1f / 60f;
+        private const int MaxDoomTicksPerFrame = 8;
 
         private struct KillVoiceRequest
         {
@@ -51,6 +52,14 @@ namespace Elin_ModTemplate
             "一帧见生死，狠狠干到底。",
             "实战开始，让这把载入史册。"
         };
+        private static readonly string[] DoomBgmIds =
+        {
+            "BGM/doom_themed_alien",
+            "BGM/doom_themed_boss",
+            "BGM/doom_themed_hell",
+            "BGM/doom_themed_industrial",
+            "BGM/doom_themed_labo"
+        };
 
         public static DoomSessionManager Instance { get; private set; }
 
@@ -63,6 +72,9 @@ namespace Elin_ModTemplate
         private readonly List<AudioClip> _killVoiceClips = new List<AudioClip>();
         private bool _killVoiceLoading;
         private bool _killVoiceLoaded;
+        private int _nextDoomBgmIndex;
+        private bool _doomBgmActive;
+        private float _nextDoomBgmRetryAt;
         private const float KillVoiceSampleGain = 2.6f;
         private int _nextKillVoiceIndex;
         private int _processedKillCount;
@@ -72,8 +84,10 @@ namespace Elin_ModTemplate
         private int _sessionCoinsEarned;
         private int _lastAnnouncedStreak;
         private int _lastPopupStreak;
+        private int _lastKillReward;
         private bool _isSfxDucked;
         private bool _exitConfirmOpen;
+        private float _doomTickAccumulator;
 
         public static void Ensure(ManualLogSource logger)
         {
@@ -130,11 +144,13 @@ namespace Elin_ModTemplate
                 _sessionCoinsEarned = 0;
                 _lastAnnouncedStreak = 0;
                 _lastPopupStreak = 0;
+                _lastKillReward = 0;
                 _isSfxDucked = false;
+                _doomTickAccumulator = 0f;
                 DoomKillFeed.Reset();
                 EnsureKillVoiceSource();
                 EnsureKillVoiceClipsLoaded();
-                StartDoomPlaylist();
+                StartDoomBgm();
                 SetCursorCaptured(true);
                 EInput.Consume(consumeAxis: true, _skipFrame: 2);
                 DoomDiagnostics.Info("[JustDoomIt] DOOM session started: " + wad);
@@ -163,6 +179,14 @@ namespace Elin_ModTemplate
 
                 if (Input.GetKeyDown(KeyCode.Escape) || EInput.isCancel)
                 {
+                    if (_exitConfirmOpen)
+                    {
+                        _exitConfirmOpen = false;
+                        StopSession();
+                        EInput.Consume(consumeAxis: true, _skipFrame: 1);
+                        return;
+                    }
+
                     RequestExitConfirmation();
                     EInput.Consume(consumeAxis: true, _skipFrame: 1);
                     return;
@@ -186,10 +210,27 @@ namespace Elin_ModTemplate
                     _backend.SubmitInput(default);
                 }
 
-                _backend.Tick(Time.unscaledDeltaTime);
-                _overlay?.Upload(_backend.GetFrameBuffer());
-                ProcessChipRewards(_backend.Stats);
+                _doomTickAccumulator += Time.unscaledDeltaTime;
+                if (_doomTickAccumulator > DoomTickStep * MaxDoomTicksPerFrame)
+                {
+                    _doomTickAccumulator = DoomTickStep * MaxDoomTicksPerFrame;
+                }
+
+                var ticks = 0;
+                while (_doomTickAccumulator >= DoomTickStep && ticks < MaxDoomTicksPerFrame)
+                {
+                    _backend.Tick(DoomTickStep);
+                    _doomTickAccumulator -= DoomTickStep;
+                    ticks++;
+                }
+
+                if (ticks > 0)
+                {
+                    _overlay?.Upload(_backend.GetFrameBuffer());
+                    ProcessChipRewards(_backend.Stats);
+                }
                 UpdateKillVoicePlayback();
+                UpdateDoomBgmPlayback();
             }
             catch (System.Exception ex)
             {
@@ -229,7 +270,9 @@ namespace Elin_ModTemplate
             _sessionCoinsEarned = 0;
             _lastAnnouncedStreak = 0;
             _lastPopupStreak = 0;
+            _lastKillReward = 0;
             _isSfxDucked = false;
+            _doomTickAccumulator = 0f;
             _killVoiceQueue.Clear();
             DoomKillFeed.Reset();
             _exitConfirmOpen = false;
@@ -237,7 +280,7 @@ namespace Elin_ModTemplate
             {
                 _killVoiceSource.Stop();
             }
-            StopDoomPlaylist();
+            StopDoomBgm();
             _backend?.SetSfxDucking(false);
         }
 
@@ -250,6 +293,7 @@ namespace Elin_ModTemplate
 
             _exitConfirmOpen = true;
             SetCursorCaptured(false);
+            _overlay?.SetVisible(false);
             Dialog.YesNo(
                 Localize(
                     "DOOMプレイを停止しますか？",
@@ -263,6 +307,7 @@ namespace Elin_ModTemplate
                 () =>
                 {
                     _exitConfirmOpen = false;
+                    _overlay?.SetVisible(true);
                     SetCursorCaptured(true);
                     EInput.Consume(consumeAxis: true, _skipFrame: 1);
                 },
@@ -309,6 +354,7 @@ namespace Elin_ModTemplate
             while (_backend != null && _backend.TryDequeueKillEvent(out var killEvent))
             {
                 _processedKillCount++;
+                _lastKillReward = killEvent.Reward;
                 EnqueueNextKillVoice();
                 LogKillCommentary(killEvent);
             }
@@ -323,6 +369,10 @@ namespace Elin_ModTemplate
             {
                 var add = stats.KillChipPayout - _processedKillPayout;
                 _processedKillPayout = stats.KillChipPayout;
+                if (add > 0)
+                {
+                    _lastKillReward = add;
+                }
                 GrantCasinoChips(add);
                 ShowCoinPopup(add, stats.CurrentKillStreak);
             }
@@ -363,7 +413,7 @@ namespace Elin_ModTemplate
             if (stats.CurrentKillStreak >= 2 && stats.CurrentKillStreak != _lastPopupStreak)
             {
                 _lastPopupStreak = stats.CurrentKillStreak;
-                ShowStreakPopup(stats.CurrentKillStreak);
+                ShowStreakPopup(stats.CurrentKillStreak, _lastKillReward);
             }
             else if (stats.CurrentKillStreak <= 1)
             {
@@ -585,45 +635,128 @@ namespace Elin_ModTemplate
             return candidates[0];
         }
 
-        private static void StartDoomPlaylist()
+        private void StartDoomBgm()
         {
             try
             {
-                if (EClass.Sound == null)
-                {
-                    return;
-                }
-
-                var playlist = EClass.Sound.GetPlaylist(DoomPlaylistId);
-
-                if (playlist == null)
-                {
-                    DoomDiagnostics.Warn("[JustDoomIt] Playlist not found: " + DoomPlaylistId);
-                    return;
-                }
-
-                EClass.Sound.SetBGMPlaylist(playlist);
-                EClass.Sound.NextBGM();
-                DoomDiagnostics.Info("[JustDoomIt] Playlist started: " + DoomPlaylistId);
+                _doomBgmActive = true;
+                _nextDoomBgmIndex = 0;
+                _nextDoomBgmRetryAt = 0f;
+                EClass.Sound?.StopBGM();
+                PlayNextDoomBgm();
+                DoomDiagnostics.Info("[JustDoomIt] DOOM BGM sequence started.");
             }
             catch (System.Exception ex)
             {
-                DoomDiagnostics.Warn("[JustDoomIt] Failed to start playlist: " + ex.Message);
+                DoomDiagnostics.Warn("[JustDoomIt] Failed to start DOOM BGM sequence: " + ex.Message);
             }
         }
 
-        private static void StopDoomPlaylist()
+        private void StopDoomBgm()
         {
             try
             {
+                _doomBgmActive = false;
                 EClass.Sound?.StopBGM();
-                EClass.Sound?.ResetPlaylist();
-                DoomDiagnostics.Info("[JustDoomIt] Playlist stopped.");
+                EClass._zone?.RefreshBGM();
+                DoomDiagnostics.Info("[JustDoomIt] DOOM BGM sequence stopped.");
             }
             catch (System.Exception ex)
             {
-                DoomDiagnostics.Warn("[JustDoomIt] Failed to stop playlist: " + ex.Message);
+                DoomDiagnostics.Warn("[JustDoomIt] Failed to stop DOOM BGM sequence: " + ex.Message);
             }
+        }
+
+        private void UpdateDoomBgmPlayback()
+        {
+            if (!_active || !_doomBgmActive || EClass.Sound == null)
+            {
+                return;
+            }
+
+            if (Time.unscaledTime < _nextDoomBgmRetryAt)
+            {
+                return;
+            }
+
+            var hasPlayingBgm = EClass.Sound.sourceBGM != null && EClass.Sound.sourceBGM.isPlaying;
+            var currentId = EClass.Sound.currentBGM != null ? EClass.Sound.currentBGM.id : string.Empty;
+            var isDoomBgm = IsDoomBgmId(currentId);
+
+            if (hasPlayingBgm && isDoomBgm)
+            {
+                return;
+            }
+
+            if (hasPlayingBgm && !isDoomBgm)
+            {
+                DoomDiagnostics.Info("[JustDoomIt] Replacing non-DOOM BGM during session: " + currentId);
+            }
+
+            PlayNextDoomBgm();
+        }
+
+        private void PlayNextDoomBgm()
+        {
+            if (!_doomBgmActive || EClass.Sound == null || DoomBgmIds.Length == 0)
+            {
+                return;
+            }
+
+            var id = DoomBgmIds[_nextDoomBgmIndex % DoomBgmIds.Length];
+            _nextDoomBgmIndex = (_nextDoomBgmIndex + 1) % DoomBgmIds.Length;
+            var bgm = EClass.Sound.PlayBGM(id);
+            if (bgm == null)
+            {
+                DoomDiagnostics.Warn("[JustDoomIt] PlayBGM failed for id: " + id);
+                _nextDoomBgmRetryAt = Time.unscaledTime + 1.0f;
+            }
+            else
+            {
+                _nextDoomBgmRetryAt = Time.unscaledTime + 0.5f;
+            }
+        }
+
+        private static bool IsDoomBgmId(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return false;
+            }
+
+            var normalized = NormalizeBgmId(id);
+            for (var i = 0; i < DoomBgmIds.Length; i++)
+            {
+                if (string.Equals(normalized, NormalizeBgmId(DoomBgmIds[i]), System.StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static string NormalizeBgmId(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return string.Empty;
+            }
+
+            var s = id.Trim().Replace("\\", "/");
+
+            const string bgmPrefix = "BGM/";
+            if (s.StartsWith(bgmPrefix, System.StringComparison.OrdinalIgnoreCase))
+            {
+                s = s.Substring(bgmPrefix.Length);
+            }
+
+            if (s.EndsWith(".ogg", System.StringComparison.OrdinalIgnoreCase))
+            {
+                s = s.Substring(0, s.Length - 4);
+            }
+
+            return s;
         }
 
         private void GrantCasinoChips(int amount)
@@ -714,9 +847,9 @@ namespace Elin_ModTemplate
         private static void LogRewardRules()
         {
             DoomDiagnostics.Info("[JustDoomIt] " + Localize(
-                "報酬ルール: 撃破でチップ獲得。連続キルは撃破ごとに1.5倍、被弾でリセット。クリア+5000、ボス+10000。",
-                "Reward rules: kills grant chips; each consecutive kill scales by x1.5 and resets when you take damage. Clear +5000, boss +10000.",
-                "奖励规则：击杀得筹码；连杀每次按1.5倍递增，受伤即重置。通关+5000，Boss关+10000。"));
+                "報酬ルール: 撃破でチップ獲得。初回100、連続キルは撃破ごとに2倍（1キル最大5000）、被弾でリセット。クリア+5000、ボス+10000。",
+                "Reward rules: kills grant chips. First kill is 100, each consecutive kill doubles (max 5000 per kill), and streak resets when you take damage. Clear +5000, boss +10000.",
+                "奖励规则：击杀得筹码。首杀100，之后每次连杀奖励翻倍（单次击杀上限5000），受伤即重置。通关+5000，Boss关+10000。"));
         }
 
         private void ShowCoinPopup(int amount, int streak)
@@ -733,7 +866,7 @@ namespace Elin_ModTemplate
             ShowProgressText(text, FontColor.Good);
         }
 
-        private void ShowStreakPopup(int streak)
+        private void ShowStreakPopup(int streak, int reward)
         {
             if (streak < 2)
             {
@@ -741,9 +874,9 @@ namespace Elin_ModTemplate
             }
 
             var text = Localize(
-                "連続キル x" + streak,
-                "Kill streak x" + streak,
-                "连杀 x" + streak);
+                "連続キル x" + streak + (reward > 0 ? "  チップ +" + reward : ""),
+                "Kill streak x" + streak + (reward > 0 ? "  chips +" + reward : ""),
+                "连杀 x" + streak + (reward > 0 ? "  筹码 +" + reward : ""));
             ShowProgressText(text, FontColor.Great);
         }
 

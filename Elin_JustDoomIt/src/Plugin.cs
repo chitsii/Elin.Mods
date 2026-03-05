@@ -51,12 +51,6 @@ namespace Elin_ModTemplate
                 // padding change to take effect within the same frame.
                 var rootVLG = builder.Root?.Base;
 
-                // Toggle: EnableMod
-                var toggle = builder.Root.AddToggle(
-                    controller.Tr("EnableMod"), ModConfig.EnableMod.Value,
-                    16, controller.Tr("EnableMod_tooltip"));
-                toggle.OnValueChanged += v => { ModConfig.EnableMod.Value = v; };
-
                 var invincibleToggle = builder.Root.AddToggle(
                     controller.Tr("InvincibleMode"), ModConfig.InvincibleMode.Value,
                     16, controller.Tr("InvincibleMode_tooltip"));

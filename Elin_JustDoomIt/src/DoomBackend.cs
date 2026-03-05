@@ -242,6 +242,7 @@ namespace Elin_ModTemplate
                 return;
             }
 
+            _input?.SetObservedWeapon(player.ReadyWeapon);
             ApplyInvincibility(player);
 
             var episode = game.Options?.Episode ?? 1;
@@ -362,14 +363,22 @@ namespace Elin_ModTemplate
         {
             if (streak <= 1)
             {
-                return 50;
+                return 100;
             }
 
-            // Per consecutive kill in the same streak, reward scales by x1.5.
-            // Use ceil to keep integer payouts and guarantee visible growth.
-            // First kill is 50, and per-kill payout is capped at 10000.
-            var scaled = Mathf.CeilToInt(50f * Mathf.Pow(1.5f, streak - 1));
-            return Mathf.Clamp(scaled, 50, 10000);
+            // Use integer doubling with an explicit cap to avoid overflow on high streaks.
+            var reward = 100;
+            for (var i = 1; i < streak; i++)
+            {
+                if (reward >= 5000)
+                {
+                    return 5000;
+                }
+
+                reward *= 2;
+            }
+
+            return Mathf.Clamp(reward, 100, 5000);
         }
 
         private static string GetWeaponName(WeaponType weapon)
@@ -452,6 +461,7 @@ namespace Elin_ModTemplate
         private readonly System.Func<DoomInputState> _stateProvider;
         private readonly Config _config;
         private int _turnHeld;
+        private int _observedWeaponSlot = 1;
 
         public ManagedDoomInput(System.Func<DoomInputState> stateProvider, Config config)
         {
@@ -464,11 +474,8 @@ namespace Elin_ModTemplate
             var s = _stateProvider();
             cmd.Clear();
 
+            // In this mod, Shift should consistently mean "run".
             var speed = s.Run ? 1 : 0;
-            if (_config.game_alwaysrun)
-            {
-                speed = 1 - speed;
-            }
 
             if (s.TurnLeft || s.TurnRight)
             {
@@ -527,7 +534,12 @@ namespace Elin_ModTemplate
             }
         }
 
-        private static int GetWeaponIndex(DoomInputState s)
+        public void SetObservedWeapon(WeaponType weapon)
+        {
+            _observedWeaponSlot = ToWeaponSlot(weapon);
+        }
+
+        private int GetWeaponIndex(DoomInputState s)
         {
             if (s.Weapon1) return 0;
             if (s.Weapon2) return 1;
@@ -536,7 +548,55 @@ namespace Elin_ModTemplate
             if (s.Weapon5) return 4;
             if (s.Weapon6) return 5;
             if (s.Weapon7) return 6;
+
+            if (s.WeaponCycleSteps != 0)
+            {
+                var dir = s.WeaponCycleSteps > 0 ? 1 : -1;
+                _observedWeaponSlot = WrapWeaponSlot(_observedWeaponSlot + dir);
+                return _observedWeaponSlot - 1;
+            }
+
             return -1;
+        }
+
+        private static int WrapWeaponSlot(int slot)
+        {
+            while (slot < 1)
+            {
+                slot += 7;
+            }
+
+            while (slot > 7)
+            {
+                slot -= 7;
+            }
+
+            return slot;
+        }
+
+        private static int ToWeaponSlot(WeaponType weapon)
+        {
+            switch (weapon)
+            {
+                case WeaponType.Fist:
+                case WeaponType.Chainsaw:
+                    return 1;
+                case WeaponType.Pistol:
+                    return 2;
+                case WeaponType.Shotgun:
+                case WeaponType.SuperShotgun:
+                    return 3;
+                case WeaponType.Chaingun:
+                    return 4;
+                case WeaponType.Missile:
+                    return 5;
+                case WeaponType.Plasma:
+                    return 6;
+                case WeaponType.Bfg:
+                    return 7;
+                default:
+                    return 1;
+            }
         }
 
         public void Reset()

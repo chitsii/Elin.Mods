@@ -52,6 +52,8 @@ echo Copying to Package folder...
 xcopy "%~dp0_bin\Elin_JustDoomIt.dll" "%~dp0elin_link\Package\Elin_JustDoomIt\" /Y
 xcopy "%~dp0_bin\DoomNetFrameworkEngine.dll" "%~dp0elin_link\Package\Elin_JustDoomIt\" /Y
 xcopy "%~dp0package.xml" "%~dp0elin_link\Package\Elin_JustDoomIt\" /Y
+if exist "%~dp0preview.jpg" xcopy "%~dp0preview.jpg" "%~dp0elin_link\Package\Elin_JustDoomIt\" /Y
+if exist "%~dp0LICENSES" xcopy "%~dp0LICENSES" "%~dp0elin_link\Package\Elin_JustDoomIt\LICENSES\" /E /I /Y
 if exist "%~dp0LangMod" xcopy "%~dp0LangMod" "%~dp0elin_link\Package\Elin_JustDoomIt\LangMod\" /E /I /Y
 if exist "%~dp0Sound" xcopy "%~dp0Sound" "%~dp0elin_link\Package\Elin_JustDoomIt\Sound\" /E /I /Y
 if exist "%~dp0LangMod\EN\SourceThing.xlsx" del /f /q "%~dp0LangMod\EN\SourceThing.xlsx"
@@ -70,6 +72,8 @@ if not exist %STEAM_PACKAGE_DIR% mkdir %STEAM_PACKAGE_DIR%
 xcopy "%~dp0_bin\Elin_JustDoomIt.dll" %STEAM_PACKAGE_DIR% /Y
 xcopy "%~dp0_bin\DoomNetFrameworkEngine.dll" %STEAM_PACKAGE_DIR% /Y
 xcopy "%~dp0package.xml" %STEAM_PACKAGE_DIR% /Y
+if exist "%~dp0preview.jpg" xcopy "%~dp0preview.jpg" %STEAM_PACKAGE_DIR% /Y
+if exist "%~dp0LICENSES" xcopy "%~dp0LICENSES" %STEAM_PACKAGE_DIR%\LICENSES\ /E /I /Y
 if exist "%~dp0LangMod" xcopy "%~dp0LangMod" %STEAM_PACKAGE_DIR%\LangMod\ /E /I /Y
 if exist "%~dp0Sound" xcopy "%~dp0Sound" %STEAM_PACKAGE_DIR%\Sound\ /E /I /Y
 if exist %STEAM_PACKAGE_DIR%\LangMod\EN\SourceThing.xlsx del /f /q %STEAM_PACKAGE_DIR%\LangMod\EN\SourceThing.xlsx

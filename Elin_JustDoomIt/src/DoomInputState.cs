@@ -21,6 +21,7 @@ namespace Elin_ModTemplate
         public bool Weapon5;
         public bool Weapon6;
         public bool Weapon7;
+        public int WeaponCycleSteps;
         public float MouseDeltaX;
 
         public static DoomInputState ReadFromUnity()
@@ -44,8 +45,20 @@ namespace Elin_ModTemplate
                 Weapon5 = Input.GetKeyDown(KeyCode.Alpha5),
                 Weapon6 = Input.GetKeyDown(KeyCode.Alpha6),
                 Weapon7 = Input.GetKeyDown(KeyCode.Alpha7),
+                WeaponCycleSteps = ReadWheelSteps(),
                 MouseDeltaX = Input.GetAxis("Mouse X")
             };
+        }
+
+        private static int ReadWheelSteps()
+        {
+            var wheel = Input.mouseScrollDelta.y;
+            if (Mathf.Abs(wheel) < 0.01f)
+            {
+                return 0;
+            }
+
+            return wheel > 0f ? Mathf.CeilToInt(wheel) : Mathf.FloorToInt(wheel);
         }
     }
 }

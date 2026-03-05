@@ -4,7 +4,6 @@ namespace Elin_ModTemplate
 {
     public static class ModConfig
     {
-        public static ConfigEntry<bool> EnableMod;
         public static ConfigEntry<int> DoomWidth;
         public static ConfigEntry<int> DoomHeight;
         public static ConfigEntry<int> DoomSfxVolume;
@@ -19,13 +18,12 @@ namespace Elin_ModTemplate
 
         public static void LoadConfig(ConfigFile config)
         {
-            EnableMod = config.Bind("General", "EnableMod", true, "Enable the mod.");
             DoomWidth = config.Bind("DOOM", "ScreenWidth", 320, "Internal DOOM render width.");
             DoomHeight = config.Bind("DOOM", "ScreenHeight", 200, "Internal DOOM render height.");
             DoomSfxVolume = config.Bind(
                 "DOOM",
                 "SfxVolume",
-                6,
+                5,
                 new ConfigDescription("DOOM sound effect volume (0-15).", new AcceptableValueRange<int>(0, 15)));
             MouseTurnSensitivity = config.Bind(
                 "DOOM",

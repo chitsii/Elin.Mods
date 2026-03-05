@@ -39,8 +39,8 @@ Elin のカスタムアーケード筐体（CWLで追加）から、オーバー
 
 - Asset: `freedoom1.wad`
 - License: `BSD 3-Clause` (FreeDoom project)
-- Local license text: `_tmp_freedoom/freedoom-0.13.0/COPYING.txt`
-- Credits list: `_tmp_freedoom/freedoom-0.13.0/CREDITS.txt`
+- Distributed license text: `LICENSES/FreeDoom-BSD-3-Clause.txt`
+- Distributed credits list: `LICENSES/FreeDoom-CREDITS.txt`
 
 再配布時は BSD 3-Clause の条件に従い、著作権表示・条件文・免責事項を同梱資料に保持してください。
 

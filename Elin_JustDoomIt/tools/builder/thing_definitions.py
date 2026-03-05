@@ -19,7 +19,7 @@ class ThingDefinition:
     value: int = 45000
     weight: int = 120000
     electricity: int = -10
-    trait: str = "SlotMachine"
+    trait: str = "JustDoomArcade"
     def_mat: str = ""
 
 

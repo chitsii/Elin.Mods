@@ -6,8 +6,12 @@ from drama.drama_builder import DramaBuilder
 
 
 def define_erenos_defeat(builder: DramaBuilder):
-    narrator = builder.register_actor(Actors.NARRATOR, "禁書", "The Tome", name_cn="禁书")
-    erenos = builder.register_actor(Actors.ERENOS, "エレノス", "Erenos", name_cn="艾雷诺斯")
+    narrator = builder.register_actor(
+        Actors.NARRATOR, "禁書", "The Tome", name_cn="禁书"
+    )
+    erenos = builder.register_actor(
+        Actors.ERENOS, "エレノス", "Erenos", name_cn="艾雷诺斯"
+    )
     main = builder.label("main")
     can_start_tmp_flag = "chitsii.ars.tmp.can_start.ars_erenos_defeat"
 
@@ -17,7 +21,7 @@ def define_erenos_defeat(builder: DramaBuilder):
     builder.fade_in(1.0)
     builder.play_bgm(BGM.REQUIEM)
     builder.wait(0.5)
-    builder.say("ed_1", "……よい。", "...Well done.", actor=erenos, text_cn="……甚好。")
+    builder.say("ed_1", "……そうか。", "...Well done.", actor=erenos, text_cn="……甚好。")
     builder.say(
         "ed_1b",
         "勝った。\n影は崩れた。\nだが、頭の中にエレノスの\n思考の残響が響いている。",
@@ -109,7 +113,8 @@ def define_erenos_defeat(builder: DramaBuilder):
         actor=narrator,
     )
     builder.wait(1.0)
-    builder.say("ed_13",
+    builder.say(
+        "ed_13",
         "……禁書が、ひとりでに開いた。\n"
         "封じられていた最後の頁——昇華の儀式の手順。\n"
         "影を超えた今、ようやく読み解ける。",
@@ -119,6 +124,7 @@ def define_erenos_defeat(builder: DramaBuilder):
         actor=narrator,
         text_cn="……禁书自行翻开了。\n"
         "被封印的最后书页——升华仪式的步骤。\n"
-        "超越了影之后，终于可以读解。")
+        "超越了影之后，终于可以读解。",
+    )
     builder.set_flag(can_start_tmp_flag, 0)
     builder.drama_end(1.0)

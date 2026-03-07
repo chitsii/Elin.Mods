@@ -135,6 +135,7 @@ namespace Elin_JustDoomIt
                 var config = new Config
                 {
                     video_highresolution = _requestedWidth >= 640 || _requestedHeight >= 360,
+                    video_gammacorrection = Mathf.Clamp(ModConfig.DoomBrightness.Value, 0, 10),
                     video_displaymessage = true,
                     video_gamescreensize = 7,
                     video_fullscreen = false,

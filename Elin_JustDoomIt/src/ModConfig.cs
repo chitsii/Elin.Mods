@@ -1,25 +1,45 @@
-﻿using BepInEx.Configuration;
+using System;
+using BepInEx.Configuration;
 
 namespace Elin_JustDoomIt
 {
     public static class ModConfig
     {
+        private static ConfigFile _config;
+
         public static ConfigEntry<int> DoomWidth;
         public static ConfigEntry<int> DoomHeight;
+        public static ConfigEntry<int> DoomBrightness;
         public static ConfigEntry<int> DoomSfxVolume;
         public static ConfigEntry<float> MouseTurnSensitivity;
         public static ConfigEntry<bool> InvincibleMode;
         public static ConfigEntry<float> OverlayScale;
         public static ConfigEntry<float> BackdropAlpha;
 
-        // TODO: Add your config entries here
-        // Example:
-        // public static ConfigEntry<float> MyValue;
-
         public static void LoadConfig(ConfigFile config)
         {
-            DoomWidth = config.Bind("DOOM", "ScreenWidth", 320, "Internal DOOM render width.");
-            DoomHeight = config.Bind("DOOM", "ScreenHeight", 200, "Internal DOOM render height.");
+            _config = config;
+            DoomWidth = config.Bind(
+                "DOOM",
+                "ScreenWidth",
+                320,
+                new ConfigDescription(
+                    "Internal DOOM render width.",
+                    new AcceptableValueRange<int>(160, 1280)));
+            DoomHeight = config.Bind(
+                "DOOM",
+                "ScreenHeight",
+                200,
+                new ConfigDescription(
+                    "Internal DOOM render height.",
+                    new AcceptableValueRange<int>(100, 720)));
+            DoomBrightness = config.Bind(
+                "DOOM",
+                "Brightness",
+                5,
+                new ConfigDescription(
+                    "DOOM gamma/brightness level (0-10). Higher is brighter.",
+                    new AcceptableValueRange<int>(0, 10)));
             DoomSfxVolume = config.Bind(
                 "DOOM",
                 "SfxVolume",
@@ -51,12 +71,24 @@ namespace Elin_JustDoomIt
                 new ConfigDescription(
                     "DOOM frame shadow intensity. 0 = no shadow, 1 = strongest shadow.",
                     new AcceptableValueRange<float>(0.0f, 1.0f)));
+        }
 
-            // TODO: Bind your config entries here
-            // Example:
-            // MyValue = config.Bind("General", "MyValue", 50f,
-            //     new ConfigDescription("Description of MyValue.", new AcceptableValueRange<float>(0f, 100f)));
+        public static void SetDoomResolution(int width, int height)
+        {
+            DoomWidth.Value = width;
+            DoomHeight.Value = height;
+            Save();
+        }
+
+        public static void SetDoomBrightness(int brightness)
+        {
+            DoomBrightness.Value = brightness < 0 ? 0 : (brightness > 10 ? 10 : brightness);
+            Save();
+        }
+
+        public static void Save()
+        {
+            _config?.Save();
         }
     }
 }
-

@@ -7,6 +7,8 @@ using System.Runtime.Serialization.Json;
 using System.Security.Cryptography;
 using System.Text;
 
+#nullable enable
+
 namespace Elin_JustDoomIt
 {
     public enum DoomModEntryState
@@ -24,35 +26,55 @@ namespace Elin_JustDoomIt
     public sealed class DoomModEntryConfig
     {
         [DataMember(EmitDefaultValue = false)]
-        public string display_name;
+        public string? display_name;
 
         [DataMember(EmitDefaultValue = false)]
-        public string main_wad_file;
+        public string? main_wad_file;
 
         [DataMember(EmitDefaultValue = false)]
-        public string[] wad_order;
+        public string[]? wad_order;
     }
 
     public sealed class DoomModEntryDefinition
     {
-        public string EntryId;
-        public string DisplayName;
-        public string FolderPath;
-        public string ContentRootPath;
+        public string EntryId = string.Empty;
+        public string DisplayName = string.Empty;
+        public string FolderPath = string.Empty;
+        public string? ContentRootPath;
         public DoomModEntryState State;
         public List<string> DetectedWadFiles = new List<string>();
         public List<string> LaunchWadFiles = new List<string>();
-        public string MainWadFile;
-        public string ManifestHash;
+        public string? MainWadFile;
+        public string? ManifestHash;
         public string BaseRequiredIwadFamily = "unknown";
         public string EffectiveRequiredIwadFamily = "unknown";
-        public string ErrorReason;
+        public string? ErrorReason;
     }
 
     public static class DoomModEntryCore
     {
         private static readonly string[] AllowedGuideExtensions = { ".txt", ".md", ".nfo", ".diz", ".jpg", ".png" };
         private static readonly string[] UnsupportedLaunchExtensions = { ".deh", ".bex", ".pk3", ".pk7" };
+
+        public static string NormalizeFamily(string family)
+        {
+            if (string.IsNullOrWhiteSpace(family))
+            {
+                return "unknown";
+            }
+
+            switch (family.Trim().ToLowerInvariant())
+            {
+                case "doom1":
+                    return "doom1";
+                case "doom2":
+                    return "doom2";
+                case "any":
+                    return "any";
+                default:
+                    return "unknown";
+            }
+        }
 
         public static List<DoomModEntryDefinition> DiscoverEntries(string modsRoot, string configRoot)
         {
@@ -83,7 +105,7 @@ namespace Elin_JustDoomIt
             return results;
         }
 
-        public static DoomModEntryConfig LoadEntryConfig(string configRoot, string entryId)
+        public static DoomModEntryConfig? LoadEntryConfig(string configRoot, string entryId)
         {
             var path = GetEntryConfigPath(configRoot, entryId);
             if (!File.Exists(path))
@@ -205,8 +227,8 @@ namespace Elin_JustDoomIt
                 FolderPath = folder
             };
 
-            string contentRoot;
-            string layoutError;
+            string? contentRoot;
+            string? layoutError;
             if (!TryResolveContentRoot(folder, out contentRoot, out layoutError))
             {
                 if (HasAnyWads(folder))
@@ -220,9 +242,10 @@ namespace Elin_JustDoomIt
                 return entry;
             }
 
-            entry.ContentRootPath = contentRoot;
-            entry.DetectedWadFiles = Directory.GetFiles(contentRoot, "*.wad", SearchOption.TopDirectoryOnly)
-                .Select(Path.GetFileName)
+            var resolvedContentRoot = contentRoot!;
+            entry.ContentRootPath = resolvedContentRoot;
+            entry.DetectedWadFiles = Directory.GetFiles(resolvedContentRoot, "*.wad", SearchOption.TopDirectoryOnly)
+                .Select(path => Path.GetFileName(path)!)
                 .OrderBy(v => v, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
@@ -232,7 +255,7 @@ namespace Elin_JustDoomIt
                 return entry;
             }
 
-            if (HasUnsupportedDirectInputs(contentRoot))
+            if (HasUnsupportedDirectInputs(resolvedContentRoot))
             {
                 entry.State = DoomModEntryState.ErrorUnsupported;
                 entry.ErrorReason = "This mod includes non-WAD files that v1 does not support";
@@ -243,14 +266,14 @@ namespace Elin_JustDoomIt
             {
                 entry.LaunchWadFiles = new List<string>(entry.DetectedWadFiles);
                 entry.MainWadFile = entry.DetectedWadFiles[0];
-                entry.ManifestHash = ComputeManifestHash(entry.LaunchWadFiles.Select(f => Path.Combine(contentRoot, f)));
-                entry.BaseRequiredIwadFamily = InferRequiredIwadFamily(entry.LaunchWadFiles.Select(f => Path.Combine(contentRoot, f)));
+                entry.ManifestHash = ComputeManifestHash(entry.LaunchWadFiles.Select(f => Path.Combine(resolvedContentRoot, f)));
+                entry.BaseRequiredIwadFamily = NormalizeFamily(InferRequiredIwadFamily(entry.LaunchWadFiles.Select(f => Path.Combine(resolvedContentRoot, f))));
                 entry.EffectiveRequiredIwadFamily = entry.BaseRequiredIwadFamily;
                 entry.State = DoomModEntryState.ReadySingle;
                 return entry;
             }
 
-            DoomModEntryConfig config = null;
+            DoomModEntryConfig? config = null;
             try
             {
                 config = LoadEntryConfig(configRoot, entry.EntryId);
@@ -278,8 +301,8 @@ namespace Elin_JustDoomIt
                 return entry;
             }
 
-            entry.ManifestHash = ComputeManifestHash(entry.LaunchWadFiles.Select(f => Path.Combine(contentRoot, f)));
-            entry.BaseRequiredIwadFamily = InferRequiredIwadFamily(entry.LaunchWadFiles.Select(f => Path.Combine(contentRoot, f)));
+            entry.ManifestHash = ComputeManifestHash(entry.LaunchWadFiles.Select(f => Path.Combine(resolvedContentRoot, f)));
+            entry.BaseRequiredIwadFamily = NormalizeFamily(InferRequiredIwadFamily(entry.LaunchWadFiles.Select(f => Path.Combine(resolvedContentRoot, f))));
             entry.EffectiveRequiredIwadFamily = entry.BaseRequiredIwadFamily;
             entry.State = DoomModEntryState.ReadyMulti;
             return entry;
@@ -325,19 +348,21 @@ namespace Elin_JustDoomIt
                 return false;
             }
 
-            if (!order.Contains(config.main_wad_file, StringComparer.OrdinalIgnoreCase))
+            var mainWadFile = config.main_wad_file!;
+            if (!order.Contains(mainWadFile, StringComparer.OrdinalIgnoreCase))
             {
                 entry.ErrorReason = "Saved setup main_wad_file is not in wad_order";
                 return false;
             }
 
             entry.LaunchWadFiles = order;
-            entry.MainWadFile = order.First(v => string.Equals(v, config.main_wad_file, StringComparison.OrdinalIgnoreCase));
-            entry.DisplayName = string.IsNullOrWhiteSpace(config.display_name) ? entry.EntryId : config.display_name.Trim();
+            entry.MainWadFile = order.First(v => string.Equals(v, mainWadFile, StringComparison.OrdinalIgnoreCase));
+            var displayName = config.display_name?.Trim() ?? string.Empty;
+            entry.DisplayName = displayName.Length == 0 ? entry.EntryId : displayName;
             return true;
         }
 
-        private static bool TryResolveContentRoot(string folder, out string contentRoot, out string error)
+        private static bool TryResolveContentRoot(string folder, out string? contentRoot, out string? error)
         {
             contentRoot = null;
             error = null;

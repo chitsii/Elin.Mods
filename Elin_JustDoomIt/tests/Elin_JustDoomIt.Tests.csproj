@@ -17,5 +17,6 @@
 
   <ItemGroup>
     <Compile Include="..\src\DoomModEntryCore.cs" Link="DoomModEntryCore.cs" />
+    <Compile Include="..\src\DoomVideoSettings.cs" Link="DoomVideoSettings.cs" />
   </ItemGroup>
 </Project>

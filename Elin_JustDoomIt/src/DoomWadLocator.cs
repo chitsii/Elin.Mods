@@ -111,36 +111,6 @@ namespace Elin_JustDoomIt
             return result.Values.OrderBy(v => v.DisplayName ?? v.EntryId, StringComparer.OrdinalIgnoreCase).ToList();
         }
 
-        // Legacy helper retained while UI/runtime are migrated away from flat file assumptions.
-        public static List<DoomWadEntry> FindPwads()
-        {
-            var flattened = new Dictionary<string, DoomWadEntry>(StringComparer.OrdinalIgnoreCase);
-            foreach (var entry in FindModEntries())
-            {
-                var files = entry.DetectedWadFiles ?? new List<string>();
-                for (var i = 0; i < files.Count; i++)
-                {
-                    var file = files[i];
-                    var fullPath = Path.Combine(entry.ContentRootPath ?? string.Empty, file ?? string.Empty);
-                    if (!flattened.ContainsKey(file) && File.Exists(fullPath))
-                    {
-                        flattened[file] = new DoomWadEntry
-                        {
-                            FileName = file,
-                            FullPath = fullPath
-                        };
-                    }
-                }
-            }
-
-            return flattened.Values.OrderBy(v => v.FileName, StringComparer.OrdinalIgnoreCase).ToList();
-        }
-
-        public static DoomModRuleRefreshResult RefreshPwadRules()
-        {
-            return DoomModRuleStore.RefreshRules(FindPwads());
-        }
-
         public static bool ReconcileRuntimeLoadout(DoomRuntimeLoadout loadout)
         {
             if (loadout == null)

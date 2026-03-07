@@ -16,7 +16,6 @@ Package/Elin_JustDoomIt/
         *.wad
 BepInEx/config/chitsii.elin_justdoomit/profiles/
   runtime_loadout.json
-  mod_rules.json
 ```
 
 補足:
@@ -46,10 +45,9 @@ BepInEx/config/chitsii.elin_justdoomit/profiles/
 6. `CONFIGURE MODS` を開く
 7. 複数 `.wad` の Mod なら、検出ファイル一覧を確認し、必要なら順序や対象を調整してセットアップを承認する
 8. セットアップ承認後、その場で一覧が更新され、すぐ選択可能になります
-9. 必要なら依存確認画面で手動分類
-10. `CONFIGURE MODS` で 1つだけ ON
-11. `START OVER` で最初から起動
-12. `CONTINUE` が出ない時は、詳細欄にどの GAME / MOD に戻せば再開できるかが表示されます
+9. `CONFIGURE MODS` で 1つだけ ON
+10. `START OVER` で最初から起動
+11. `CONTINUE` が出ない時は、詳細欄にどの GAME / MOD に戻せば再開できるかが表示されます
 
 ## 4. 依存判定の仕様
 - 依存ファミリー: `doom1 | doom2 | any | unknown`

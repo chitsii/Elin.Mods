@@ -4,13 +4,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.UI;
 
 namespace Elin_JustDoomIt
 {
     public sealed class DoomArcadeMenuUI : MonoBehaviour
     {
-        private enum MenuState { Main, IwadPicker, PwadPicker, SkillPicker, ModSetup, ResetSetupConfirm, ModRuleConfirm, ExitConfirm }
+        private enum MenuState { Main, IwadPicker, PwadPicker, SkillPicker, GeneralSettings, ResolutionPicker, BrightnessPicker, ModSetup, ResetSetupConfirm, ExitConfirm }
         private enum RowKind { Setting, Action, Separator }
         private enum RowTag
         {
@@ -19,17 +20,13 @@ namespace Elin_JustDoomIt
             Play,
             Continue,
             Iwad,
+            Resolution,
+            Brightness,
             Mods,
+            GeneralSettings,
             OpenModFolder,
-            Close,
             NewRun,
             Skill,
-            RuleUseAuto,
-            RuleDoom1,
-            RuleDoom2,
-            RuleAny,
-            RulePending,
-            RuleSkip,
             SetupMoveUp,
             SetupMoveDown,
             SetupConfirm,
@@ -101,12 +98,8 @@ namespace Elin_JustDoomIt
         private DoomSaveSummary _saveSummary;
         private bool _hasSaveSummary;
         private string _currentSaveSlotKey;
-        private readonly Queue<DoomModRulePrompt> _pendingRulePrompts = new Queue<DoomModRulePrompt>();
         private readonly Dictionary<int, int> _modRowToIndex = new Dictionary<int, int>();
         private readonly Dictionary<int, int> _setupRowToIndex = new Dictionary<int, int>();
-        private DoomModRulePrompt _activeRulePrompt;
-        private bool _hasActiveRulePrompt;
-        private MenuState _modRuleReturnState = MenuState.Main;
         private DoomModEntryDefinition _setupEntry;
         private readonly List<ModSetupItem> _setupItems = new List<ModSetupItem>();
         private int _setupFocusedFileIndex;
@@ -139,6 +132,10 @@ namespace Elin_JustDoomIt
         private Texture2D _crtScanlineTex;
         private Font _font;
         private float _bootTime;
+        private AudioSource _hoverSoundSource;
+        private AudioClip _hoverSoundClip;
+        private bool _hoverSoundLoading;
+        private bool _hoverSoundLoaded;
 
         // ── Menu BGM ──
         private bool _menuBgmActive;
@@ -167,11 +164,12 @@ namespace Elin_JustDoomIt
             _user = user;
             _onPlay = onPlay;
             _onClose = onClose;
-            DoomModRuleStore.EnsureLoaded();
             _iwads = DoomWadLocator.FindIwads();
             _modEntries = DoomWadLocator.FindModEntries();
             _bootTime = Time.unscaledTime;
             _canvas.enabled = true;
+            EnsureHoverSoundSource();
+            EnsureHoverSoundClipLoaded();
             EInput.Consume(consumeAxis: true, _skipFrame: 2);
             StartMenuBgm();
             TransitionTo(MenuState.Main);
@@ -208,9 +206,88 @@ namespace Elin_JustDoomIt
             }
         }
 
+        private void EnsureHoverSoundSource()
+        {
+            if (_hoverSoundSource != null)
+            {
+                return;
+            }
+
+            _hoverSoundSource = gameObject.AddComponent<AudioSource>();
+            _hoverSoundSource.playOnAwake = false;
+            _hoverSoundSource.loop = false;
+            _hoverSoundSource.spatialBlend = 0f;
+            _hoverSoundSource.volume = 1f;
+        }
+
+        private void EnsureHoverSoundClipLoaded()
+        {
+            if (_hoverSoundLoaded || _hoverSoundLoading)
+            {
+                return;
+            }
+
+            StartCoroutine(LoadHoverSoundClip());
+        }
+
+        private IEnumerator LoadHoverSoundClip()
+        {
+            _hoverSoundLoading = true;
+            _hoverSoundLoaded = false;
+
+            var path = ResolveHoverSoundPath();
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            {
+                DoomDiagnostics.Warn("[JustDoomIt] Hover sound not found: " + path);
+                _hoverSoundLoading = false;
+                yield break;
+            }
+
+            var url = "file:///" + path.Replace("\\", "/");
+            using (var req = UnityWebRequestMultimedia.GetAudioClip(url, AudioType.OGGVORBIS))
+            {
+                yield return req.SendWebRequest();
+                if (req.result != UnityWebRequest.Result.Success)
+                {
+                    DoomDiagnostics.Warn("[JustDoomIt] Failed to load hover sound: " + req.error);
+                    _hoverSoundLoading = false;
+                    yield break;
+                }
+
+                _hoverSoundClip = DownloadHandlerAudioClip.GetContent(req);
+                _hoverSoundLoaded = _hoverSoundClip != null;
+                if (_hoverSoundClip != null)
+                {
+                    _hoverSoundClip.name = "resto_arcade_hover.ogg";
+                }
+            }
+
+            _hoverSoundLoading = false;
+        }
+
+        private static string ResolveHoverSoundPath()
+        {
+            var modDir = Path.GetDirectoryName(typeof(Plugin).Assembly.Location) ?? string.Empty;
+            return Path.Combine(modDir, "Sound", "UI", "resto_arcade_hover.ogg");
+        }
+
+        private void PlayHoverSound()
+        {
+            if (_hoverSoundSource == null || _hoverSoundClip == null)
+            {
+                return;
+            }
+
+            _hoverSoundSource.PlayOneShot(_hoverSoundClip, 0.65f);
+        }
+
         public void Close()
         {
             StopMenuBgm();
+            if (_hoverSoundSource != null)
+            {
+                _hoverSoundSource.Stop();
+            }
             _canvas.enabled = false;
             _onClose?.Invoke();
             Destroy(gameObject);
@@ -563,14 +640,20 @@ namespace Elin_JustDoomIt
                 case MenuState.SkillPicker:
                     RefreshSkillPicker();
                     break;
+                case MenuState.GeneralSettings:
+                    RefreshGeneralSettings();
+                    break;
+                case MenuState.ResolutionPicker:
+                    RefreshResolutionPicker();
+                    break;
+                case MenuState.BrightnessPicker:
+                    RefreshBrightnessPicker();
+                    break;
                 case MenuState.ModSetup:
                     RefreshModSetup();
                     break;
                 case MenuState.ResetSetupConfirm:
                     RefreshResetSetupConfirm();
-                    break;
-                case MenuState.ModRuleConfirm:
-                    RefreshModRuleConfirm();
                     break;
                 case MenuState.ExitConfirm:
                     ShowOverlay(next);
@@ -600,7 +683,7 @@ namespace Elin_JustDoomIt
             AddRow("IWAD     " + iwadName, RowKind.Setting, ColValue, enabled: false);
 
             var skillIdx = Mathf.Clamp(_loadout.selectedSkill, 1, 5) - 1;
-            AddRow("SKILL    " + SkillNames[skillIdx], RowKind.Setting, ColValue, enabled: false);
+            AddRow("DIFFICULTY " + SkillNames[skillIdx], RowKind.Setting, ColValue, enabled: false);
 
             AddRow("MODS     " + GetSelectedModSummary(), RowKind.Setting, ColValue, enabled: false);
 
@@ -626,10 +709,9 @@ namespace Elin_JustDoomIt
             AddRow(L("最初から", "START OVER", "从头开始"), RowKind.Action, _hasSave ? ColNormal : ColAccent, tag: RowTag.NewRun, fontSizeOverride: 24);
 
             AddRow(L("ゲーム切替", "CHANGE GAME", "切换游戏"), RowKind.Action, ColNormal, tag: RowTag.Iwad);
-            AddRow(L("難易度変更", "CHANGE SKILL", "更换难度"), RowKind.Action, ColNormal, tag: RowTag.Skill);
-            AddRow(L("MOD設定", "CONFIGURE MODS", "配置MOD"), RowKind.Action, ColNormal, tag: RowTag.Mods);
-
-            AddRow(L("閉じる", "CLOSE", "关闭"), RowKind.Action, ColNormal, tag: RowTag.Close);
+            AddRow(L("難易度変更", "DIFFICULTY", "难度"), RowKind.Action, ColNormal, tag: RowTag.Skill);
+            AddRow(L("MOD設定", "MOD CONFIG", "MOD设置"), RowKind.Action, ColNormal, tag: RowTag.Mods);
+            AddRow(L("一般設定", "GENERAL SETTINGS", "常规设置"), RowKind.Action, ColNormal, tag: RowTag.GeneralSettings);
 
             ForceMainPrimaryActionStyle();
 
@@ -679,7 +761,7 @@ namespace Elin_JustDoomIt
             {
                 AddRow(
                     L(
-                        "MODが見つかりません (wad/mods)。先に「MODフォルダを開く」。",
+                        "MODが検知されませんでした。「MODフォルダを開く」から導入して下さい。",
                         "No mods found (wad/mods). Use OPEN MOD FOLDER first.",
                         "未找到MOD（wad/mods）。请先打开MOD文件夹。"),
                     RowKind.Setting,
@@ -752,40 +834,6 @@ namespace Elin_JustDoomIt
 
             var firstModRow = _modRowToIndex.Count > 0 ? _modRowToIndex.Keys.Min() : 0;
             SetCursor(firstModRow);
-        }
-
-        private void RefreshModRuleConfirm()
-        {
-            ClearRows();
-            _sectionHeader.text = L("<< MOD依存を確認 >>", "<< CONFIRM MOD DEPENDENCY >>", "<< 确认MOD依赖 >>");
-
-            if (!_hasActiveRulePrompt)
-            {
-                AddRow(
-                    L("確認対象のMODはありません。", "No pending mod checks.", "没有待确认的MOD。"),
-                    RowKind.Setting,
-                    ColDisabled,
-                    enabled: false);
-                AddRow(L("戻る", "BACK", "返回"), RowKind.Action, ColNormal, tag: RowTag.RuleSkip);
-                SetCursor(0);
-                return;
-            }
-
-            var familyLabel = FamilyLabel(_activeRulePrompt.SuggestedFamily);
-            var reason = DoomModRuleStore.GetReasonText(_activeRulePrompt.ReasonCode, _activeRulePrompt.SuggestedFamily);
-            AddRow("FILE     " + _activeRulePrompt.FileName, RowKind.Setting, ColValue, enabled: false);
-            AddRow("AUTO     " + familyLabel, RowKind.Setting, ColValue, enabled: false);
-            AddRow("CONF     " + _activeRulePrompt.Confidence.ToUpperInvariant(), RowKind.Setting, ColNormal, enabled: false);
-            AddRow("REASON   " + reason, RowKind.Setting, ColNormal, enabled: false, fontSizeOverride: 16);
-            AddRow("", RowKind.Separator, ColDisabled, false);
-
-            AddRow(L("自動判定を使う", "USE AUTO RESULT", "使用自动判定"), RowKind.Action, ColAccent, tag: RowTag.RuleUseAuto);
-            AddRow(L("手動: DOOM1系", "MANUAL: DOOM1", "手动: DOOM1"), RowKind.Action, ColNormal, tag: RowTag.RuleDoom1);
-            AddRow(L("手動: DOOM2系", "MANUAL: DOOM2", "手动: DOOM2"), RowKind.Action, ColNormal, tag: RowTag.RuleDoom2);
-            AddRow(L("手動: 両対応", "MANUAL: DUAL", "手动: 双兼容"), RowKind.Action, ColNormal, tag: RowTag.RuleAny);
-            AddRow(L("手動: 保留(不明)", "MANUAL: PENDING", "手动: 待定"), RowKind.Action, ColNormal, tag: RowTag.RulePending);
-            AddRow(L("残りを後で確認", "SKIP REMAINING", "稍后处理剩余项"), RowKind.Action, ColDisabled, tag: RowTag.RuleSkip);
-            SetCursor(0);
         }
 
         private void RefreshModSetup()
@@ -1088,19 +1136,12 @@ namespace Elin_JustDoomIt
                     "ENTER: 确认  ESC: 返回");
                 _statusLine.text = "";
             }
-            else if (_state == MenuState.IwadPicker || _state == MenuState.SkillPicker)
+            else if (_state == MenuState.IwadPicker || _state == MenuState.SkillPicker || _state == MenuState.ResolutionPicker || _state == MenuState.BrightnessPicker || _state == MenuState.GeneralSettings)
             {
                 _footerText.text = L(
                     "ENTER: 選択  ESC: 戻る",
                     "ENTER: select  ESC: back",
                     "ENTER: 选择  ESC: 返回");
-            }
-            else if (_state == MenuState.ModRuleConfirm)
-            {
-                _footerText.text = L(
-                    "ENTER: 決定  ESC: 後で",
-                    "ENTER: apply  ESC: later",
-                    "ENTER: 应用  ESC: 稍后");
             }
             else if (_state == MenuState.ExitConfirm)
             {
@@ -1136,9 +1177,9 @@ namespace Elin_JustDoomIt
                 return;
             }
 
-            if (_state == MenuState.ModRuleConfirm)
+            if (_state == MenuState.GeneralSettings)
             {
-                HandleModRuleConfirmInput();
+                HandleGeneralSettingsInput();
                 return;
             }
 
@@ -1173,6 +1214,25 @@ namespace Elin_JustDoomIt
             if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.KeypadEnter))
             {
                 OnMainSelect();
+            }
+        }
+
+        private void HandleGeneralSettingsInput()
+        {
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                SE.Tab();
+                EInput.Consume(consumeAxis: true, _skipFrame: 1);
+                TransitionTo(MenuState.Main);
+                return;
+            }
+
+            if (Input.GetKeyDown(KeyCode.UpArrow)) { MoveSelection(-1); return; }
+            if (Input.GetKeyDown(KeyCode.DownArrow)) { MoveSelection(1); return; }
+
+            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.KeypadEnter))
+            {
+                OnGeneralSettingsSelect();
             }
         }
 
@@ -1212,6 +1272,18 @@ namespace Elin_JustDoomIt
                     SE.Tab();
                     TransitionTo(MenuState.SkillPicker);
                     break;
+                case RowTag.Resolution:
+                    SE.Tab();
+                    TransitionTo(MenuState.ResolutionPicker);
+                    break;
+                case RowTag.Brightness:
+                    SE.Tab();
+                    TransitionTo(MenuState.BrightnessPicker);
+                    break;
+                case RowTag.GeneralSettings:
+                    SE.Tab();
+                    TransitionTo(MenuState.GeneralSettings);
+                    break;
                 case RowTag.Mods:
                     SE.Tab();
                     if (DoomWadLocator.ReconcileRuntimeLoadout(_loadout))
@@ -1220,9 +1292,26 @@ namespace Elin_JustDoomIt
                     }
                     TransitionTo(MenuState.PwadPicker);
                     break;
-                case RowTag.Close:
-                    SE.Click();
-                    Close();
+            }
+        }
+
+        private void OnGeneralSettingsSelect()
+        {
+            if (_cursor < 0 || _cursor >= _rows.Count) return;
+
+            switch (_rows[_cursor].Tag)
+            {
+                case RowTag.Back:
+                    SE.Tab();
+                    TransitionTo(MenuState.Main);
+                    break;
+                case RowTag.Resolution:
+                    SE.Tab();
+                    TransitionTo(MenuState.ResolutionPicker);
+                    break;
+                case RowTag.Brightness:
+                    SE.Tab();
+                    TransitionTo(MenuState.BrightnessPicker);
                     break;
             }
         }
@@ -1246,6 +1335,10 @@ namespace Elin_JustDoomIt
                     OnIwadConfirm();
                 else if (_state == MenuState.SkillPicker)
                     OnSkillConfirm();
+                else if (_state == MenuState.ResolutionPicker)
+                    OnResolutionConfirm();
+                else if (_state == MenuState.BrightnessPicker)
+                    OnBrightnessConfirm();
                 else
                     OnPwadPickerSelect();
             }
@@ -1287,27 +1380,6 @@ namespace Elin_JustDoomIt
             }
         }
 
-        private void HandleModRuleConfirmInput()
-        {
-            if (Input.GetKeyDown(KeyCode.Escape))
-            {
-                SE.Tab();
-                _pendingRulePrompts.Clear();
-                _hasActiveRulePrompt = false;
-                EInput.Consume(consumeAxis: true, _skipFrame: 1);
-                TransitionTo(_modRuleReturnState);
-                return;
-            }
-
-            if (Input.GetKeyDown(KeyCode.UpArrow)) { MoveSelection(-1); return; }
-            if (Input.GetKeyDown(KeyCode.DownArrow)) { MoveSelection(1); return; }
-
-            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.KeypadEnter))
-            {
-                OnModRuleConfirmSelect();
-            }
-        }
-
         private void OnIwadConfirm()
         {
             if (_cursor < 0 || _cursor >= _rows.Count) return;
@@ -1339,7 +1411,7 @@ namespace Elin_JustDoomIt
         private void RefreshSkillPicker()
         {
             ClearRows();
-            _sectionHeader.text = L("<< 難易度を選択 >>", "<< SELECT SKILL >>", "<< 选择难度 >>");
+            _sectionHeader.text = L("<< 難易度を選択 >>", "<< SELECT DIFFICULTY >>", "<< 选择难度 >>");
 
             AddRow(L("戻る", "BACK", "返回"), RowKind.Action, ColNormal, tag: RowTag.Back);
             AddRow("", RowKind.Separator, ColDisabled, false);
@@ -1351,6 +1423,70 @@ namespace Elin_JustDoomIt
                 var marker = isCurrent ? "(*) " : "( ) ";
                 var color = isCurrent ? ColIwadSel : ColNormal;
                 AddRow(marker + SkillNames[i], RowKind.Action, color);
+            }
+
+            SetCursor(selectedIdx);
+        }
+
+        private void RefreshGeneralSettings()
+        {
+            ClearRows();
+            _sectionHeader.text = L("<< 一般設定 >>", "<< GENERAL SETTINGS >>", "<< 常规设置 >>");
+
+            AddRow(L("戻る", "BACK", "返回"), RowKind.Action, ColNormal, tag: RowTag.Back);
+            AddRow("", RowKind.Separator, ColDisabled, false);
+            AddRow("VIDEO    " + DoomVideoSettings.FormatResolutionSummary(ModConfig.DoomWidth.Value, ModConfig.DoomHeight.Value), RowKind.Action, ColNormal, tag: RowTag.Resolution);
+            AddRow("LIGHT    " + DoomVideoSettings.FormatBrightnessSummary(ModConfig.DoomBrightness.Value), RowKind.Action, ColNormal, tag: RowTag.Brightness);
+            AddRow(
+                L(
+                    "※ 解像度は次回のDOOM起動から反映されます。",
+                    "Resolution changes apply on next DOOM launch.",
+                    "分辨率会在下次DOOM启动时生效。"),
+                RowKind.Setting,
+                ColDisabled,
+                enabled: false,
+                fontSizeOverride: 16);
+
+            SetCursor(2);
+        }
+
+        private void RefreshResolutionPicker()
+        {
+            ClearRows();
+            _sectionHeader.text = L("<< 解像度を選択 >>", "<< SELECT RESOLUTION >>", "<< 选择分辨率 >>");
+
+            AddRow(L("戻る", "BACK", "返回"), RowKind.Action, ColNormal, tag: RowTag.Back);
+            AddRow("", RowKind.Separator, ColDisabled, false);
+
+            var selectedIdx = DoomVideoSettings.GetClosestResolutionPresetIndex(ModConfig.DoomWidth.Value, ModConfig.DoomHeight.Value) + 2;
+            for (var i = 0; i < DoomVideoSettings.ResolutionPresets.Length; i++)
+            {
+                var preset = DoomVideoSettings.ResolutionPresets[i];
+                var isCurrent = i == selectedIdx - 2;
+                var marker = isCurrent ? "(*) " : "( ) ";
+                var color = isCurrent ? ColIwadSel : ColNormal;
+                AddRow(marker + preset.Label + " (" + preset.Width + "x" + preset.Height + ")", RowKind.Action, color);
+            }
+
+            SetCursor(selectedIdx);
+        }
+
+        private void RefreshBrightnessPicker()
+        {
+            ClearRows();
+            _sectionHeader.text = L("<< 明るさを選択 >>", "<< SELECT BRIGHTNESS >>", "<< 选择亮度 >>");
+
+            AddRow(L("戻る", "BACK", "返回"), RowKind.Action, ColNormal, tag: RowTag.Back);
+            AddRow("", RowKind.Separator, ColDisabled, false);
+
+            var current = Mathf.Clamp(ModConfig.DoomBrightness.Value, 0, 10);
+            var selectedIdx = current + 2;
+            for (var i = 0; i <= 10; i++)
+            {
+                var isCurrent = i == current;
+                var marker = isCurrent ? "(*) " : "( ) ";
+                var color = isCurrent ? ColIwadSel : ColNormal;
+                AddRow(marker + DoomVideoSettings.FormatBrightnessSummary(i), RowKind.Action, color);
             }
 
             SetCursor(selectedIdx);
@@ -1372,6 +1508,47 @@ namespace Elin_JustDoomIt
             DoomWadLocator.SaveRuntimeLoadout(_loadout);
             SE.Click();
             TransitionTo(MenuState.Main);
+        }
+
+        private void OnResolutionConfirm()
+        {
+            if (_cursor < 0 || _cursor >= _rows.Count) return;
+            if (_rows[_cursor].Tag == RowTag.Back)
+            {
+                SE.Tab();
+                TransitionTo(MenuState.GeneralSettings);
+                return;
+            }
+
+            var selectedIndex = _cursor - 2;
+            if (selectedIndex < 0 || selectedIndex >= DoomVideoSettings.ResolutionPresets.Length) return;
+
+            var preset = DoomVideoSettings.ResolutionPresets[selectedIndex];
+            ModConfig.SetDoomResolution(preset.Width, preset.Height);
+            SE.Click();
+            StartCoroutine(ShowTempStatus(
+                L("次回のDOOM起動から反映", "Applies on next DOOM launch", "将在下次DOOM启动时生效"),
+                ColAmber,
+                1.8f));
+            TransitionTo(MenuState.GeneralSettings);
+        }
+
+        private void OnBrightnessConfirm()
+        {
+            if (_cursor < 0 || _cursor >= _rows.Count) return;
+            if (_rows[_cursor].Tag == RowTag.Back)
+            {
+                SE.Tab();
+                TransitionTo(MenuState.GeneralSettings);
+                return;
+            }
+
+            var selectedIndex = _cursor - 2;
+            if (selectedIndex < 0 || selectedIndex > 10) return;
+
+            ModConfig.SetDoomBrightness(selectedIndex);
+            SE.Click();
+            TransitionTo(MenuState.GeneralSettings);
         }
 
         private void OnPwadPickerSelect()
@@ -1684,111 +1861,6 @@ namespace Elin_JustDoomIt
             }
         }
 
-        private void RefreshModRules(MenuState returnState)
-        {
-            _modRuleReturnState = returnState;
-            _pendingRulePrompts.Clear();
-            _hasActiveRulePrompt = false;
-            _activeRulePrompt = null;
-            try
-            {
-                var report = DoomWadLocator.RefreshPwadRules();
-                for (var i = 0; i < report.Prompts.Count; i++)
-                {
-                    _pendingRulePrompts.Enqueue(report.Prompts[i]);
-                }
-
-                var summary = L(
-                    "再判定完了: " + report.ProcessedCount + "件 / 自動確定 " + report.AutoAcceptedCount + "件 / 要確認 " + report.Prompts.Count + "件",
-                    "Refresh done: " + report.ProcessedCount + " files / auto " + report.AutoAcceptedCount + " / review " + report.Prompts.Count,
-                    "刷新完成: " + report.ProcessedCount + "个文件 / 自动 " + report.AutoAcceptedCount + " / 待确认 " + report.Prompts.Count);
-                StartCoroutine(ShowTempStatus(summary, ColAmber, 3.5f));
-                _modEntries = DoomWadLocator.FindModEntries();
-
-                if (_pendingRulePrompts.Count > 0)
-                {
-                    _activeRulePrompt = _pendingRulePrompts.Dequeue();
-                    _hasActiveRulePrompt = true;
-                    TransitionTo(MenuState.ModRuleConfirm);
-                }
-                else
-                {
-                    TransitionTo(_modRuleReturnState);
-                }
-            }
-            catch (Exception ex)
-            {
-                DoomDiagnostics.Error("[JustDoomIt] RefreshModRules failed.", ex);
-                StartCoroutine(ShowTempStatus(
-                    L("再判定に失敗しました。", "Refresh failed.", "刷新失败。"),
-                    ColFlashRed,
-                    2.5f));
-            }
-        }
-
-        private void OnModRuleConfirmSelect()
-        {
-            if (!_hasActiveRulePrompt)
-            {
-                TransitionTo(_modRuleReturnState);
-                return;
-            }
-
-            if (_cursor < 0 || _cursor >= _rows.Count)
-            {
-                return;
-            }
-
-            var tag = _rows[_cursor].Tag;
-            var file = _activeRulePrompt.FileName;
-            switch (tag)
-            {
-                case RowTag.RuleUseAuto:
-                    SE.Click();
-                    break;
-                case RowTag.RuleDoom1:
-                    SE.Click();
-                    DoomModRuleStore.SetManualFamily(file, "doom1");
-                    break;
-                case RowTag.RuleDoom2:
-                    SE.Click();
-                    DoomModRuleStore.SetManualFamily(file, "doom2");
-                    break;
-                case RowTag.RuleAny:
-                    SE.Click();
-                    DoomModRuleStore.SetManualFamily(file, "any");
-                    break;
-                case RowTag.RulePending:
-                    SE.Click();
-                    DoomModRuleStore.SetManualFamily(file, "unknown");
-                    break;
-                case RowTag.RuleSkip:
-                    SE.Tab();
-                    _pendingRulePrompts.Clear();
-                    _hasActiveRulePrompt = false;
-                    TransitionTo(_modRuleReturnState);
-                    return;
-                default:
-                    return;
-            }
-
-            if (_pendingRulePrompts.Count > 0)
-            {
-                _activeRulePrompt = _pendingRulePrompts.Dequeue();
-                _hasActiveRulePrompt = true;
-                TransitionTo(MenuState.ModRuleConfirm);
-            }
-            else
-            {
-                _hasActiveRulePrompt = false;
-                TransitionTo(_modRuleReturnState);
-                StartCoroutine(ShowTempStatus(
-                    L("MOD依存の確認が完了しました。", "MOD dependency review complete.", "MOD依赖确认完成。"),
-                    ColModOn,
-                    2.0f));
-            }
-        }
-
         private void HandleOverlayInput()
         {
             if (Input.GetKeyDown(KeyCode.Escape))
@@ -1881,22 +1953,27 @@ namespace Elin_JustDoomIt
                     if (_cursor != i)
                     {
                         SetCursor(i);
+                        PlayHoverSound();
                     }
 
                     if (Input.GetMouseButtonDown(0))
                     {
                         if (_state == MenuState.Main)
                             OnMainSelect();
+                        else if (_state == MenuState.GeneralSettings)
+                            OnGeneralSettingsSelect();
                         else if (_state == MenuState.IwadPicker)
                             OnIwadConfirm();
                         else if (_state == MenuState.SkillPicker)
                             OnSkillConfirm();
+                        else if (_state == MenuState.ResolutionPicker)
+                            OnResolutionConfirm();
+                        else if (_state == MenuState.BrightnessPicker)
+                            OnBrightnessConfirm();
                         else if (_state == MenuState.ModSetup)
                             OnModSetupSelect();
                         else if (_state == MenuState.ResetSetupConfirm)
                             OnResetSetupConfirmSelect();
-                        else if (_state == MenuState.ModRuleConfirm)
-                            OnModRuleConfirmSelect();
                         else if (_state == MenuState.PwadPicker)
                             OnPwadPickerSelect();
                     }
@@ -2054,6 +2131,7 @@ namespace Elin_JustDoomIt
                 {
                     _overlayCursor = 0;
                     UpdateOverlayCursor();
+                    PlayHoverSound();
                 }
 
                 if (Input.GetMouseButtonDown(0))
@@ -2071,6 +2149,7 @@ namespace Elin_JustDoomIt
                 {
                     _overlayCursor = 1;
                     UpdateOverlayCursor();
+                    PlayHoverSound();
                 }
 
                 if (Input.GetMouseButtonDown(0))
@@ -2371,21 +2450,6 @@ namespace Elin_JustDoomIt
             return false;
         }
 
-        private static string FamilyLabel(string family)
-        {
-            switch (DoomModRuleStore.NormalizeFamily(family))
-            {
-                case "doom1":
-                    return "DOOM1";
-                case "doom2":
-                    return "DOOM2";
-                case "any":
-                    return "DUAL";
-                default:
-                    return "UNKNOWN";
-            }
-        }
-
         private static string BuildSaveSummaryLine(DoomSaveSummary summary)
         {
             var playtimePart = L(
@@ -2445,19 +2509,6 @@ namespace Elin_JustDoomIt
             return seconds + "s";
         }
 
-        private static void NormalizeSingleActiveMod(DoomRuntimeLoadout loadout)
-        {
-            if (loadout == null)
-            {
-                return;
-            }
-
-            if (loadout.enabledModFiles != null && loadout.enabledModFiles.Count > 0 && string.IsNullOrWhiteSpace(loadout.selectedModId))
-            {
-                loadout.selectedModId = loadout.enabledModFiles[0];
-            }
-        }
-
         // ── Forwarded from DoomSessionManager (static helpers) ──
 
         internal static int RemoveIncompatibleModsForIwad(DoomRuntimeLoadout loadout, string iwadFile)
@@ -2495,7 +2546,7 @@ namespace Elin_JustDoomIt
                 return "unknown";
             }
 
-            return DoomModRuleStore.NormalizeFamily(entry.EffectiveRequiredIwadFamily ?? entry.BaseRequiredIwadFamily);
+            return DoomModEntryCore.NormalizeFamily(entry.EffectiveRequiredIwadFamily ?? entry.BaseRequiredIwadFamily);
         }
 
         private static string GetIwadFamily(string iwadFile)
@@ -2507,5 +2558,3 @@ namespace Elin_JustDoomIt
         }
     }
 }
-
-

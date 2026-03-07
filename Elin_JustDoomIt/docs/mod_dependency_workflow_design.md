@@ -42,7 +42,6 @@ wad/
 ```text
 BepInEx/config/chitsii.elin_justdoomit/profiles/
   runtime_loadout.json
-  mod_rules.json
   mod_entry_configs/
     alien_vendetta.json
     memento_mori.json
@@ -344,13 +343,8 @@ Reason:
 
 ### Hash Reuse / Performance
 - Full content SHA1 must not be recalculated for every file on every `CONFIGURE MODS` open.
-- Cache per-file hash metadata inside `mod_rules.json`:
-  - relative filename
-  - file size
-  - last write utc
-  - cached content sha1
-- Reuse cached content sha1 when size and last write utc are unchanged.
-- Recalculate content sha1 only for changed members.
+- Reuse file metadata when possible to avoid unnecessary recomputation.
+- Recalculate content SHA1 only for changed launch-set members.
 
 ## Dependency Classification Model
 
@@ -384,36 +378,9 @@ Reason:
 - Any cached classification may be discarded and recomputed without losing correctness.
 
 ### Effective Family Rule
-- UI compatibility checks use `effective_required_iwad_family`.
-- Compute it as:
-  1. classify the current launch set
-  2. if a manual override exists for the current `manifest_hash`, replace the classified value with that override
-  3. otherwise use the classified value
-
-Reason:
-- Manual override must have one clear priority rule.
-- `[---]`, `[?]`, and launch validation must all use the same final family value.
-
-## Rule Storage
-
-### File
-- `BepInEx/config/chitsii.elin_justdoomit/profiles/mod_rules.json`
-
-### Role
-- `mod_rules.json` is a classification cache, not a source of truth for mod setup.
-- It may also store user manual override for a specific `manifest_hash`.
-
-### Identity Model
-- Cache/override identity is `manifest_hash`, not `entry_id`
-- `entry_id` is only metadata for current UI mapping
-
-### Rule Semantics
-- `manual` rules are tied to the exact `manifest_hash`
-- if launch-relevant content changes, the old manual rule no longer applies automatically
-- if the same launch set appears again under another folder name, the same rule may be reused safely
-- cache miss or deleted cache entry must trigger reclassification from the current launch set
-- records whose `manifest_hash` is no longer present in any discovered ready entry are garbage-collected on game startup without affecting correctness
-- manual override, when present, replaces the classified family for that exact `manifest_hash`
+- UI compatibility checks use the classified `effective_required_iwad_family`.
+- In the current implementation, this is derived directly from the current launch set without a separate manual-override layer.
+- `[---]`, `[?]`, and launch validation must all use that same derived value.
 
 ## Internal Config GC
 
@@ -562,16 +529,15 @@ Reason:
 5. Add one-click multi-WAD setup flow with simple reorder/include controls
 6. Replace runtime loadout field `enabledModFiles` with `selectedModId`
 7. Rewrite launch resolution to expand one selected entry into multiple `-file` arguments
-8. Rewrite `mod_rules.json` to store rules by `manifest_hash` plus per-file hash cache
-9. Update save slot key generation to include `manifest_hash`
-10. Update `CONFIGURE MODS` UI to list entry folders and setup/error/layout states
-11. Treat folder rename as a new entry and clear stale `selectedModId` on load
-12. Add startup-time immediate `mod_entry_configs` garbage collection
-13. Add `RESET SETUP` action for configured multi-WAD entries
-14. Add confirmation dialog for `RESET SETUP`
-15. Add visible scanning feedback during expensive discovery/hash work
-16. Add `CONTINUE` mismatch reason display
-17. Update guide text so users only create folders and copy files
+8. Update save slot key generation to include `manifest_hash`
+9. Update `CONFIGURE MODS` UI to list entry folders and setup/error/layout states
+10. Treat folder rename as a new entry and clear stale `selectedModId` on load
+11. Add startup-time immediate `mod_entry_configs` garbage collection
+12. Add `RESET SETUP` action for configured multi-WAD entries
+13. Add confirmation dialog for `RESET SETUP`
+14. Add visible scanning feedback during expensive discovery/hash work
+15. Add `CONTINUE` mismatch reason display
+16. Update guide text so users only create folders and copy files
 
 ## Acceptance Criteria
 - A folder containing exactly one `.wad` appears as one selectable mod without extra setup
@@ -595,14 +561,11 @@ Reason:
 - Temporary folder mistakes do not immediately erase multi-WAD setup
 - `Player.log` contains enough data to explain discovery state, setup confirmation, startup GC, and `CONTINUE` mismatch
 - QA can verify state names from one canonical source instead of per-screen hardcoding
-- Clearing `mod_rules.json` does not lose setup and only forces dependency reclassification from the current launch set
 - UI compatibility state is driven by current derived `required_iwad_family`, not by stale persisted dependency data
-- Manual override changes the final family seen by UI compatibility checks
 - QA case: a large WAD shows `SCANNING MODS...` before the list becomes interactive
 - QA case: changing only helper WAD timestamps does not discard setup when the main PWAD is unchanged
 - QA case: `RESET SETUP` returns a configured multi-WAD entry to `[SETUP]` immediately
 - QA case: `RESET SETUP` clears selection when that entry was selected
 - QA case: `RESET SETUP` cannot be triggered from the normal mod-toggle hit area by mistake
 - QA case: canceling the `RESET SETUP` confirmation leaves config, selection, and row state unchanged
-- QA case: after manual override, `[---]` and `[?]` reflect the override rather than the raw classified value
 - QA case: `[UNSUPPORTED]` entries cannot be launched and explain what to do next

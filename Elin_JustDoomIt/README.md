@@ -61,6 +61,7 @@ Elin のカスタムアーケード筐体（CWLで追加）から、オーバー
 - ライセンスの最終判断は各プロジェクトの原文ライセンスに従ってください。
 - DOOMモード中のBGMは `Sound/BGM/*.ogg` を順番に再生します（ファイル名昇順）。
 - FreeDoom 由来の音源（OGG化済み）を `Sound/BGM` に配置してください。
+- DOOM の内部解像度と明るさは `BepInEx/config/chitsii.elin_justdoomit.cfg` の `DOOM.ScreenWidth` / `DOOM.ScreenHeight` / `DOOM.Brightness` で調整できます。
 - 外部PWADは `OPEN MOD FOLDER` で案内を確認し、`CHANGE GAME` -> `CONFIGURE MODS` の順で導入します。`CONFIGURE MODS` を開くと自動で再判定されます。
 - PWADは v1 仕様で1つだけ有効化できます（`unknown` は起動前警告つきで選択可）。
 - Mod導入手引き: `docs/doom_mod_install_guide.md`

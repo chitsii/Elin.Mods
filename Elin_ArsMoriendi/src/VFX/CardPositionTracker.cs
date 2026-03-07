@@ -10,8 +10,33 @@ namespace Elin_ArsMoriendi
     public class CardPositionTracker : MonoBehaviour
     {
         private Card? _card;
+        private float _yOffset;
+        private bool _headOffsetResolved;
+        private bool _enableHeadOffsetRecovery;
 
-        public void SetTarget(Card card) => _card = card;
+        /// <summary>
+        /// Retarget only. Keeps existing offset/recovery state unchanged.
+        /// </summary>
+        public void SetTarget(Card card)
+        {
+            _card = card;
+        }
+
+        /// <summary>
+        /// Set or preserve offset.
+        /// - yOffset = NaN: keep previous offset value.
+        /// - enableHeadOffsetRecovery = true: if unresolved, try recomputing from sprite once actor appears.
+        /// </summary>
+        public void SetTarget(Card card, float yOffset, bool enableHeadOffsetRecovery)
+        {
+            _card = card;
+            if (!float.IsNaN(yOffset))
+            {
+                _yOffset = yOffset;
+                _headOffsetResolved = true;
+            }
+            _enableHeadOffsetRecovery = _enableHeadOffsetRecovery || enableHeadOffsetRecovery;
+        }
 
         void LateUpdate()
         {
@@ -45,7 +70,17 @@ namespace Elin_ArsMoriendi
 
             var renderer = _card.renderer;
             if (renderer == null) return;
-            transform.position = renderer.PositionCenter();
+
+            if (_enableHeadOffsetRecovery && !_headOffsetResolved)
+            {
+                if (SpriteHeadAnchorUtil.TryGetHeadOffsetWorld(_card, out var computedOffset))
+                {
+                    _yOffset = computedOffset;
+                    _headOffsetResolved = true;
+                }
+            }
+
+            transform.position = renderer.PositionCenter() + new Vector3(0f, _yOffset, 0f);
         }
     }
 }

@@ -129,7 +129,11 @@ namespace Elin_ArsMoriendi
                     else
                     {
                         var tracker = existing.GetComponent<CardPositionTracker>();
-                        if (tracker != null) tracker.SetTarget(card);
+                        if (tracker == null) tracker = existing.AddComponent<CardPositionTracker>();
+                        if (IsHeadAnchoredAuraPrefab(prefabName))
+                            tracker.SetTarget(card, float.NaN, enableHeadOffsetRecovery: true);
+                        else
+                            tracker.SetTarget(card);
                     }
                     return true;
                 }
@@ -187,7 +191,11 @@ namespace Elin_ArsMoriendi
                     else
                     {
                         var tracker = existing.GetComponent<CardPositionTracker>();
-                        if (tracker != null) tracker.SetTarget(card);
+                        if (tracker == null) tracker = existing.AddComponent<CardPositionTracker>();
+                        if (IsHeadAnchoredAuraPrefab(prefabName))
+                            tracker.SetTarget(card, float.NaN, enableHeadOffsetRecovery: true);
+                        else
+                            tracker.SetTarget(card);
                     }
 
                     LoopLeaseUntilTurn[attachKey] = leaseUntilTurn;
@@ -429,15 +437,50 @@ namespace Elin_ArsMoriendi
                 ApplyTint(go, tint.Value, replaceColor);
             }
 
+            bool isHeadAnchored = trackTarget != null && IsHeadAnchoredAuraPrefab(prefabName);
+            bool hasComputedHeadOffset = false;
+            float headOffsetY = 0f;
+            if (isHeadAnchored && trackTarget != null)
+            {
+                if (SpriteHeadAnchorUtil.TryGetHeadOffsetWorld(trackTarget, out var computedOffset))
+                {
+                    headOffsetY = computedOffset;
+                    hasComputedHeadOffset = true;
+                    go.transform.position += new Vector3(0f, headOffsetY, 0f);
+                }
+            }
+
             if (attachParent != null)
             {
                 // Keep current world position, then follow the card transform.
                 go.transform.SetParent(attachParent, true);
+
+                // Recovery path: even with a parent, sprite data may be unavailable on spawn frame.
+                // Add tracker so head offset can be resolved lazily once sprite is ready.
+                if (isHeadAnchored && trackTarget != null && !hasComputedHeadOffset)
+                {
+                    var tracker = go.AddComponent<CardPositionTracker>();
+                    tracker.SetTarget(trackTarget, float.NaN, enableHeadOffsetRecovery: true);
+                }
             }
             else if (trackTarget != null)
             {
                 // Fallback: track card position via MonoBehaviour when actor is unavailable.
-                go.AddComponent<CardPositionTracker>().SetTarget(trackTarget);
+                var tracker = go.AddComponent<CardPositionTracker>();
+                if (isHeadAnchored)
+                {
+                    // If offset isn't available yet (actor/sprite missing), preserve current offset
+                    // and recover lazily once sprite data becomes available.
+                    tracker.SetTarget(
+                        trackTarget,
+                        hasComputedHeadOffset ? headOffsetY : float.NaN,
+                        enableHeadOffsetRecovery: true
+                    );
+                }
+                else
+                {
+                    tracker.SetTarget(trackTarget, 0f, enableHeadOffsetRecovery: false);
+                }
             }
 
             if (destroyOnZoneChange)
@@ -744,6 +787,12 @@ namespace Elin_ArsMoriendi
                 string.Equals(prefabName, "FxServantShadowTentacleAura_SmokeDrip", StringComparison.Ordinal) ||
                 string.Equals(prefabName, "FxServantShadowTentacleAura_SmokeDrip_v2", StringComparison.Ordinal) ||
                 string.Equals(prefabName, "FxServantShadowTentacleAura", StringComparison.Ordinal);
+        }
+
+        private static bool IsHeadAnchoredAuraPrefab(string prefabName)
+        {
+            return IsServantAuraPrefab(prefabName) ||
+                   string.Equals(prefabName, "FxPreserveCorpseAura", StringComparison.Ordinal);
         }
 
         private static void ApplySimulationSpeedScale(GameObject go, float scale01)

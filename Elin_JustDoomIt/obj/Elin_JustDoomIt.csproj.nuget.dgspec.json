@@ -1,0 +1,51 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\tishi\\programming\\elin_modding\\Elin.Mods\\Elin_JustDoomIt\\Elin_JustDoomIt.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\tishi\\programming\\elin_modding\\Elin.Mods\\Elin_JustDoomIt\\Elin_JustDoomIt.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\tishi\\programming\\elin_modding\\Elin.Mods\\Elin_JustDoomIt\\Elin_JustDoomIt.csproj",
+        "projectName": "Elin_JustDoomIt",
+        "projectPath": "C:\\Users\\tishi\\programming\\elin_modding\\Elin.Mods\\Elin_JustDoomIt\\Elin_JustDoomIt.csproj",
+        "packagesPath": "C:\\Users\\tishi\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\tishi\\programming\\elin_modding\\Elin.Mods\\Elin_JustDoomIt\\obj\\",
+        "projectStyle": "PackageReference",
+        "skipContentFileWrite": true,
+        "UsingMicrosoftNETSdk": false,
+        "configFilePaths": [
+          "C:\\Users\\tishi\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net48"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net48": {
+            "projectReferences": {}
+          }
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net48": {
+          "dependencies": {
+            "Microsoft.NETFramework.ReferenceAssemblies.net48": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[1.0.3, )"
+            }
+          }
+        }
+      }
+    }
+  }
+}

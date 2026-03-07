@@ -1,7 +1,7 @@
-using HarmonyLib;
+﻿using HarmonyLib;
 using System.Collections.Generic;
 
-namespace Elin_ModTemplate
+namespace Elin_JustDoomIt
 {
     [HarmonyPatch(typeof(Zone), nameof(Zone.Activate))]
     public static class Patch_Zone_Activate_CasinoPlacement
@@ -136,3 +136,4 @@ namespace Elin_ModTemplate
         }
     }
 }
+

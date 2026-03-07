@@ -1,6 +1,6 @@
-using BepInEx.Configuration;
+﻿using BepInEx.Configuration;
 
-namespace Elin_ModTemplate
+namespace Elin_JustDoomIt
 {
     public static class ModConfig
     {
@@ -59,3 +59,4 @@ namespace Elin_ModTemplate
         }
     }
 }
+

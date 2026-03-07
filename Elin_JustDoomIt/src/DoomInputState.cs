@@ -1,6 +1,6 @@
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace Elin_ModTemplate
+namespace Elin_JustDoomIt
 {
     public struct DoomInputState
     {
@@ -62,3 +62,4 @@ namespace Elin_ModTemplate
         }
     }
 }
+

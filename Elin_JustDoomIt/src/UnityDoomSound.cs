@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -6,7 +6,7 @@ using DoomNetFrameworkEngine.Audio;
 using DoomNetFrameworkEngine.DoomEntity.World;
 using UnityEngine;
 
-namespace Elin_ModTemplate
+namespace Elin_JustDoomIt
 {
     public sealed class UnityDoomSound : ISound, IDisposable
     {
@@ -251,3 +251,4 @@ namespace Elin_ModTemplate
         }
     }
 }
+

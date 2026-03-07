@@ -1,6 +1,6 @@
-using HarmonyLib;
+﻿using HarmonyLib;
 
-namespace Elin_ModTemplate
+namespace Elin_JustDoomIt
 {
     [HarmonyPatch(typeof(SourceManager), nameof(SourceManager.Init))]
     public static class Patch_SourceManager_Init
@@ -24,3 +24,4 @@ namespace Elin_ModTemplate
         }
     }
 }
+

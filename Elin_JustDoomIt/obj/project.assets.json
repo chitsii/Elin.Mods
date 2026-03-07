@@ -403,9 +403,9 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\tishi\\programming\\elin_modding\\Elin.Mods\\Elin_JustDoomIt\\Elin_ModTemplate.csproj",
+      "projectUniqueName": "C:\\Users\\tishi\\programming\\elin_modding\\Elin.Mods\\Elin_JustDoomIt\\Elin_JustDoomIt.csproj",
       "projectName": "Elin_JustDoomIt",
-      "projectPath": "C:\\Users\\tishi\\programming\\elin_modding\\Elin.Mods\\Elin_JustDoomIt\\Elin_ModTemplate.csproj",
+      "projectPath": "C:\\Users\\tishi\\programming\\elin_modding\\Elin.Mods\\Elin_JustDoomIt\\Elin_JustDoomIt.csproj",
       "packagesPath": "C:\\Users\\tishi\\.nuget\\packages\\",
       "outputPath": "C:\\Users\\tishi\\programming\\elin_modding\\Elin.Mods\\Elin_JustDoomIt\\obj\\",
       "projectStyle": "PackageReference",

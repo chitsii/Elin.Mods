@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "IJxoi52Qb/w=",
+  "dgSpecHash": "FhIAIG/No9I=",
   "success": true,
-  "projectFilePath": "C:\\Users\\tishi\\programming\\elin_modding\\Elin.Mods\\Elin_JustDoomIt\\Elin_ModTemplate.csproj",
+  "projectFilePath": "C:\\Users\\tishi\\programming\\elin_modding\\Elin.Mods\\Elin_JustDoomIt\\Elin_JustDoomIt.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\tishi\\.nuget\\packages\\microsoft.netframework.referenceassemblies.net48\\1.0.3\\microsoft.netframework.referenceassemblies.net48.1.0.3.nupkg.sha512"
   ],

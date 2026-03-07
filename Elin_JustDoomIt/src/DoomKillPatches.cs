@@ -1,7 +1,7 @@
-using DoomNetFrameworkEngine.DoomEntity.World;
+﻿using DoomNetFrameworkEngine.DoomEntity.World;
 using HarmonyLib;
 
-namespace Elin_ModTemplate
+namespace Elin_JustDoomIt
 {
     [HarmonyPatch(typeof(ThingInteraction), nameof(ThingInteraction.KillMobj))]
     public static class Patch_ThingInteraction_KillMobj
@@ -46,3 +46,4 @@ namespace Elin_ModTemplate
         }
     }
 }
+

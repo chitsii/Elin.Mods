@@ -1,7 +1,7 @@
-using BepInEx;
+﻿using BepInEx;
 using HarmonyLib;
 
-namespace Elin_ModTemplate
+namespace Elin_JustDoomIt
 {
     [BepInPlugin(ModGuid, ModName, ModVersion)]
     public class Plugin : BaseUnityPlugin
@@ -25,3 +25,4 @@ namespace Elin_ModTemplate
         }
     }
 }
+

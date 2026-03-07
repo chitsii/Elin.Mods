@@ -6,11 +6,11 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Elin_ModTemplate
+namespace Elin_JustDoomIt
 {
     public sealed class DoomArcadeMenuUI : MonoBehaviour
     {
-        private enum MenuState { Main, IwadPicker, PwadPicker, SkillPicker, ModRuleConfirm, ExitConfirm }
+        private enum MenuState { Main, IwadPicker, PwadPicker, SkillPicker, ModSetup, ResetSetupConfirm, ModRuleConfirm, ExitConfirm }
         private enum RowKind { Setting, Action, Separator }
         private enum RowTag
         {
@@ -29,7 +29,19 @@ namespace Elin_ModTemplate
             RuleDoom2,
             RuleAny,
             RulePending,
-            RuleSkip
+            RuleSkip,
+            SetupMoveUp,
+            SetupMoveDown,
+            SetupConfirm,
+            ResetSetupAction,
+            ResetSetupNo,
+            ResetSetupYes
+        }
+
+        private struct ModSetupItem
+        {
+            public string FileName;
+            public bool Included;
         }
 
         private struct RowEntry
@@ -80,7 +92,7 @@ namespace Elin_ModTemplate
         private readonly List<RowEntry> _rows = new List<RowEntry>();
         private DoomRuntimeLoadout _loadout;
         private List<DoomWadEntry> _iwads;
-        private List<DoomWadEntry> _pwads;
+        private List<DoomModEntryDefinition> _modEntries;
         private Chara _user;
         private Action<bool> _onPlay;
         private Action _onClose;
@@ -88,11 +100,19 @@ namespace Elin_ModTemplate
         private bool _hasSave;
         private DoomSaveSummary _saveSummary;
         private bool _hasSaveSummary;
+        private string _currentSaveSlotKey;
         private readonly Queue<DoomModRulePrompt> _pendingRulePrompts = new Queue<DoomModRulePrompt>();
-        private readonly Dictionary<int, int> _pwadRowToIndex = new Dictionary<int, int>();
+        private readonly Dictionary<int, int> _modRowToIndex = new Dictionary<int, int>();
+        private readonly Dictionary<int, int> _setupRowToIndex = new Dictionary<int, int>();
         private DoomModRulePrompt _activeRulePrompt;
         private bool _hasActiveRulePrompt;
         private MenuState _modRuleReturnState = MenuState.Main;
+        private DoomModEntryDefinition _setupEntry;
+        private readonly List<ModSetupItem> _setupItems = new List<ModSetupItem>();
+        private int _setupFocusedFileIndex;
+        private DoomModEntryDefinition _pendingResetEntry;
+        private int _focusedModEntryIndex = -1;
+        private int _resetActionRowIndex = -1;
 
         // ── UI refs ──
         private Canvas _canvas;
@@ -149,8 +169,7 @@ namespace Elin_ModTemplate
             _onClose = onClose;
             DoomModRuleStore.EnsureLoaded();
             _iwads = DoomWadLocator.FindIwads();
-            _pwads = DoomWadLocator.FindPwads();
-            NormalizeSingleActiveMod(_loadout);
+            _modEntries = DoomWadLocator.FindModEntries();
             _bootTime = Time.unscaledTime;
             _canvas.enabled = true;
             EInput.Consume(consumeAxis: true, _skipFrame: 2);
@@ -163,6 +182,7 @@ namespace Elin_ModTemplate
             try
             {
                 var launch = DoomWadLocator.BuildLaunchConfig(_loadout);
+                _currentSaveSlotKey = launch.SaveSlotKey ?? string.Empty;
                 _hasSaveSummary = false;
                 _saveSummary = default;
                 if (string.IsNullOrWhiteSpace(launch.SaveSlotKey))
@@ -181,6 +201,7 @@ namespace Elin_ModTemplate
             catch (Exception ex)
             {
                 DoomDiagnostics.Warn("[JustDoomIt] RecomputeHasSave failed: " + ex.Message);
+                _currentSaveSlotKey = string.Empty;
                 _hasSaveSummary = false;
                 _saveSummary = default;
                 return false;
@@ -542,6 +563,12 @@ namespace Elin_ModTemplate
                 case MenuState.SkillPicker:
                     RefreshSkillPicker();
                     break;
+                case MenuState.ModSetup:
+                    RefreshModSetup();
+                    break;
+                case MenuState.ResetSetupConfirm:
+                    RefreshResetSetupConfirm();
+                    break;
                 case MenuState.ModRuleConfirm:
                     RefreshModRuleConfirm();
                     break;
@@ -579,14 +606,14 @@ namespace Elin_ModTemplate
 
             if (_hasSave)
             {
-                AddRow("SAVE     ● exists", RowKind.Setting, ColModOn, enabled: false);
+                AddRow("SAVE     ● exists  [" + FormatCurrentSaveSlotKey() + "]", RowKind.Setting, ColModOn, enabled: false, fontSizeOverride: 16);
                 if (_hasSaveSummary)
                 {
                     AddRow("         " + BuildSaveSummaryLine(_saveSummary), RowKind.Setting, ColNormal, enabled: false, fontSizeOverride: 16);
                 }
             }
             else
-                AddRow("SAVE     - none", RowKind.Setting, ColDisabled, enabled: false);
+                AddRow("SAVE     - none  [" + FormatCurrentSaveSlotKey() + "]", RowKind.Setting, ColDisabled, enabled: false, fontSizeOverride: 16);
 
             // Separator
             AddRow("", RowKind.Separator, ColDisabled, false);
@@ -603,6 +630,8 @@ namespace Elin_ModTemplate
             AddRow(L("MOD設定", "CONFIGURE MODS", "配置MOD"), RowKind.Action, ColNormal, tag: RowTag.Mods);
 
             AddRow(L("閉じる", "CLOSE", "关闭"), RowKind.Action, ColNormal, tag: RowTag.Close);
+
+            ForceMainPrimaryActionStyle();
 
             SetCursor(0);
         }
@@ -633,7 +662,7 @@ namespace Elin_ModTemplate
         private void RefreshPwadPicker()
         {
             ClearRows();
-            var hasEnabledMod = _loadout.enabledModFiles != null && _loadout.enabledModFiles.Count > 0;
+            var hasEnabledMod = !string.IsNullOrWhiteSpace(_loadout.selectedModId);
             var iwadShort = DoomWadLocator.GetIwadDisplayName(_loadout.selectedIwadFile);
             _sectionHeader.text = L(
                 "<< MOD設定: " + (hasEnabledMod ? "ON" : "OFF") + "  IWAD: " + iwadShort + " >>",
@@ -645,8 +674,8 @@ namespace Elin_ModTemplate
             AddRow(L("MODフォルダを開く", "OPEN MOD FOLDER", "打开MOD文件夹"), RowKind.Action, ColNormal, tag: RowTag.OpenModFolder);
             AddRow("", RowKind.Separator, ColDisabled, false);
 
-            _pwads = DoomWadLocator.FindPwads();
-            if (_pwads.Count == 0)
+            _modEntries = DoomWadLocator.FindModEntries();
+            if (_modEntries.Count == 0)
             {
                 AddRow(
                     L(
@@ -658,44 +687,70 @@ namespace Elin_ModTemplate
                     enabled: false);
             }
 
-            for (var i = 0; i < _pwads.Count; i++)
+            for (var i = 0; i < _modEntries.Count; i++)
             {
-                var p = _pwads[i];
-                var on = _loadout.enabledModFiles != null &&
-                         _loadout.enabledModFiles.Any(f => string.Equals(f, p.FileName, StringComparison.OrdinalIgnoreCase));
-                var info = DoomModRuleStore.GetRuleInfo(p.FileName);
-                var family = info.Exists ? info.Family : "unknown";
-                var mismatch = IsIwadMismatch(_loadout.selectedIwadFile, p.FileName);
+                var entry = _modEntries[i];
+                var on = string.Equals(_loadout.selectedModId, entry.EntryId, StringComparison.OrdinalIgnoreCase);
+                var family = entry.EffectiveRequiredIwadFamily ?? "unknown";
+                var mismatch = IsIwadMismatch(_loadout.selectedIwadFile, entry);
                 var unknown = string.Equals(family, "unknown", StringComparison.OrdinalIgnoreCase) && !mismatch;
+                var name = string.IsNullOrWhiteSpace(entry.DisplayName) ? entry.EntryId : entry.DisplayName;
 
-                if (mismatch)
+                if (entry.State == DoomModEntryState.SetupNeeded)
                 {
-                    var rowIndex = AddRow("[---] " + p.FileName, RowKind.Action, ColDisabled, enabled: false);
-                    _pwadRowToIndex[rowIndex] = i;
+                    var rowIndex = AddRow("[SETUP] " + name, RowKind.Action, ColAmber);
+                    _modRowToIndex[rowIndex] = i;
+                }
+                else if (entry.State == DoomModEntryState.ErrorConfig)
+                {
+                    var rowIndex = AddRow("[ERR ] " + name, RowKind.Action, ColDisabled, enabled: false);
+                    _modRowToIndex[rowIndex] = i;
+                }
+                else if (entry.State == DoomModEntryState.ErrorUnsupported)
+                {
+                    var rowIndex = AddRow("[UNSUPPORTED] " + name, RowKind.Action, ColDisabled, enabled: false);
+                    _modRowToIndex[rowIndex] = i;
+                }
+                else if (entry.State == DoomModEntryState.ErrorLayout)
+                {
+                    var rowIndex = AddRow("[LAYOUT] " + name, RowKind.Action, ColDisabled, enabled: false);
+                    _modRowToIndex[rowIndex] = i;
+                }
+                else if (mismatch)
+                {
+                    var rowIndex = AddRow("[---] " + name, RowKind.Action, ColDisabled, enabled: false);
+                    _modRowToIndex[rowIndex] = i;
                 }
                 else if (unknown)
                 {
                     var prefix = on ? "[?ON] " : "[?] ";
-                    var rowIndex = AddRow(prefix + p.FileName, RowKind.Action, ColAmber);
-                    _pwadRowToIndex[rowIndex] = i;
+                    var rowIndex = AddRow(prefix + name, RowKind.Action, ColAmber);
+                    _modRowToIndex[rowIndex] = i;
                 }
                 else if (on)
                 {
-                    var rowIndex = AddRow("[ON ] " + p.FileName, RowKind.Action, ColModOn);
-                    _pwadRowToIndex[rowIndex] = i;
+                    var rowIndex = AddRow("[ON ] " + name, RowKind.Action, ColModOn);
+                    _modRowToIndex[rowIndex] = i;
                 }
                 else
                 {
-                    var rowIndex = AddRow("[OFF] " + p.FileName, RowKind.Action, ColModOff);
-                    _pwadRowToIndex[rowIndex] = i;
+                    var rowIndex = AddRow("[OFF] " + name, RowKind.Action, ColModOff);
+                    _modRowToIndex[rowIndex] = i;
                 }
+
+            }
+
+            if (_modEntries.Any(e => e.State == DoomModEntryState.ReadyMulti))
+            {
+                AddRow("", RowKind.Separator, ColDisabled, false);
+                _resetActionRowIndex = AddRow(L("RESET SETUP", "RESET SETUP", "重置设置"), RowKind.Action, ColAmber, tag: RowTag.ResetSetupAction);
             }
 
             // Slot meter
             SetSlotMeterVisible(true);
             UpdateSlotMeter();
 
-            var firstModRow = _pwadRowToIndex.Count > 0 ? _pwadRowToIndex.Keys.Min() : 0;
+            var firstModRow = _modRowToIndex.Count > 0 ? _modRowToIndex.Keys.Min() : 0;
             SetCursor(firstModRow);
         }
 
@@ -733,6 +788,49 @@ namespace Elin_ModTemplate
             SetCursor(0);
         }
 
+        private void RefreshModSetup()
+        {
+            ClearRows();
+            var title = _setupEntry == null
+                ? "MOD SETUP"
+                : (string.IsNullOrWhiteSpace(_setupEntry.DisplayName) ? _setupEntry.EntryId : _setupEntry.DisplayName);
+            _sectionHeader.text = L("<< MOD設定: " + title + " >>", "<< MOD SETUP: " + title + " >>", "<< MOD设置: " + title + " >>");
+
+            AddRow(L("戻る", "BACK", "返回"), RowKind.Action, ColNormal, tag: RowTag.Back);
+            AddRow("", RowKind.Separator, ColDisabled, false);
+
+            for (var i = 0; i < _setupItems.Count; i++)
+            {
+                var item = _setupItems[i];
+                var prefix = item.Included ? "[ON ] " : "[OFF] ";
+                var row = AddRow(prefix + item.FileName, RowKind.Action, item.Included ? ColModOn : ColModOff);
+                _setupRowToIndex[row] = i;
+            }
+
+            AddRow("", RowKind.Separator, ColDisabled, false);
+            AddRow(L("上へ移動", "MOVE UP", "上移"), RowKind.Action, ColNormal, tag: RowTag.SetupMoveUp);
+            AddRow(L("下へ移動", "MOVE DOWN", "下移"), RowKind.Action, ColNormal, tag: RowTag.SetupMoveDown);
+            AddRow(L("この順で確定", "USE THIS ORDER", "使用当前顺序"), RowKind.Action, ColAccent, tag: RowTag.SetupConfirm);
+
+            var firstFileRow = _setupRowToIndex.Count > 0 ? _setupRowToIndex.Keys.Min() : 0;
+            SetCursor(firstFileRow);
+        }
+
+        private void RefreshResetSetupConfirm()
+        {
+            ClearRows();
+            var title = _pendingResetEntry == null
+                ? "RESET SETUP"
+                : (string.IsNullOrWhiteSpace(_pendingResetEntry.DisplayName) ? _pendingResetEntry.EntryId : _pendingResetEntry.DisplayName);
+            _sectionHeader.text = L("<< 設定を初期化 >>", "<< RESET SETUP >>", "<< 重置设置 >>");
+            AddRow(title, RowKind.Setting, ColValue, enabled: false);
+            AddRow(L("選択ファイルと順序を忘れます。", "Selected files and order will be forgotten.", "已选择的文件和顺序会被清除。"), RowKind.Setting, ColNormal, enabled: false, fontSizeOverride: 16);
+            AddRow("", RowKind.Separator, ColDisabled, false);
+            AddRow(L("いいえ、戻る", "NO / BACK", "否，返回"), RowKind.Action, ColNormal, tag: RowTag.ResetSetupNo);
+            AddRow(L("はい、初期化", "YES / RESET", "是，重置"), RowKind.Action, ColAmber, tag: RowTag.ResetSetupYes);
+            SetCursor(3);
+        }
+
         private void ShowOverlay(MenuState which)
         {
             _overlayPanel.SetActive(true);
@@ -757,7 +855,10 @@ namespace Elin_ModTemplate
                 Destroy(_rows[i].Go);
             }
             _rows.Clear();
-            _pwadRowToIndex.Clear();
+            _modRowToIndex.Clear();
+            _setupRowToIndex.Clear();
+            _focusedModEntryIndex = -1;
+            _resetActionRowIndex = -1;
             _cursor = 0;
         }
 
@@ -844,7 +945,7 @@ namespace Elin_ModTemplate
                     _rows[i].CursorText.text = "";
                     if (_rows[i].Kind != RowKind.Separator)
                     {
-                        _rows[i].LabelText.fontStyle = FontStyle.Normal;
+                        _rows[i].LabelText.fontStyle = GetRowFontStyle(false, _rows[i].Tag);
                     }
                 }
 
@@ -873,30 +974,78 @@ namespace Elin_ModTemplate
                 row.CursorText.text = i == index ? ">" : "";
                 if (row.Kind != RowKind.Separator)
                 {
-                    row.LabelText.fontStyle = i == index ? FontStyle.Bold : FontStyle.Normal;
+                    row.LabelText.fontStyle = GetRowFontStyle(i == index, row.Tag);
                 }
             }
 
             _cursor = index;
+            if (_state == MenuState.PwadPicker && _modRowToIndex.TryGetValue(index, out var modIndex))
+            {
+                _focusedModEntryIndex = modIndex;
+            }
             UpdateFooterForCurrentRow();
             UpdatePwadInlineDetailForCursor();
         }
 
         private string GetSelectedModSummary()
         {
-            if (_loadout?.enabledModFiles == null || _loadout.enabledModFiles.Count == 0)
+            if (_loadout == null || string.IsNullOrWhiteSpace(_loadout.selectedModId))
             {
                 return "- none";
             }
 
-            var selected = _loadout.enabledModFiles[0];
-            return string.IsNullOrWhiteSpace(selected) ? "- none" : selected.Trim();
+            var entry = _modEntries?.FirstOrDefault(m =>
+                string.Equals(m.EntryId, _loadout.selectedModId, StringComparison.OrdinalIgnoreCase));
+            if (entry == null)
+            {
+                return _loadout.selectedModId;
+            }
+
+            return string.IsNullOrWhiteSpace(entry.DisplayName) ? entry.EntryId : entry.DisplayName;
+        }
+
+        private FontStyle GetRowFontStyle(bool selected, RowTag tag)
+        {
+            if (selected)
+            {
+                return FontStyle.Bold;
+            }
+
+            if (_state == MenuState.Main && (tag == RowTag.Continue || tag == RowTag.NewRun))
+            {
+                return FontStyle.Bold;
+            }
+
+            return FontStyle.Normal;
+        }
+
+        private void ForceMainPrimaryActionStyle()
+        {
+            for (var i = 0; i < _rows.Count; i++)
+            {
+                var tag = _rows[i].Tag;
+                if (tag != RowTag.Continue && tag != RowTag.NewRun)
+                {
+                    continue;
+                }
+
+                if (_rows[i].LabelText != null)
+                {
+                    _rows[i].LabelText.fontStyle = FontStyle.Bold;
+                    _rows[i].LabelText.fontSize = 24;
+                }
+
+                if (_rows[i].CursorText != null)
+                {
+                    _rows[i].CursorText.fontSize = 24;
+                }
+            }
         }
 
         private void UpdateSlotMeter()
         {
             if (_slotMeter == null) return;
-            var enabled = (_loadout.enabledModFiles != null && _loadout.enabledModFiles.Count > 0) ? 1 : 0;
+            var enabled = string.IsNullOrWhiteSpace(_loadout.selectedModId) ? 0 : 1;
             var max = 1;
             _slotMeter.fillAmount = max > 0 ? (float)enabled / max : 0f;
             _slotMeterText.text = L(
@@ -921,6 +1070,22 @@ namespace Elin_ModTemplate
                     "ENTER: 選択/切り替え  ESC: 戻る",
                     "ENTER: select/toggle  ESC: back",
                     "ENTER: 选择/切换  ESC: 返回");
+                _statusLine.text = "";
+            }
+            else if (_state == MenuState.ModSetup)
+            {
+                _footerText.text = L(
+                    "ENTER: 切替/実行  ESC: 戻る",
+                    "ENTER: toggle/apply  ESC: back",
+                    "ENTER: 切换/执行  ESC: 返回");
+                _statusLine.text = "";
+            }
+            else if (_state == MenuState.ResetSetupConfirm)
+            {
+                _footerText.text = L(
+                    "ENTER: 決定  ESC: 戻る",
+                    "ENTER: confirm  ESC: back",
+                    "ENTER: 确认  ESC: 返回");
                 _statusLine.text = "";
             }
             else if (_state == MenuState.IwadPicker || _state == MenuState.SkillPicker)
@@ -974,6 +1139,18 @@ namespace Elin_ModTemplate
             if (_state == MenuState.ModRuleConfirm)
             {
                 HandleModRuleConfirmInput();
+                return;
+            }
+
+            if (_state == MenuState.ModSetup)
+            {
+                HandleModSetupInput();
+                return;
+            }
+
+            if (_state == MenuState.ResetSetupConfirm)
+            {
+                HandleResetSetupConfirmInput();
                 return;
             }
 
@@ -1041,8 +1218,7 @@ namespace Elin_ModTemplate
                     {
                         DoomWadLocator.SaveRuntimeLoadout(_loadout);
                     }
-
-                    RefreshModRules(MenuState.PwadPicker);
+                    TransitionTo(MenuState.PwadPicker);
                     break;
                 case RowTag.Close:
                     SE.Click();
@@ -1072,6 +1248,42 @@ namespace Elin_ModTemplate
                     OnSkillConfirm();
                 else
                     OnPwadPickerSelect();
+            }
+        }
+
+        private void HandleModSetupInput()
+        {
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                SE.Tab();
+                TransitionTo(MenuState.PwadPicker);
+                return;
+            }
+
+            if (Input.GetKeyDown(KeyCode.UpArrow)) { MoveSelection(-1); return; }
+            if (Input.GetKeyDown(KeyCode.DownArrow)) { MoveSelection(1); return; }
+
+            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.KeypadEnter))
+            {
+                OnModSetupSelect();
+            }
+        }
+
+        private void HandleResetSetupConfirmInput()
+        {
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                SE.Tab();
+                TransitionTo(MenuState.PwadPicker);
+                return;
+            }
+
+            if (Input.GetKeyDown(KeyCode.UpArrow)) { MoveSelection(-1); return; }
+            if (Input.GetKeyDown(KeyCode.DownArrow)) { MoveSelection(1); return; }
+
+            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.KeypadEnter))
+            {
+                OnResetSetupConfirmSelect();
             }
         }
 
@@ -1184,23 +1396,52 @@ namespace Elin_ModTemplate
                 return;
             }
 
-            if (!_pwadRowToIndex.TryGetValue(_cursor, out var pwadIndex))
+            if (tag == RowTag.ResetSetupAction)
+            {
+                if (_modEntries != null &&
+                    _focusedModEntryIndex >= 0 &&
+                    _focusedModEntryIndex < _modEntries.Count &&
+                    _modEntries[_focusedModEntryIndex].State == DoomModEntryState.ReadyMulti)
+                {
+                    _pendingResetEntry = _modEntries[_focusedModEntryIndex];
+                    SE.Click();
+                    TransitionTo(MenuState.ResetSetupConfirm);
+                }
+                else
+                {
+                    SE.Beep();
+                }
+                return;
+            }
+
+            if (!_modRowToIndex.TryGetValue(_cursor, out var entryIndex))
             {
                 return;
             }
 
-            if (pwadIndex < 0 || _pwads == null || pwadIndex >= _pwads.Count)
+            if (entryIndex < 0 || _modEntries == null || entryIndex >= _modEntries.Count)
             {
                 return;
             }
 
-            var p = _pwads[pwadIndex];
+            var entry = _modEntries[entryIndex];
 
-            // Incompatible check
-            if (IsIwadMismatch(_loadout.selectedIwadFile, p.FileName))
+            if (entry.State == DoomModEntryState.SetupNeeded)
+            {
+                BeginModSetup(entry);
+                return;
+            }
+
+            if (entry.State != DoomModEntryState.ReadySingle && entry.State != DoomModEntryState.ReadyMulti)
             {
                 SE.Beep();
-                var required = GetRequiredIwadFamilyForPwad(p.FileName);
+                return;
+            }
+
+            if (IsIwadMismatch(_loadout.selectedIwadFile, entry))
+            {
+                SE.Beep();
+                var required = GetRequiredIwadFamilyForEntry(entry);
                 StartCoroutine(ShowTempStatus(
                     L("NEEDS " + required?.ToUpperInvariant(), "NEEDS " + required?.ToUpperInvariant(), "需要 " + required?.ToUpperInvariant()),
                     ColFlashRed, 1.5f));
@@ -1208,22 +1449,17 @@ namespace Elin_ModTemplate
                 return;
             }
 
-            var enabled = _loadout.enabledModFiles ?? new List<string>();
-            var existing = enabled.FindIndex(f => string.Equals(f, p.FileName, StringComparison.OrdinalIgnoreCase));
-
-            if (existing >= 0)
+            if (string.Equals(_loadout.selectedModId, entry.EntryId, StringComparison.OrdinalIgnoreCase))
             {
-                enabled.RemoveAt(existing);
+                _loadout.selectedModId = string.Empty;
                 SE.Click();
             }
             else
             {
-                enabled.Clear();
-                enabled.Add(p.FileName);
+                _loadout.selectedModId = entry.EntryId;
                 SE.Click();
             }
 
-            _loadout.enabledModFiles = enabled;
             DoomWadLocator.SaveRuntimeLoadout(_loadout);
             var savedCursor = _cursor;
             RefreshPwadPicker();
@@ -1278,6 +1514,176 @@ namespace Elin_ModTemplate
             }
         }
 
+        private void BeginModSetup(DoomModEntryDefinition entry)
+        {
+            if (entry == null)
+            {
+                return;
+            }
+
+            _setupEntry = entry;
+            _setupItems.Clear();
+            var files = (entry.DetectedWadFiles ?? new List<string>())
+                .OrderBy(v => v, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            for (var i = 0; i < files.Count; i++)
+            {
+                _setupItems.Add(new ModSetupItem
+                {
+                    FileName = files[i],
+                    Included = true
+                });
+            }
+
+            _setupFocusedFileIndex = 0;
+            SE.Tab();
+            TransitionTo(MenuState.ModSetup);
+        }
+
+        private void OnModSetupSelect()
+        {
+            if (_cursor < 0 || _cursor >= _rows.Count)
+            {
+                return;
+            }
+
+            var tag = _rows[_cursor].Tag;
+            if (tag == RowTag.Back)
+            {
+                SE.Tab();
+                TransitionTo(MenuState.PwadPicker);
+                return;
+            }
+
+            if (_setupRowToIndex.TryGetValue(_cursor, out var fileIndex))
+            {
+                if (fileIndex < 0 || fileIndex >= _setupItems.Count)
+                {
+                    return;
+                }
+
+                var item = _setupItems[fileIndex];
+                item.Included = !item.Included;
+                _setupItems[fileIndex] = item;
+                _setupFocusedFileIndex = fileIndex;
+                RefreshModSetup();
+                RestoreSetupCursorForFile(fileIndex);
+                SE.Click();
+                return;
+            }
+
+            switch (tag)
+            {
+                case RowTag.SetupMoveUp:
+                    MoveSetupItem(-1);
+                    break;
+                case RowTag.SetupMoveDown:
+                    MoveSetupItem(1);
+                    break;
+                case RowTag.SetupConfirm:
+                    ConfirmModSetup();
+                    break;
+            }
+        }
+
+        private void MoveSetupItem(int delta)
+        {
+            if (_setupFocusedFileIndex < 0 || _setupFocusedFileIndex >= _setupItems.Count)
+            {
+                SE.Beep();
+                return;
+            }
+
+            var target = Mathf.Clamp(_setupFocusedFileIndex + delta, 0, _setupItems.Count - 1);
+            if (target == _setupFocusedFileIndex)
+            {
+                SE.Beep();
+                return;
+            }
+
+            var tmp = _setupItems[_setupFocusedFileIndex];
+            _setupItems[_setupFocusedFileIndex] = _setupItems[target];
+            _setupItems[target] = tmp;
+            _setupFocusedFileIndex = target;
+            RefreshModSetup();
+            RestoreSetupCursorForFile(target);
+            SE.Click();
+        }
+
+        private void ConfirmModSetup()
+        {
+            var launchFiles = _setupItems.Where(v => v.Included).Select(v => v.FileName).ToArray();
+            if (launchFiles.Length == 0)
+            {
+                SE.Beep();
+                StartCoroutine(ShowTempStatus(
+                    L("少なくとも1つのWADを選んで下さい。", "Select at least one WAD.", "至少选择一个WAD。"),
+                    ColFlashRed,
+                    1.5f));
+                return;
+            }
+
+            DoomModEntryCore.SaveEntryConfig(
+                DoomWadLocator.GetModEntryConfigRoot(),
+                _setupEntry.EntryId,
+                new DoomModEntryConfig
+                {
+                    display_name = _setupEntry.DisplayName,
+                    main_wad_file = launchFiles[0],
+                    wad_order = launchFiles
+                });
+
+            SE.Click();
+            _modEntries = DoomWadLocator.FindModEntries();
+            TransitionTo(MenuState.PwadPicker);
+        }
+
+        private void RestoreSetupCursorForFile(int fileIndex)
+        {
+            foreach (var kv in _setupRowToIndex)
+            {
+                if (kv.Value == fileIndex)
+                {
+                    SetCursor(kv.Key);
+                    return;
+                }
+            }
+        }
+
+        private void OnResetSetupConfirmSelect()
+        {
+            if (_cursor < 0 || _cursor >= _rows.Count)
+            {
+                return;
+            }
+
+            switch (_rows[_cursor].Tag)
+            {
+                case RowTag.ResetSetupNo:
+                    SE.Tab();
+                    TransitionTo(MenuState.PwadPicker);
+                    return;
+                case RowTag.ResetSetupYes:
+                    if (_pendingResetEntry == null)
+                    {
+                        TransitionTo(MenuState.PwadPicker);
+                        return;
+                    }
+
+                    DoomModEntryCore.ResetEntryConfig(DoomWadLocator.GetModEntryConfigRoot(), _pendingResetEntry.EntryId);
+                    if (string.Equals(_loadout.selectedModId, _pendingResetEntry.EntryId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _loadout.selectedModId = string.Empty;
+                        DoomWadLocator.SaveRuntimeLoadout(_loadout);
+                    }
+
+                    _modEntries = DoomWadLocator.FindModEntries();
+                    SE.Click();
+                    TransitionTo(MenuState.PwadPicker);
+                    return;
+            }
+        }
+
         private void RefreshModRules(MenuState returnState)
         {
             _modRuleReturnState = returnState;
@@ -1297,7 +1703,7 @@ namespace Elin_ModTemplate
                     "Refresh done: " + report.ProcessedCount + " files / auto " + report.AutoAcceptedCount + " / review " + report.Prompts.Count,
                     "刷新完成: " + report.ProcessedCount + "个文件 / 自动 " + report.AutoAcceptedCount + " / 待确认 " + report.Prompts.Count);
                 StartCoroutine(ShowTempStatus(summary, ColAmber, 3.5f));
-                _pwads = DoomWadLocator.FindPwads();
+                _modEntries = DoomWadLocator.FindModEntries();
 
                 if (_pendingRulePrompts.Count > 0)
                 {
@@ -1485,6 +1891,10 @@ namespace Elin_ModTemplate
                             OnIwadConfirm();
                         else if (_state == MenuState.SkillPicker)
                             OnSkillConfirm();
+                        else if (_state == MenuState.ModSetup)
+                            OnModSetupSelect();
+                        else if (_state == MenuState.ResetSetupConfirm)
+                            OnResetSetupConfirmSelect();
                         else if (_state == MenuState.ModRuleConfirm)
                             OnModRuleConfirmSelect();
                         else if (_state == MenuState.PwadPicker)
@@ -1498,33 +1908,79 @@ namespace Elin_ModTemplate
 
         private void UpdatePwadInlineDetailForCursor()
         {
-            if (_state != MenuState.PwadPicker || _pwads == null || _pwads.Count == 0)
+            if (_state != MenuState.PwadPicker || _modEntries == null || _modEntries.Count == 0)
             {
                 return;
             }
 
-            foreach (var kv in _pwadRowToIndex)
+            foreach (var kv in _modRowToIndex)
             {
                 var rowIndex = kv.Key;
-                var pwadIndex = kv.Value;
-                if (rowIndex < 0 || rowIndex >= _rows.Count || pwadIndex < 0 || pwadIndex >= _pwads.Count)
+                var entryIndex = kv.Value;
+                if (rowIndex < 0 || rowIndex >= _rows.Count || entryIndex < 0 || entryIndex >= _modEntries.Count)
                 {
                     continue;
                 }
 
-                var p = _pwads[pwadIndex];
-                var on = _loadout.enabledModFiles != null &&
-                         _loadout.enabledModFiles.Any(f => string.Equals(f, p.FileName, StringComparison.OrdinalIgnoreCase));
-                var mismatch = IsIwadMismatch(_loadout.selectedIwadFile, p.FileName);
-                var required = GetRequiredIwadFamilyForPwad(p.FileName);
-                var info = DoomModRuleStore.GetRuleInfo(p.FileName);
+                var entry = _modEntries[entryIndex];
+                var name = string.IsNullOrWhiteSpace(entry.DisplayName) ? entry.EntryId : entry.DisplayName;
+                var on = string.Equals(_loadout.selectedModId, entry.EntryId, StringComparison.OrdinalIgnoreCase);
+                var mismatch = IsIwadMismatch(_loadout.selectedIwadFile, entry);
+                var required = GetRequiredIwadFamilyForEntry(entry);
                 var unknown = string.Equals(required, "unknown", StringComparison.OrdinalIgnoreCase) && !mismatch;
 
-                var prefix = mismatch ? "[---] " : (unknown ? (on ? "[?ON] " : "[?] ") : (on ? "[ON ] " : "[OFF] "));
-                var text = prefix + p.FileName;
+                var prefix = "[OFF] ";
+                switch (entry.State)
+                {
+                    case DoomModEntryState.SetupNeeded:
+                        prefix = "[SETUP] ";
+                        break;
+                    case DoomModEntryState.ErrorConfig:
+                        prefix = "[ERR ] ";
+                        break;
+                    case DoomModEntryState.ErrorUnsupported:
+                        prefix = "[UNSUPPORTED] ";
+                        break;
+                    case DoomModEntryState.ErrorLayout:
+                        prefix = "[LAYOUT] ";
+                        break;
+                    default:
+                        prefix = mismatch ? "[---] " : (unknown ? (on ? "[?ON] " : "[?] ") : (on ? "[ON ] " : "[OFF] "));
+                        break;
+                }
+
+                var text = prefix + name;
                 if (rowIndex == _cursor)
                 {
-                    if (mismatch)
+                    if (entry.State == DoomModEntryState.SetupNeeded)
+                    {
+                        text += "  " + L(
+                            "※ Enterでセットアップ",
+                            "* Press Enter to set up",
+                            "※ 按Enter进行设置");
+                    }
+                    else if (entry.State == DoomModEntryState.ErrorUnsupported)
+                    {
+                        text += "  " + L(
+                            "※ 非WAD入力を含むため起動不可",
+                            "* Includes unsupported non-WAD files",
+                            "※ 含有不支持的非WAD文件");
+                    }
+                    else if (entry.State == DoomModEntryState.ErrorLayout)
+                    {
+                        text += "  " + L(
+                            "※ フォルダ構成未対応",
+                            "* Folder layout not supported",
+                            "※ 文件夹结构不支持");
+                    }
+                    else if (entry.State == DoomModEntryState.ErrorConfig)
+                    {
+                        text += "  " + L(
+                            "※ 保存済み設定が不正",
+                            "* Saved setup is invalid",
+                            "※ 已保存设置无效");
+                    }
+                    else if (mismatch)
                     {
                         text += "  " + L(
                             "※ 要求: " + required?.ToUpperInvariant() + "（不一致）",
@@ -1533,13 +1989,10 @@ namespace Elin_ModTemplate
                     }
                     else if (unknown)
                     {
-                        var reason = info.Exists
-                            ? DoomModRuleStore.GetReasonText(info.ReasonCode, info.Family)
-                            : L("未分類", "Unclassified", "未分类");
                         text += "  " + L(
-                            "※ 依存不明: 手動設定推奨 (" + reason + ")",
-                            "* Unknown dependency: set manually (" + reason + ")",
-                            "※ 依赖不明: 建议手动设置 (" + reason + ")");
+                            "※ 依存不明",
+                            "* Unknown dependency",
+                            "※ 依赖未知");
                     }
                     else
                     {
@@ -1554,7 +2007,39 @@ namespace Elin_ModTemplate
                 }
 
                 _rows[rowIndex].LabelText.text = text;
-                _rows[rowIndex].LabelText.color = mismatch ? ColDisabled : (unknown ? ColAmber : (on ? ColModOn : ColModOff));
+                _rows[rowIndex].LabelText.color = entry.State == DoomModEntryState.ErrorConfig || entry.State == DoomModEntryState.ErrorUnsupported || entry.State == DoomModEntryState.ErrorLayout
+                    ? ColDisabled
+                    : (mismatch ? ColDisabled : (unknown ? ColAmber : (on ? ColModOn : ColModOff)));
+            }
+
+            if (_resetActionRowIndex >= 0 && _resetActionRowIndex < _rows.Count)
+            {
+                var text = L("RESET SETUP", "RESET SETUP", "重置设置");
+                if (_focusedModEntryIndex >= 0 &&
+                    _focusedModEntryIndex < _modEntries.Count &&
+                    _modEntries[_focusedModEntryIndex].State == DoomModEntryState.ReadyMulti)
+                {
+                    var target = string.IsNullOrWhiteSpace(_modEntries[_focusedModEntryIndex].DisplayName)
+                        ? _modEntries[_focusedModEntryIndex].EntryId
+                        : _modEntries[_focusedModEntryIndex].DisplayName;
+                    if (_cursor == _resetActionRowIndex)
+                    {
+                        text += "  " + L(
+                            "※ " + target + " の設定を初期化",
+                            "* Reset setup for " + target,
+                            "※ 重置 " + target + " 的设置");
+                    }
+                }
+                else if (_cursor == _resetActionRowIndex)
+                {
+                    text += "  " + L(
+                        "※ 先に設定済みMODを選択",
+                        "* Focus a configured multi-WAD mod first",
+                        "※ 请先选中已配置的多WAD MOD");
+                }
+
+                _rows[_resetActionRowIndex].LabelText.text = text;
+                _rows[_resetActionRowIndex].LabelText.color = ColAmber;
             }
         }
 
@@ -1928,6 +2413,18 @@ namespace Elin_ModTemplate
             return playtimePart + "  @" + timePart;
         }
 
+        private string FormatCurrentSaveSlotKey()
+        {
+            if (string.IsNullOrWhiteSpace(_currentSaveSlotKey))
+            {
+                return "-";
+            }
+
+            return _currentSaveSlotKey.Length <= 8
+                ? _currentSaveSlotKey.ToLowerInvariant()
+                : _currentSaveSlotKey.Substring(0, 8).ToLowerInvariant();
+        }
+
         private static string FormatDuration(int totalSeconds)
         {
             var sec = Mathf.Max(0, totalSeconds);
@@ -1950,30 +2447,36 @@ namespace Elin_ModTemplate
 
         private static void NormalizeSingleActiveMod(DoomRuntimeLoadout loadout)
         {
-            if (loadout?.enabledModFiles == null || loadout.enabledModFiles.Count <= 1)
+            if (loadout == null)
             {
                 return;
             }
 
-            loadout.enabledModFiles = new List<string> { loadout.enabledModFiles[0] };
-            DoomWadLocator.SaveRuntimeLoadout(loadout);
+            if (loadout.enabledModFiles != null && loadout.enabledModFiles.Count > 0 && string.IsNullOrWhiteSpace(loadout.selectedModId))
+            {
+                loadout.selectedModId = loadout.enabledModFiles[0];
+            }
         }
 
         // ── Forwarded from DoomSessionManager (static helpers) ──
 
         internal static int RemoveIncompatibleModsForIwad(DoomRuntimeLoadout loadout, string iwadFile)
         {
-            if (loadout?.enabledModFiles == null || loadout.enabledModFiles.Count == 0) return 0;
-            var before = loadout.enabledModFiles.Count;
-            loadout.enabledModFiles = loadout.enabledModFiles
-                .Where(f => !IsIwadMismatch(iwadFile, f))
-                .ToList();
-            return before - loadout.enabledModFiles.Count;
+            if (loadout == null || string.IsNullOrWhiteSpace(loadout.selectedModId)) return 0;
+            var entry = DoomWadLocator.FindModEntries().FirstOrDefault(m =>
+                string.Equals(m.EntryId, loadout.selectedModId, StringComparison.OrdinalIgnoreCase));
+            if (entry == null || !IsIwadMismatch(iwadFile, entry))
+            {
+                return 0;
+            }
+
+            loadout.selectedModId = string.Empty;
+            return 1;
         }
 
-        internal static bool IsIwadMismatch(string selectedIwadFile, string pwadFile)
+        internal static bool IsIwadMismatch(string selectedIwadFile, DoomModEntryDefinition entry)
         {
-            var required = GetRequiredIwadFamilyForPwad(pwadFile);
+            var required = GetRequiredIwadFamilyForEntry(entry);
             if (string.IsNullOrEmpty(required) ||
                 string.Equals(required, "any", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(required, "unknown", StringComparison.OrdinalIgnoreCase))
@@ -1985,20 +2488,14 @@ namespace Elin_ModTemplate
             return !string.Equals(required, selectedFamily, StringComparison.OrdinalIgnoreCase);
         }
 
-        internal static string GetRequiredIwadFamilyForPwad(string pwadFile)
+        internal static string GetRequiredIwadFamilyForEntry(DoomModEntryDefinition entry)
         {
-            if (string.IsNullOrWhiteSpace(pwadFile))
+            if (entry == null)
             {
                 return "unknown";
             }
 
-            var info = DoomModRuleStore.GetRuleInfo(Path.GetFileName(pwadFile));
-            if (!info.Exists)
-            {
-                return "unknown";
-            }
-
-            return DoomModRuleStore.NormalizeFamily(info.Family);
+            return DoomModRuleStore.NormalizeFamily(entry.EffectiveRequiredIwadFamily ?? entry.BaseRequiredIwadFamily);
         }
 
         private static string GetIwadFamily(string iwadFile)
@@ -2010,4 +2507,5 @@ namespace Elin_ModTemplate
         }
     }
 }
+
 

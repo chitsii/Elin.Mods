@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using BepInEx;
 
-namespace Elin_ModTemplate
+namespace Elin_JustDoomIt
 {
     public static class DoomGlobalStatsStore
     {
@@ -139,4 +139,5 @@ namespace Elin_ModTemplate
         }
     }
 }
+
 

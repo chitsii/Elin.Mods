@@ -1,4 +1,4 @@
-using BepInEx.Logging;
+﻿using BepInEx.Logging;
 using DoomNetFrameworkEngine;
 using DoomNetFrameworkEngine.Audio;
 using DoomNetFrameworkEngine.DoomEntity;
@@ -13,7 +13,7 @@ using System.Diagnostics;
 using System.IO;
 using UnityEngine;
 
-namespace Elin_ModTemplate
+namespace Elin_JustDoomIt
 {
     public struct DoomKillEvent
     {
@@ -802,3 +802,4 @@ namespace Elin_ModTemplate
         }
     }
 }
+

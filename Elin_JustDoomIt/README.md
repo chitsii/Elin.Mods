@@ -44,6 +44,12 @@ Elin のカスタムアーケード筐体（CWLで追加）から、オーバー
 
 再配布時は BSD 3-Clause の条件に従い、著作権表示・条件文・免責事項を同梱資料に保持してください。
 
+### 2.5) Third-party PWAD policy
+
+- This package does not redistribute third-party PWAD map packs.
+- External PWADs are user-supplied only.
+- We provide installation guidance and tested examples, but users must download those files from the original distribution pages.
+
 ### 3) DOOM commercial IWADs
 
 - `doom1.wad` など id Software の商用アセットは本 Mod に同梱しません。
@@ -55,3 +61,6 @@ Elin のカスタムアーケード筐体（CWLで追加）から、オーバー
 - ライセンスの最終判断は各プロジェクトの原文ライセンスに従ってください。
 - DOOMモード中のBGMは `Sound/BGM/*.ogg` を順番に再生します（ファイル名昇順）。
 - FreeDoom 由来の音源（OGG化済み）を `Sound/BGM` に配置してください。
+- 外部PWADは `OPEN MOD FOLDER` で案内を確認し、`CHANGE GAME` -> `CONFIGURE MODS` の順で導入します。`CONFIGURE MODS` を開くと自動で再判定されます。
+- PWADは v1 仕様で1つだけ有効化できます（`unknown` は起動前警告つきで選択可）。
+- Mod導入手引き: `docs/doom_mod_install_guide.md`

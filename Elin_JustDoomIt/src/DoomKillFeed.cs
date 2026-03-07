@@ -1,7 +1,7 @@
-using DoomNetFrameworkEngine.DoomEntity.World;
+﻿using DoomNetFrameworkEngine.DoomEntity.World;
 using System.Collections.Generic;
 
-namespace Elin_ModTemplate
+namespace Elin_JustDoomIt
 {
     public static class DoomKillFeed
     {
@@ -64,3 +64,4 @@ namespace Elin_ModTemplate
         }
     }
 }
+

@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 using BepInEx.Logging;
 using UnityEngine;
 
-namespace Elin_ModTemplate
+namespace Elin_JustDoomIt
 {
     public static class DoomDiagnostics
     {
@@ -47,3 +47,4 @@ namespace Elin_ModTemplate
         }
     }
 }
+

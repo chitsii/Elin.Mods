@@ -1,4 +1,4 @@
-using BepInEx.Logging;
+﻿using BepInEx.Logging;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,7 +7,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
 
-namespace Elin_ModTemplate
+namespace Elin_JustDoomIt
 {
     public sealed class DoomSessionManager : MonoBehaviour
     {
@@ -191,12 +191,12 @@ namespace Elin_ModTemplate
             }
 
             launch.LoadExistingSave = loadExisting;
-            var selectedMod = loadout.enabledModFiles != null && loadout.enabledModFiles.Count > 0
-                ? loadout.enabledModFiles[0]
-                : null;
+            var selectedMod = loadout.selectedModId;
             if (!string.IsNullOrWhiteSpace(selectedMod))
             {
-                var family = DoomModRuleStore.GetFamilyOrUnknown(selectedMod);
+                var selectedEntry = DoomWadLocator.FindModEntries().FirstOrDefault(e =>
+                    string.Equals(e.EntryId, selectedMod, StringComparison.OrdinalIgnoreCase));
+                var family = DoomArcadeMenuUI.GetRequiredIwadFamilyForEntry(selectedEntry);
                 if (string.Equals(family, "unknown", StringComparison.OrdinalIgnoreCase))
                 {
                     Dialog.YesNo(
@@ -1027,3 +1027,4 @@ namespace Elin_ModTemplate
         }
     }
 }
+

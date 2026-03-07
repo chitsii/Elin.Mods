@@ -1,7 +1,7 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 
-namespace Elin_ModTemplate
+namespace Elin_JustDoomIt
 {
     public sealed class DoomOverlayDisplay : MonoBehaviour
     {
@@ -381,3 +381,4 @@ namespace Elin_ModTemplate
         }
     }
 }
+

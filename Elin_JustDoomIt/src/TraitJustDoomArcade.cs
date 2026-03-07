@@ -1,4 +1,4 @@
-namespace Elin_ModTemplate
+﻿namespace Elin_JustDoomIt
 {
     // Dedicated trait for justdoomit_arcade to avoid patching vanilla SlotMachine OnUse.
     public class TraitJustDoomArcade : TraitSlotMachine
@@ -34,3 +34,4 @@ namespace Elin_ModTemplate
         }
     }
 }
+

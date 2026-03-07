@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 setlocal
 
 call "%~dp0config.bat"
@@ -38,7 +38,7 @@ for %%L in (EN JP CN) do (
 )
 
 echo Compiling with dotnet...
-dotnet build Elin_ModTemplate.csproj -c Release
+dotnet build Elin_JustDoomIt.csproj -c Release
 
 
 if %ERRORLEVEL% NEQ 0 (
@@ -89,3 +89,4 @@ if exist "%~dp0wad" (
 )
 
 endlocal
+

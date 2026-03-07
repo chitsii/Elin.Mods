@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -6,7 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using BepInEx;
 
-namespace Elin_ModTemplate
+namespace Elin_JustDoomIt
 {
     public struct DoomSaveSummary
     {
@@ -25,22 +25,11 @@ namespace Elin_ModTemplate
         private const string SaveBakExt = ".sav.bak";
         private const string SaveMetaExt = ".meta";
 
-        public static string BuildSlotKey(string iwadFileName, IReadOnlyList<string> pwadFileNames, int skill)
+        public static string BuildSlotKey(string iwadFileName, string manifestHash)
         {
             var iwad = (iwadFileName ?? string.Empty).Trim().ToLowerInvariant();
-            var parts = new List<string> { "iwad=" + iwad, "skill=" + Math.Max(1, Math.Min(5, skill)) };
-            if (pwadFileNames != null && pwadFileNames.Count > 0)
-            {
-                for (var i = 0; i < pwadFileNames.Count; i++)
-                {
-                    var pwad = Path.GetFileName(pwadFileNames[i] ?? string.Empty).Trim().ToLowerInvariant();
-                    if (!string.IsNullOrWhiteSpace(pwad))
-                    {
-                        parts.Add("pwad" + i + "=" + pwad);
-                    }
-                }
-            }
-
+            var manifest = (manifestHash ?? string.Empty).Trim().ToLowerInvariant();
+            var parts = new List<string> { "iwad=" + iwad, "manifest=" + manifest };
             var raw = string.Join("|", parts);
             return ToSha1Hex(raw);
         }
@@ -274,3 +263,4 @@ namespace Elin_ModTemplate
 
     }
 }
+

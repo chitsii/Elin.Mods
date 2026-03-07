@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using BepInEx;
 using UnityEngine;
 
-namespace Elin_ModTemplate
+namespace Elin_JustDoomIt
 {
     public sealed class DoomWadEntry
     {
@@ -17,8 +17,11 @@ namespace Elin_ModTemplate
     public sealed class DoomRuntimeLoadout
     {
         public string selectedIwadFile = "freedoom1.wad";
-        public List<string> enabledModFiles = new List<string>();
+        public string selectedModId = string.Empty;
         public int selectedSkill = 3;
+
+        // Legacy in-memory carry-over only. Do not persist in new format.
+        public List<string> enabledModFiles = new List<string>();
     }
 
     public struct DoomLaunchConfig
@@ -30,13 +33,21 @@ namespace Elin_ModTemplate
         public int Map;
         public string SaveSlotKey;
         public bool LoadExistingSave;
+        public DoomModEntryDefinition SelectedEntry;
     }
 
     public static class DoomWadLocator
     {
+        private static bool _startupGcDone;
+
         public static string GetProfileRoot()
         {
             return Path.Combine(Paths.ConfigPath, Plugin.ModGuid, "profiles");
+        }
+
+        public static string GetModEntryConfigRoot()
+        {
+            return Path.Combine(GetProfileRoot(), "mod_entry_configs");
         }
 
         public static string GetWadRoot()
@@ -63,13 +74,10 @@ namespace Elin_ModTemplate
             foreach (var root in EnumerateDiscoveryRoots())
             {
                 var iwadDir = Path.Combine(root, "iwads");
-                // Keep curated IWADs in "wad/iwads" as higher priority than duplicates in root "wad".
                 ScanDirForWads(iwadDir, result, overwriteExisting: true);
                 ScanDirForWads(root, result, overwriteExisting: false);
             }
 
-            // Steam rerelease IWAD auto-detection (non-destructive fallback):
-            // fixed file paths only; never override curated/local IWAD entries.
             foreach (var root in EnumerateSteamIwadRoots())
             {
                 ScanSteamFixedIwadFiles(root, result, overwriteExisting: false);
@@ -78,22 +86,59 @@ namespace Elin_ModTemplate
             return result.Values.OrderBy(v => v.FileName, StringComparer.OrdinalIgnoreCase).ToList();
         }
 
-        public static List<DoomWadEntry> FindPwads()
+        public static List<DoomModEntryDefinition> FindModEntries()
         {
-            var result = new Dictionary<string, DoomWadEntry>(StringComparer.OrdinalIgnoreCase);
+            EnsureStartupConfigGc();
+
+            var result = new Dictionary<string, DoomModEntryDefinition>(StringComparer.OrdinalIgnoreCase);
             foreach (var root in EnumerateDiscoveryRoots())
             {
                 var modsDir = Path.Combine(root, "mods");
-                ScanDirForWads(modsDir, result);
+                foreach (var entry in DoomModEntryCore.DiscoverEntries(modsDir, GetModEntryConfigRoot()))
+                {
+                    if (entry == null || string.IsNullOrWhiteSpace(entry.EntryId))
+                    {
+                        continue;
+                    }
+
+                    if (!result.ContainsKey(entry.EntryId))
+                    {
+                        result[entry.EntryId] = entry;
+                    }
+                }
             }
 
-            return result.Values.OrderBy(v => v.FileName, StringComparer.OrdinalIgnoreCase).ToList();
+            return result.Values.OrderBy(v => v.DisplayName ?? v.EntryId, StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        // Legacy helper retained while UI/runtime are migrated away from flat file assumptions.
+        public static List<DoomWadEntry> FindPwads()
+        {
+            var flattened = new Dictionary<string, DoomWadEntry>(StringComparer.OrdinalIgnoreCase);
+            foreach (var entry in FindModEntries())
+            {
+                var files = entry.DetectedWadFiles ?? new List<string>();
+                for (var i = 0; i < files.Count; i++)
+                {
+                    var file = files[i];
+                    var fullPath = Path.Combine(entry.ContentRootPath ?? string.Empty, file ?? string.Empty);
+                    if (!flattened.ContainsKey(file) && File.Exists(fullPath))
+                    {
+                        flattened[file] = new DoomWadEntry
+                        {
+                            FileName = file,
+                            FullPath = fullPath
+                        };
+                    }
+                }
+            }
+
+            return flattened.Values.OrderBy(v => v.FileName, StringComparer.OrdinalIgnoreCase).ToList();
         }
 
         public static DoomModRuleRefreshResult RefreshPwadRules()
         {
-            var pwads = FindPwads();
-            return DoomModRuleStore.RefreshRules(pwads);
+            return DoomModRuleStore.RefreshRules(FindPwads());
         }
 
         public static bool ReconcileRuntimeLoadout(DoomRuntimeLoadout loadout)
@@ -105,12 +150,12 @@ namespace Elin_ModTemplate
 
             var beforeIwad = loadout.selectedIwadFile ?? string.Empty;
             var beforeSkill = loadout.selectedSkill;
-            var beforeMods = string.Join("\n", loadout.enabledModFiles ?? new List<string>());
-            SanitizeLoadout(loadout, FindPwads());
+            var beforeMod = loadout.selectedModId ?? string.Empty;
+            SanitizeLoadout(loadout, FindModEntries());
 
             return !string.Equals(beforeIwad, loadout.selectedIwadFile, StringComparison.Ordinal) ||
                    beforeSkill != loadout.selectedSkill ||
-                   !string.Equals(beforeMods, string.Join("\n", loadout.enabledModFiles ?? new List<string>()), StringComparison.Ordinal);
+                   !string.Equals(beforeMod, loadout.selectedModId ?? string.Empty, StringComparison.Ordinal);
         }
 
         public static string GetIwadDisplayName(string fileName)
@@ -150,7 +195,7 @@ namespace Elin_ModTemplate
                 if (File.Exists(path))
                 {
                     var parsed = ParseLoadout(File.ReadAllLines(path));
-                    return SanitizeLoadout(parsed ?? new DoomRuntimeLoadout(), FindPwads());
+                    return SanitizeLoadout(parsed ?? new DoomRuntimeLoadout(), FindModEntries());
                 }
             }
             catch (Exception ex)
@@ -158,12 +203,12 @@ namespace Elin_ModTemplate
                 DoomDiagnostics.Warn("[JustDoomIt] Failed to load runtime loadout: " + ex.Message);
             }
 
-            return SanitizeLoadout(new DoomRuntimeLoadout(), FindPwads());
+            return SanitizeLoadout(new DoomRuntimeLoadout(), FindModEntries());
         }
 
         public static void SaveRuntimeLoadout(DoomRuntimeLoadout loadout)
         {
-            var sanitized = SanitizeLoadout(loadout ?? new DoomRuntimeLoadout(), FindPwads());
+            var sanitized = SanitizeLoadout(loadout ?? new DoomRuntimeLoadout(), FindModEntries());
             var path = GetRuntimeProfilePath();
             var dir = Path.GetDirectoryName(path) ?? string.Empty;
             if (!Directory.Exists(dir))
@@ -174,7 +219,7 @@ namespace Elin_ModTemplate
             var lines = new List<string>
             {
                 "selected_iwad=" + sanitized.selectedIwadFile,
-                "enabled_mods=" + string.Join(";", sanitized.enabledModFiles ?? new List<string>()),
+                "selected_mod_id=" + (sanitized.selectedModId ?? string.Empty),
                 "selected_skill=" + sanitized.selectedSkill
             };
             File.WriteAllLines(path, lines);
@@ -183,8 +228,8 @@ namespace Elin_ModTemplate
         public static DoomLaunchConfig BuildLaunchConfig(DoomRuntimeLoadout loadout)
         {
             var iwads = FindIwads();
-            var pwads = FindPwads();
-            var sanitized = SanitizeLoadout(loadout ?? new DoomRuntimeLoadout(), pwads);
+            var entries = FindModEntries();
+            var sanitized = SanitizeLoadout(loadout ?? new DoomRuntimeLoadout(), entries);
 
             var iwad = iwads.FirstOrDefault(i =>
                 string.Equals(i.FileName, sanitized.selectedIwadFile, StringComparison.OrdinalIgnoreCase));
@@ -193,19 +238,29 @@ namespace Elin_ModTemplate
                 iwad = iwads[0];
             }
 
-            var paths = new List<string>();
-            var pwadNames = new List<string>();
-            var selected = sanitized.enabledModFiles ?? new List<string>();
-            for (var i = 0; i < selected.Count && paths.Count < 1; i++)
+            DoomModEntryDefinition selectedEntry = null;
+            if (!string.IsNullOrWhiteSpace(sanitized.selectedModId))
             {
-                var file = selected[i];
-                var match = pwads.FirstOrDefault(p =>
-                    string.Equals(p.FileName, file, StringComparison.OrdinalIgnoreCase));
-                if (match != null)
+                selectedEntry = entries.FirstOrDefault(e =>
+                    string.Equals(e.EntryId, sanitized.selectedModId, StringComparison.OrdinalIgnoreCase));
+            }
+
+            var paths = new List<string>();
+            var manifestHash = string.Empty;
+            if (selectedEntry != null &&
+                (selectedEntry.State == DoomModEntryState.ReadySingle || selectedEntry.State == DoomModEntryState.ReadyMulti))
+            {
+                var launchFiles = selectedEntry.LaunchWadFiles ?? new List<string>();
+                for (var i = 0; i < launchFiles.Count; i++)
                 {
-                    paths.Add(match.FullPath);
-                    pwadNames.Add(match.FileName);
+                    var fullPath = Path.Combine(selectedEntry.ContentRootPath ?? string.Empty, launchFiles[i] ?? string.Empty);
+                    if (File.Exists(fullPath))
+                    {
+                        paths.Add(fullPath);
+                    }
                 }
+
+                manifestHash = selectedEntry.ManifestHash ?? string.Empty;
             }
 
             var skill = Mathf.Clamp(sanitized.selectedSkill, 1, 5);
@@ -216,8 +271,9 @@ namespace Elin_ModTemplate
                 Skill = skill,
                 Episode = 1,
                 Map = 1,
-                SaveSlotKey = DoomPersistentSaveStore.BuildSlotKey(iwad?.FileName, pwadNames, skill),
-                LoadExistingSave = false
+                SaveSlotKey = DoomPersistentSaveStore.BuildSlotKey(iwad?.FileName, manifestHash),
+                LoadExistingSave = false,
+                SelectedEntry = selectedEntry
             };
         }
 
@@ -234,6 +290,65 @@ namespace Elin_ModTemplate
         internal static string ResolveProfilePathForRead(string fileName)
         {
             return GetMutableProfilePath(fileName);
+        }
+
+        private static void EnsureStartupConfigGc()
+        {
+            if (_startupGcDone)
+            {
+                return;
+            }
+
+            _startupGcDone = true;
+            try
+            {
+                RunEntryConfigGc();
+            }
+            catch (Exception ex)
+            {
+                DoomDiagnostics.Warn("[JustDoomIt] Startup mod_entry_configs GC failed: " + ex.Message);
+            }
+        }
+
+        private static void RunEntryConfigGc()
+        {
+            var configRoot = GetModEntryConfigRoot();
+            if (!Directory.Exists(configRoot))
+            {
+                return;
+            }
+
+            var validIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var root in EnumerateDiscoveryRoots())
+            {
+                var modsDir = Path.Combine(root, "mods");
+                if (!Directory.Exists(modsDir))
+                {
+                    continue;
+                }
+
+                var directories = Directory.GetDirectories(modsDir, "*", SearchOption.TopDirectoryOnly);
+                for (var i = 0; i < directories.Length; i++)
+                {
+                    var entryId = Path.GetFileName(directories[i]);
+                    if (!string.IsNullOrWhiteSpace(entryId))
+                    {
+                        validIds.Add(entryId);
+                    }
+                }
+            }
+
+            foreach (var path in Directory.GetFiles(configRoot, "*.json", SearchOption.TopDirectoryOnly))
+            {
+                var entryId = Path.GetFileNameWithoutExtension(path);
+                if (string.IsNullOrWhiteSpace(entryId) || validIds.Contains(entryId))
+                {
+                    continue;
+                }
+
+                File.Delete(path);
+                DoomDiagnostics.Info("[JustDoomIt] config_delete reason=startup_gc entry_id=" + entryId);
+            }
         }
 
         private static void ScanDirForWads(string dir, IDictionary<string, DoomWadEntry> output, bool overwriteExisting = true)
@@ -271,7 +386,6 @@ namespace Elin_ModTemplate
                 return;
             }
 
-            // Fixed paths only (no recursive walk).
             var files = new[]
             {
                 Path.Combine(root, "DOOM.WAD"),
@@ -307,26 +421,35 @@ namespace Elin_ModTemplate
             }
         }
 
-        private static DoomRuntimeLoadout SanitizeLoadout(DoomRuntimeLoadout loadout, IReadOnlyList<DoomWadEntry> pwads = null)
+        private static DoomRuntimeLoadout SanitizeLoadout(DoomRuntimeLoadout loadout, IReadOnlyList<DoomModEntryDefinition> entries)
         {
-            var availableMods = new HashSet<string>(
-                (pwads ?? Array.Empty<DoomWadEntry>())
-                    .Where(p => p != null && !string.IsNullOrWhiteSpace(p.FileName))
-                    .Select(p => p.FileName),
-                StringComparer.OrdinalIgnoreCase);
-
-            loadout.enabledModFiles = loadout.enabledModFiles ?? new List<string>();
-            loadout.enabledModFiles = loadout.enabledModFiles
-                .Where(s => !string.IsNullOrWhiteSpace(s))
-                .Select(s => s.Trim())
-                .Where(s => availableMods.Contains(s))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Take(1)
-                .ToList();
-
             loadout.selectedIwadFile = string.IsNullOrWhiteSpace(loadout.selectedIwadFile)
                 ? "freedoom1.wad"
                 : loadout.selectedIwadFile.Trim();
+
+            if (string.IsNullOrWhiteSpace(loadout.selectedModId) &&
+                loadout.enabledModFiles != null &&
+                loadout.enabledModFiles.Count > 0)
+            {
+                loadout.selectedModId = loadout.enabledModFiles[0] ?? string.Empty;
+            }
+
+            loadout.enabledModFiles = new List<string>();
+            var available = new HashSet<string>(
+                (entries ?? Array.Empty<DoomModEntryDefinition>())
+                    .Where(e => e != null && !string.IsNullOrWhiteSpace(e.EntryId))
+                    .Where(e => e.State == DoomModEntryState.ReadySingle || e.State == DoomModEntryState.ReadyMulti)
+                    .Select(e => e.EntryId),
+                StringComparer.OrdinalIgnoreCase);
+
+            if (string.IsNullOrWhiteSpace(loadout.selectedModId) || !available.Contains(loadout.selectedModId.Trim()))
+            {
+                loadout.selectedModId = string.Empty;
+            }
+            else
+            {
+                loadout.selectedModId = loadout.selectedModId.Trim();
+            }
 
             loadout.selectedSkill = Mathf.Clamp(loadout.selectedSkill, 1, 5);
             return loadout;
@@ -365,7 +488,6 @@ namespace Elin_ModTemplate
                 "steamapps",
                 "common");
 
-            // Strict path only (no guess-based variants).
             var candidates = new[]
             {
                 Path.Combine(steamRoot, "Ultimate Doom", "rerelease")
@@ -411,6 +533,10 @@ namespace Elin_ModTemplate
                 {
                     loadout.selectedIwadFile = value;
                 }
+                else if (key.Equals("selected_mod_id", StringComparison.OrdinalIgnoreCase))
+                {
+                    loadout.selectedModId = value;
+                }
                 else if (key.Equals("enabled_mods", StringComparison.OrdinalIgnoreCase))
                 {
                     loadout.enabledModFiles = value
@@ -432,3 +558,4 @@ namespace Elin_ModTemplate
         }
     }
 }
+

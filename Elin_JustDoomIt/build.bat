@@ -62,8 +62,11 @@ if exist "%~dp0LangMod\CN\SourceThing.xlsx" del /f /q "%~dp0LangMod\CN\SourceThi
 if exist "%~dp0elin_link\Package\Elin_JustDoomIt\LangMod\EN\SourceThing.xlsx" del /f /q "%~dp0elin_link\Package\Elin_JustDoomIt\LangMod\EN\SourceThing.xlsx"
 if exist "%~dp0elin_link\Package\Elin_JustDoomIt\LangMod\JP\SourceThing.xlsx" del /f /q "%~dp0elin_link\Package\Elin_JustDoomIt\LangMod\JP\SourceThing.xlsx"
 if exist "%~dp0elin_link\Package\Elin_JustDoomIt\LangMod\CN\SourceThing.xlsx" del /f /q "%~dp0elin_link\Package\Elin_JustDoomIt\LangMod\CN\SourceThing.xlsx"
-if not exist "%~dp0elin_link\Package\Elin_JustDoomIt\wad" mkdir "%~dp0elin_link\Package\Elin_JustDoomIt\wad"
-if exist "%~dp0wad\freedoom1.wad" xcopy "%~dp0wad\freedoom1.wad" "%~dp0elin_link\Package\Elin_JustDoomIt\wad\" /Y
+if exist "%~dp0elin_link\Package\Elin_JustDoomIt\wad" rmdir /s /q "%~dp0elin_link\Package\Elin_JustDoomIt\wad"
+if exist "%~dp0wad" (
+    mkdir "%~dp0elin_link\Package\Elin_JustDoomIt\wad"
+    xcopy "%~dp0wad" "%~dp0elin_link\Package\Elin_JustDoomIt\wad\" /E /I /Y
+)
 
 echo Copying to Steam game folder...
 set STEAM_PACKAGE_DIR="C:\Program Files (x86)\Steam\steamapps\common\Elin\Package\Elin_JustDoomIt"
@@ -79,7 +82,10 @@ if exist "%~dp0Sound" xcopy "%~dp0Sound" %STEAM_PACKAGE_DIR%\Sound\ /E /I /Y
 if exist %STEAM_PACKAGE_DIR%\LangMod\EN\SourceThing.xlsx del /f /q %STEAM_PACKAGE_DIR%\LangMod\EN\SourceThing.xlsx
 if exist %STEAM_PACKAGE_DIR%\LangMod\JP\SourceThing.xlsx del /f /q %STEAM_PACKAGE_DIR%\LangMod\JP\SourceThing.xlsx
 if exist %STEAM_PACKAGE_DIR%\LangMod\CN\SourceThing.xlsx del /f /q %STEAM_PACKAGE_DIR%\LangMod\CN\SourceThing.xlsx
-if not exist %STEAM_PACKAGE_DIR%\wad mkdir %STEAM_PACKAGE_DIR%\wad
-if exist "%~dp0wad\freedoom1.wad" xcopy "%~dp0wad\freedoom1.wad" %STEAM_PACKAGE_DIR%\wad\ /Y
+if exist %STEAM_PACKAGE_DIR%\wad rmdir /s /q %STEAM_PACKAGE_DIR%\wad
+if exist "%~dp0wad" (
+    mkdir %STEAM_PACKAGE_DIR%\wad
+    xcopy "%~dp0wad" %STEAM_PACKAGE_DIR%\wad\ /E /I /Y
+)
 
 endlocal

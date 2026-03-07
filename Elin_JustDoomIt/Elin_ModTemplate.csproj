@@ -77,6 +77,10 @@
       <HintPath>elin_link\Elin_Data\Managed\Plugins.Sound.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>elin_link\Elin_Data\Managed\Newtonsoft.Json.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="DoomNetFrameworkEngine">
       <HintPath>_ext\DoomNetFrameworkEngine\lib\net48\DoomNetFrameworkEngine.dll</HintPath>
       <Private>True</Private>

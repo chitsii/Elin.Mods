@@ -23,7 +23,7 @@ namespace Elin_ModTemplate
             DoomSfxVolume = config.Bind(
                 "DOOM",
                 "SfxVolume",
-                5,
+                3,
                 new ConfigDescription("DOOM sound effect volume (0-15).", new AcceptableValueRange<int>(0, 15)));
             MouseTurnSensitivity = config.Bind(
                 "DOOM",

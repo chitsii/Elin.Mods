@@ -7,7 +7,10 @@ using DoomNetFrameworkEngine.DoomEntity.MathUtils;
 using DoomNetFrameworkEngine.DoomEntity.World;
 using DoomNetFrameworkEngine.UserInput;
 using DoomNetFrameworkEngine.Video;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using UnityEngine;
 
 namespace Elin_ModTemplate
@@ -43,10 +46,11 @@ namespace Elin_ModTemplate
         int Height { get; }
         bool IsRunning { get; }
         DoomRunStats Stats { get; }
-        bool Initialize(string wadPath, ManualLogSource logger);
+        bool Initialize(DoomLaunchConfig launchConfig, ManualLogSource logger);
         void SubmitInput(DoomInputState input);
         bool TryDequeueKillEvent(out DoomKillEvent killEvent);
-        void SetSfxDucking(bool ducked);
+        void SavePersistentCheckpoint();
+        void SavePersistentNow();
         void Tick(float deltaTime);
         Color32[] GetFrameBuffer();
         void Shutdown();
@@ -69,8 +73,16 @@ namespace Elin_ModTemplate
         private int _frameCount = -1;
         private bool _running;
         private DoomRunStats _stats;
-        private int _lastKillCount = -1;
+        private ManualLogSource _logger;
+        private string _saveSlotKey;
+        private string _engineSavePath;
+        private bool _loadPersistentSaveOnStart;
+        private bool _pendingSaveExport;
+        private int _pendingSaveExportTicks;
+        private int _loadedTotalPlaySeconds;
+        private float _sessionPlaySeconds;
         private int _killStreak;
+        private int _mapKillCount;
         private int _lastEpisode = -1;
         private int _lastMap = -1;
         private GameState _lastGameState = GameState.Level;
@@ -89,17 +101,36 @@ namespace Elin_ModTemplate
             _requestedHeight = requestedHeight;
         }
 
-        public bool Initialize(string wadPath, ManualLogSource logger)
+        public bool Initialize(DoomLaunchConfig launchConfig, ManualLogSource logger)
         {
             try
             {
-                var args = new CommandLineArgs(new[]
+                _logger = logger;
+                if (string.IsNullOrWhiteSpace(launchConfig.IwadPath))
                 {
-                    "-iwad", wadPath,
-                    "-warp", "1", "1",
-                    "-skill", "3",
-                    "-nomusic"
-                });
+                    logger.LogError("[JustDoomIt] Missing IWAD path.");
+                    return false;
+                }
+
+                var cmdArgs = new List<string>
+                {
+                    "-iwad", launchConfig.IwadPath
+                };
+
+                if (launchConfig.PwadPaths != null && launchConfig.PwadPaths.Count > 0)
+                {
+                    cmdArgs.Add("-file");
+                    cmdArgs.AddRange(launchConfig.PwadPaths);
+                }
+
+                cmdArgs.Add("-warp");
+                cmdArgs.Add(Mathf.Clamp(launchConfig.Episode, 1, 4).ToString());
+                cmdArgs.Add(Mathf.Clamp(launchConfig.Map, 1, 32).ToString());
+                cmdArgs.Add("-skill");
+                cmdArgs.Add(Mathf.Clamp(launchConfig.Skill, 1, 5).ToString());
+                cmdArgs.Add("-nomusic");
+
+                var args = new CommandLineArgs(cmdArgs.ToArray());
 
                 var config = new Config
                 {
@@ -114,7 +145,7 @@ namespace Elin_ModTemplate
                 _content = new GameContent(args);
                 _video = new ManagedDoomVideo(config, _content);
                 _input = new ManagedDoomInput(() => _currentInput, config);
-                _sound = new UnityDoomSound(wadPath, config.audio_soundvolume);
+                _sound = new UnityDoomSound(launchConfig.IwadPath, config.audio_soundvolume);
 
                 _doom = new Doom(
                     args,
@@ -125,12 +156,36 @@ namespace Elin_ModTemplate
                     NullMusic.GetInstance(),
                     _input);
 
-                _doom.NewGame(GameSkill.Medium, 1, 1);
+                _doom.NewGame(ToGameSkill(Mathf.Clamp(launchConfig.Skill, 1, 5)), Mathf.Clamp(launchConfig.Episode, 1, 4), Mathf.Clamp(launchConfig.Map, 1, 32));
+                _saveSlotKey = launchConfig.SaveSlotKey;
+                _engineSavePath = GetEngineSavePath();
+                _loadPersistentSaveOnStart = false;
+                _pendingSaveExport = false;
+                _pendingSaveExportTicks = 0;
+                _loadedTotalPlaySeconds = 0;
+                _sessionPlaySeconds = 0f;
+                if (!string.IsNullOrWhiteSpace(_saveSlotKey) &&
+                    DoomPersistentSaveStore.TryLoadSummary(_saveSlotKey, out var loadedSummary))
+                {
+                    _loadedTotalPlaySeconds = Mathf.Max(0, loadedSummary.TotalPlaySeconds);
+                }
+                if (launchConfig.LoadExistingSave && !string.IsNullOrWhiteSpace(_saveSlotKey))
+                {
+                    if (DoomPersistentSaveStore.TryImportToEngineSlot(_saveSlotKey, _engineSavePath, out var importError))
+                    {
+                        _loadPersistentSaveOnStart = true;
+                        _logger.LogInfo("[JustDoomIt] Imported persistent save for key=" + _saveSlotKey);
+                    }
+                    else if (!string.IsNullOrWhiteSpace(importError))
+                    {
+                        _logger.LogWarning("[JustDoomIt] Failed to import persistent save: " + importError);
+                    }
+                }
 
                 _frame = new Color32[_video.Width * _video.Height];
                 _stats = default;
-                _lastKillCount = -1;
                 _killStreak = 0;
+                _mapKillCount = 0;
                 _lastEpisode = -1;
                 _lastMap = -1;
                 _lastGameState = GameState.Level;
@@ -138,7 +193,7 @@ namespace Elin_ModTemplate
                 _lastDamageCount = -1;
                 _killEvents.Clear();
                 _running = true;
-                logger.LogInfo("[JustDoomIt] Managed Doom initialized.");
+                logger.LogInfo("[JustDoomIt] Managed Doom initialized. saveKey=" + (_saveSlotKey ?? "(none)"));
                 return true;
             }
             catch (System.Exception ex)
@@ -166,16 +221,6 @@ namespace Elin_ModTemplate
             return false;
         }
 
-        public void SetSfxDucking(bool ducked)
-        {
-            if (_sound == null)
-            {
-                return;
-            }
-
-            _sound.ExternalVolumeScale = ducked ? 0.10f : 1f;
-        }
-
         public void Tick(float deltaTime)
         {
             if (!_running || _doom == null || _video == null)
@@ -185,6 +230,12 @@ namespace Elin_ModTemplate
 
             try
             {
+                if (_loadPersistentSaveOnStart)
+                {
+                    _doom.LoadGame(0);
+                    _loadPersistentSaveOnStart = false;
+                }
+
                 _frameCount++;
 
                 if (_frameCount % _fpsScale == 0)
@@ -199,7 +250,9 @@ namespace Elin_ModTemplate
                 var frameFrac = Fixed.FromInt(_frameCount % _fpsScale + 1) / _fpsScale;
                 _video.Render(_doom, frameFrac);
                 _video.CopyFrame(_frame);
+                _sessionPlaySeconds += Mathf.Max(0f, deltaTime);
                 UpdateRunStats();
+                UpdatePendingPersistentSaveExport();
             }
             catch (System.Exception ex)
             {
@@ -209,6 +262,57 @@ namespace Elin_ModTemplate
         }
 
         public Color32[] GetFrameBuffer() => _frame;
+
+        public void SavePersistentCheckpoint()
+        {
+            if (!_running || _doom == null || string.IsNullOrWhiteSpace(_saveSlotKey))
+            {
+                return;
+            }
+
+            try
+            {
+                if (_doom.SaveGame(0, "JustDoomIt"))
+                {
+                    _pendingSaveExport = true;
+                    _pendingSaveExportTicks = 2;
+                }
+            }
+            catch (System.Exception ex)
+            {
+                _logger?.LogWarning("[JustDoomIt] SavePersistentCheckpoint failed: " + ex.Message);
+            }
+        }
+
+        public void SavePersistentNow()
+        {
+            if (string.IsNullOrWhiteSpace(_saveSlotKey))
+            {
+                return;
+            }
+
+            try
+            {
+                if (_running && _doom != null)
+                {
+                    _doom.SaveGame(0, "JustDoomIt");
+                    // Flush game action quickly before shutdown.
+                    for (var i = 0; i < 3; i++)
+                    {
+                        if (_doom.Update() == UpdateResult.Completed)
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                ExportPersistentSaveImmediately();
+            }
+            catch (System.Exception ex)
+            {
+                _logger?.LogWarning("[JustDoomIt] SavePersistentNow failed: " + ex.Message);
+            }
+        }
 
         public void Shutdown()
         {
@@ -222,14 +326,84 @@ namespace Elin_ModTemplate
             _content?.Dispose();
             _content = null;
             _stats = default;
-            _lastKillCount = -1;
+            _saveSlotKey = null;
+            _engineSavePath = null;
+            _loadPersistentSaveOnStart = false;
+            _pendingSaveExport = false;
+            _pendingSaveExportTicks = 0;
+            _loadedTotalPlaySeconds = 0;
+            _sessionPlaySeconds = 0f;
             _killStreak = 0;
+            _mapKillCount = 0;
             _lastEpisode = -1;
             _lastMap = -1;
             _lastGameState = GameState.Level;
             _lastHealth = -1;
             _lastDamageCount = -1;
             _killEvents.Clear();
+        }
+
+        private void UpdatePendingPersistentSaveExport()
+        {
+            if (!_pendingSaveExport)
+            {
+                return;
+            }
+
+            if (_pendingSaveExportTicks > 0)
+            {
+                _pendingSaveExportTicks--;
+                return;
+            }
+
+            ExportPersistentSaveImmediately();
+        }
+
+        private void ExportPersistentSaveImmediately()
+        {
+            _pendingSaveExport = false;
+            _pendingSaveExportTicks = 0;
+            if (string.IsNullOrWhiteSpace(_saveSlotKey) || string.IsNullOrWhiteSpace(_engineSavePath))
+            {
+                return;
+            }
+
+            var exported = DoomPersistentSaveStore.TryExportFromEngineSlot(_saveSlotKey, _engineSavePath, out var exportError);
+            if (!exported && !string.IsNullOrWhiteSpace(exportError))
+            {
+                _logger?.LogWarning("[JustDoomIt] Failed to export persistent save: " + exportError);
+            }
+
+            if (exported)
+            {
+                var summary = BuildSaveSummary();
+                if (!DoomPersistentSaveStore.TryStoreSummary(_saveSlotKey, summary, out var metaError) &&
+                    !string.IsNullOrWhiteSpace(metaError))
+                {
+                    _logger?.LogWarning("[JustDoomIt] Failed to write save summary: " + metaError);
+                }
+
+                _logger?.LogInfo("[JustDoomIt] Exported persistent save for key=" + _saveSlotKey);
+            }
+        }
+
+        private static string GetEngineSavePath()
+        {
+            var exeDir = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty) ?? string.Empty;
+            return Path.Combine(exeDir, "doomsav0.dsg");
+        }
+
+        private static GameSkill ToGameSkill(int skill)
+        {
+            switch (Mathf.Clamp(skill, 1, 5))
+            {
+                case 1: return GameSkill.Baby;
+                case 2: return GameSkill.Easy;
+                case 3: return GameSkill.Medium;
+                case 4: return GameSkill.Hard;
+                case 5: return GameSkill.Nightmare;
+                default: return GameSkill.Medium;
+            }
         }
 
         private void UpdateRunStats()
@@ -252,14 +426,10 @@ namespace Elin_ModTemplate
             {
                 _lastEpisode = episode;
                 _lastMap = map;
-                _lastKillCount = player.KillCount;
                 _killStreak = 0;
+                _mapKillCount = 0;
                 _lastHealth = player.Health;
                 _lastDamageCount = player.DamageCount;
-            }
-            else if (_lastKillCount < 0)
-            {
-                _lastKillCount = player.KillCount;
             }
 
             if (_lastHealth < 0)
@@ -278,44 +448,40 @@ namespace Elin_ModTemplate
             if (tookDamage)
             {
                 _killStreak = 0;
+                _stats.CurrentKillStreak = 0;
             }
 
             _lastHealth = player.Health;
             _lastDamageCount = player.DamageCount;
 
-            var currentKillCount = player.KillCount;
-            if (currentKillCount > _lastKillCount)
+            while (DoomKillFeed.TryDequeueEnemy(out var enemyName))
             {
-                var gained = currentKillCount - _lastKillCount;
-                for (var i = 0; i < gained; i++)
+                _killStreak++;
+                _mapKillCount++;
+                var reward = GetKillRewardByStreak(_killStreak);
+                _stats.TotalKills++;
+                _stats.KillChipPayout += reward;
+                _stats.CurrentKillStreak = _killStreak;
+                if (_killStreak > _stats.MaxKillStreak)
                 {
-                    _killStreak++;
-                    var reward = GetKillRewardByStreak(_killStreak);
-                    _stats.TotalKills++;
-                    _stats.KillChipPayout += reward;
-                    _stats.CurrentKillStreak = _killStreak;
-                    if (_killStreak > _stats.MaxKillStreak)
-                    {
-                        _stats.MaxKillStreak = _killStreak;
-                    }
-
-                    _killEvents.Enqueue(new DoomKillEvent
-                    {
-                        TotalKills = _stats.TotalKills,
-                        CurrentKillStreak = _killStreak,
-                        Reward = reward,
-                        Enemy = DoomKillFeed.TryDequeueEnemy(out var enemyName) ? enemyName : "Unknown",
-                        Health = player.Health,
-                        Armor = player.ArmorPoints,
-                        Weapon = GetWeaponName(player.ReadyWeapon),
-                        MapCode = "E" + episode + "M" + map,
-                        MapTitle = world.Map?.Title ?? "",
-                        MapKills = player.KillCount,
-                        MapKillTotal = world.TotalKills
-                    });
+                    _stats.MaxKillStreak = _killStreak;
                 }
+
+                _killEvents.Enqueue(new DoomKillEvent
+                {
+                    TotalKills = _stats.TotalKills,
+                    CurrentKillStreak = _killStreak,
+                    Reward = reward,
+                    Enemy = enemyName ?? "Unknown",
+                    Health = player.Health,
+                    Armor = player.ArmorPoints,
+                    Weapon = GetWeaponName(player.ReadyWeapon),
+                    MapCode = "E" + episode + "M" + map,
+                    MapTitle = world.Map?.Title ?? "",
+                    MapKills = _mapKillCount,
+                    MapKillTotal = world.TotalKills
+                });
             }
-            _lastKillCount = currentKillCount;
 
             if (_lastGameState == GameState.Level && game.State == GameState.Intermission)
             {
@@ -325,10 +491,26 @@ namespace Elin_ModTemplate
                     _stats.BossClearEventCount++;
                 }
                 _killStreak = 0;
+                _mapKillCount = 0;
                 _stats.CurrentKillStreak = 0;
             }
 
             _lastGameState = game.State;
+        }
+
+        private DoomSaveSummary BuildSaveSummary()
+        {
+            var sessionSeconds = Mathf.Max(0, Mathf.RoundToInt(_sessionPlaySeconds));
+            var totalSeconds = Mathf.Max(0, _loadedTotalPlaySeconds + sessionSeconds);
+            return new DoomSaveSummary
+            {
+                SavedUtcTicks = DateTime.UtcNow.Ticks,
+                TotalPlaySeconds = totalSeconds,
+                LastSessionSeconds = sessionSeconds,
+                TotalKills = _stats.TotalKills,
+                MaxKillStreak = _stats.MaxKillStreak,
+                TotalChips = _stats.KillChipPayout
+            };
         }
 
         private static void ApplyInvincibility(DoomNetFrameworkEngine.DoomEntity.Game.Player player)
@@ -425,7 +607,7 @@ namespace Elin_ModTemplate
                 return;
             }
 
-            // Renderer writes BGRA bytes in column-major order (x * Height + y).
+            // Renderer writes RGBA bytes in column-major order (x * Height + y).
             // Unity expects Color32 in row-major order (y * Width + x), RGBA.
             for (var y = 0; y < Height; y++)
             {
@@ -435,9 +617,9 @@ namespace Elin_ModTemplate
                     var src = srcPixel * 4;
                     var dst = (Height - 1 - y) * Width + x;
 
-                    var b = _frameBytes[src];
+                    var r = _frameBytes[src];
                     var g = _frameBytes[src + 1];
-                    var r = _frameBytes[src + 2];
+                    var b = _frameBytes[src + 2];
                     var a = _frameBytes[src + 3];
 
                     destination[dst] = new Color32(r, g, b, a);

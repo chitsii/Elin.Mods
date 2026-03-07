@@ -31,11 +31,6 @@ namespace Elin_ModTemplate
                 {
                     countsAsConsolePlayerKill = ReferenceEquals(source.Player, world.ConsolePlayer);
                 }
-                else if (!world.Options.NetGame)
-                {
-                    // In single-player, non-player monster deaths are still counted.
-                    countsAsConsolePlayerKill = true;
-                }
 
                 if (!countsAsConsolePlayerKill)
                 {

@@ -1,7 +1,9 @@
 using BepInEx.Logging;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -12,6 +14,8 @@ namespace Elin_ModTemplate
         private const float KillVoiceDelaySeconds = 0.18f;
         private const float DoomTickStep = 1f / 60f;
         private const int MaxDoomTicksPerFrame = 8;
+        private const float GlobalStatsFlushIntervalSeconds = 15f;
+        private const string CasinoCoinId = "casino_coin";
 
         private struct KillVoiceRequest
         {
@@ -85,9 +89,10 @@ namespace Elin_ModTemplate
         private int _lastAnnouncedStreak;
         private int _lastPopupStreak;
         private int _lastKillReward;
-        private bool _isSfxDucked;
         private bool _exitConfirmOpen;
         private float _doomTickAccumulator;
+        private float _globalPlaySecondsAccumulator;
+        private float _nextGlobalStatsFlushAt;
 
         public static void Ensure(ManualLogSource logger)
         {
@@ -97,6 +102,7 @@ namespace Elin_ModTemplate
             DontDestroyOnLoad(go);
             Instance = go.AddComponent<DoomSessionManager>();
             Instance._logger = logger;
+            DoomGlobalStatsStore.EnsureLoaded();
         }
 
         public bool TryHandleMachineUse(Card machine, Chara user, ref bool result)
@@ -116,46 +122,14 @@ namespace Elin_ModTemplate
                     return true;
                 }
 
-                var wad = DoomWadLocator.FindWad();
-                if (string.IsNullOrWhiteSpace(wad))
+                if (DoomWadLocator.FindIwads().Count == 0)
                 {
-                    DoomDiagnostics.Warn("[JustDoomIt] No WAD found. Keep vanilla TV behavior.");
+                    DoomDiagnostics.Warn("[JustDoomIt] No IWAD found. Keep vanilla machine behavior.");
                     result = false;
                     return false;
                 }
 
-                StopSession();
-                _overlay = DoomOverlayDisplay.Create();
-                _backend = new ManagedDoomBackend(ModConfig.DoomWidth.Value, ModConfig.DoomHeight.Value);
-                if (!_backend.Initialize(wad, _logger))
-                {
-                    DoomDiagnostics.Error("[JustDoomIt] Doom backend initialization failed.");
-                    StopSession();
-                    result = false;
-                    return true;
-                }
-
-                _overlay.Initialize(_backend.Width, _backend.Height);
-                _active = true;
-                _processedKillCount = 0;
-                _processedKillPayout = 0;
-                _processedClearEvents = 0;
-                _processedBossClearEvents = 0;
-                _sessionCoinsEarned = 0;
-                _lastAnnouncedStreak = 0;
-                _lastPopupStreak = 0;
-                _lastKillReward = 0;
-                _isSfxDucked = false;
-                _doomTickAccumulator = 0f;
-                DoomKillFeed.Reset();
-                EnsureKillVoiceSource();
-                EnsureKillVoiceClipsLoaded();
-                StartDoomBgm();
-                SetCursorCaptured(true);
-                EInput.Consume(consumeAxis: true, _skipFrame: 2);
-                DoomDiagnostics.Info("[JustDoomIt] DOOM session started: " + wad);
-                LogRandomStartLine();
-                LogRewardRules();
+                OpenArcadeMenu(user);
                 result = false;
                 return true;
             }
@@ -166,6 +140,121 @@ namespace Elin_ModTemplate
                 result = false;
                 return false;
             }
+        }
+
+        private void OpenArcadeMenu(Chara user)
+        {
+            EInput.Consume(consumeAxis: true, _skipFrame: 2);
+            StartCoroutine(OpenArcadeMenuNextFrame(user));
+        }
+
+        private IEnumerator OpenArcadeMenuNextFrame(Chara user)
+        {
+            yield return null;
+            var loadout = DoomWadLocator.LoadRuntimeLoadout();
+            var menu = DoomArcadeMenuUI.Create();
+            menu.Show(
+                loadout,
+                user,
+                onPlay: (loadExisting) => StartSessionDirect(DoomWadLocator.LoadRuntimeLoadout(), loadExisting),
+                onClose: () => { });
+        }
+
+        private void StartSessionDirect(DoomRuntimeLoadout loadout, bool loadExisting)
+        {
+            var launch = DoomWadLocator.BuildLaunchConfig(loadout);
+            if (string.IsNullOrWhiteSpace(launch.IwadPath))
+            {
+                DoomDiagnostics.Warn("[JustDoomIt] No valid IWAD found.");
+                EClass.pc?.Say(Localize(
+                    "IWADが見つかりません。wad/iwads または wad に配置してください。",
+                    "No valid IWAD found. Put WADs in wad/iwads or wad.",
+                    "未找到可用IWAD。请放到 wad/iwads 或 wad。"));
+                return;
+            }
+
+            var resolvedIwadFile = Path.GetFileName(launch.IwadPath);
+            var removed = RemoveIncompatibleModsForIwad(loadout, resolvedIwadFile);
+            if (removed > 0)
+            {
+                DoomWadLocator.SaveRuntimeLoadout(loadout);
+                EClass.pc?.Say(Localize(
+                    "IWAD不一致のMODを " + removed + " 件無効化しました。",
+                    "Disabled " + removed + " incompatible mod(s) for this IWAD.",
+                    "已禁用 " + removed + " 个与该IWAD不兼容的MOD。"));
+                launch = DoomWadLocator.BuildLaunchConfig(loadout);
+                if (string.IsNullOrWhiteSpace(launch.IwadPath))
+                {
+                    DoomDiagnostics.Warn("[JustDoomIt] No valid IWAD found after mod pruning.");
+                    return;
+                }
+            }
+
+            launch.LoadExistingSave = loadExisting;
+            var selectedMod = loadout.enabledModFiles != null && loadout.enabledModFiles.Count > 0
+                ? loadout.enabledModFiles[0]
+                : null;
+            if (!string.IsNullOrWhiteSpace(selectedMod))
+            {
+                var family = DoomModRuleStore.GetFamilyOrUnknown(selectedMod);
+                if (string.Equals(family, "unknown", StringComparison.OrdinalIgnoreCase))
+                {
+                    Dialog.YesNo(
+                        Localize(
+                            "選択中のMODは依存先が不明です。\nこのまま起動しますか？",
+                            "Selected MOD dependency is unknown.\nLaunch anyway?",
+                            "当前MOD依赖未知。\n仍要启动吗？"),
+                        () => StartSessionInternal(launch),
+                        () => OpenArcadeMenu(EClass.pc),
+                        Localize("起動する", "Launch", "启动"),
+                        Localize("戻る", "Back", "返回"));
+                    return;
+                }
+            }
+
+            StartSessionInternal(launch);
+        }
+
+        private static int RemoveIncompatibleModsForIwad(DoomRuntimeLoadout loadout, string iwadFile)
+        {
+            return DoomArcadeMenuUI.RemoveIncompatibleModsForIwad(loadout, iwadFile);
+        }
+
+        private void StartSessionInternal(DoomLaunchConfig launch)
+        {
+            StopSession();
+            _overlay = DoomOverlayDisplay.Create();
+            _backend = new ManagedDoomBackend(ModConfig.DoomWidth.Value, ModConfig.DoomHeight.Value);
+            if (!_backend.Initialize(launch, _logger))
+            {
+                DoomDiagnostics.Error("[JustDoomIt] Doom backend initialization failed.");
+                StopSession();
+                return;
+            }
+
+            _overlay.Initialize(_backend.Width, _backend.Height);
+            _active = true;
+            _processedKillCount = 0;
+            _processedKillPayout = 0;
+            _processedClearEvents = 0;
+            _processedBossClearEvents = 0;
+            _sessionCoinsEarned = 0;
+            _lastAnnouncedStreak = 0;
+            _lastPopupStreak = 0;
+            _lastKillReward = 0;
+            _doomTickAccumulator = 0f;
+            _nextGlobalStatsFlushAt = Time.unscaledTime + GlobalStatsFlushIntervalSeconds;
+            DoomKillFeed.Reset();
+            EnsureKillVoiceSource();
+            EnsureKillVoiceClipsLoaded();
+            StartDoomBgm();
+            SetCursorCaptured(true);
+            EInput.Consume(consumeAxis: true, _skipFrame: 2);
+
+            var modCount = launch.PwadPaths != null ? launch.PwadPaths.Count : 0;
+            DoomDiagnostics.Info("[JustDoomIt] DOOM session started. IWAD=" + launch.IwadPath + " PWADs=" + modCount);
+            LogRandomStartLine();
+            LogRewardRules();
         }
 
         private void Update()
@@ -198,17 +287,16 @@ namespace Elin_ModTemplate
                     return;
                 }
 
-                if (_active)
-                {
-                    SetCursorCaptured(true);
-                    EInput.Consume(consumeAxis: true, _skipFrame: 1);
-                    var input = DoomInputState.ReadFromUnity();
-                    _backend.SubmitInput(input);
-                }
-                else
+                if (!_active)
                 {
                     _backend.SubmitInput(default);
+                    return;
                 }
+
+                SetCursorCaptured(true);
+                EInput.Consume(consumeAxis: true, _skipFrame: 1);
+                var input = DoomInputState.ReadFromUnity();
+                _backend.SubmitInput(input);
 
                 _doomTickAccumulator += Time.unscaledDeltaTime;
                 if (_doomTickAccumulator > DoomTickStep * MaxDoomTicksPerFrame)
@@ -228,9 +316,11 @@ namespace Elin_ModTemplate
                 {
                     _overlay?.Upload(_backend.GetFrameBuffer());
                     ProcessChipRewards(_backend.Stats);
+                    AccumulateGlobalPlaytime(ticks * DoomTickStep);
                 }
                 UpdateKillVoicePlayback();
                 UpdateDoomBgmPlayback();
+                FlushGlobalStatsIfNeeded();
             }
             catch (System.Exception ex)
             {
@@ -241,6 +331,8 @@ namespace Elin_ModTemplate
 
         public void StopSession()
         {
+            CommitGlobalPlaytimeAndFlush();
+
             if (_sessionCoinsEarned > 0)
             {
                 DoomDiagnostics.Info("[JustDoomIt] " + Localize(
@@ -251,6 +343,7 @@ namespace Elin_ModTemplate
 
             if (_backend != null)
             {
+                _backend.SavePersistentNow();
                 _backend.Shutdown();
                 _backend = null;
             }
@@ -271,7 +364,6 @@ namespace Elin_ModTemplate
             _lastAnnouncedStreak = 0;
             _lastPopupStreak = 0;
             _lastKillReward = 0;
-            _isSfxDucked = false;
             _doomTickAccumulator = 0f;
             _killVoiceQueue.Clear();
             DoomKillFeed.Reset();
@@ -281,7 +373,6 @@ namespace Elin_ModTemplate
                 _killVoiceSource.Stop();
             }
             StopDoomBgm();
-            _backend?.SetSfxDucking(false);
         }
 
         private void RequestExitConfirmation()
@@ -321,6 +412,47 @@ namespace Elin_ModTemplate
             Instance = null;
         }
 
+        private void AccumulateGlobalPlaytime(float seconds)
+        {
+            if (seconds <= 0f)
+            {
+                return;
+            }
+
+            _globalPlaySecondsAccumulator += seconds;
+            var whole = Mathf.FloorToInt(_globalPlaySecondsAccumulator);
+            if (whole <= 0)
+            {
+                return;
+            }
+
+            _globalPlaySecondsAccumulator -= whole;
+            DoomGlobalStatsStore.AddPlaySeconds(whole);
+        }
+
+        private void CommitGlobalPlaytimeAndFlush()
+        {
+            var whole = Mathf.FloorToInt(_globalPlaySecondsAccumulator);
+            if (whole > 0)
+            {
+                _globalPlaySecondsAccumulator -= whole;
+                DoomGlobalStatsStore.AddPlaySeconds(whole);
+            }
+
+            DoomGlobalStatsStore.Flush();
+        }
+
+        private void FlushGlobalStatsIfNeeded()
+        {
+            if (Time.unscaledTime < _nextGlobalStatsFlushAt)
+            {
+                return;
+            }
+
+            _nextGlobalStatsFlushAt = Time.unscaledTime + GlobalStatsFlushIntervalSeconds;
+            DoomGlobalStatsStore.Flush();
+        }
+
         private static void SetCursorCaptured(bool captured)
         {
             Cursor.lockState = captured ? CursorLockMode.Locked : CursorLockMode.None;
@@ -335,7 +467,7 @@ namespace Elin_ModTemplate
                 return;
             }
 
-            var line = lines[Random.Range(0, lines.Length)];
+            var line = lines[UnityEngine.Random.Range(0, lines.Length)];
             DoomDiagnostics.Info("[JustDoomIt] " + line);
         }
 
@@ -383,6 +515,7 @@ namespace Elin_ModTemplate
                 const int clearBonus = 5000;
                 GrantCasinoChips(clearBonus);
                 ShowCoinPopup(clearBonus, 0);
+                _backend?.SavePersistentNow();
                 DoomDiagnostics.Info("[JustDoomIt] " + Localize(
                     "ステージクリア！ボーナス +" + clearBonus + " チップ",
                     "Stage clear! Bonus +" + clearBonus + " chips",
@@ -542,17 +675,7 @@ namespace Elin_ModTemplate
 
             if (_killVoiceSource.isPlaying)
             {
-                if (!_isSfxDucked)
-                {
-                    _backend?.SetSfxDucking(true);
-                    _isSfxDucked = true;
-                }
                 return;
-            }
-            else if (_isSfxDucked)
-            {
-                _backend?.SetSfxDucking(false);
-                _isSfxDucked = false;
             }
 
             if (_killVoiceQueue.Count == 0)
@@ -579,11 +702,6 @@ namespace Elin_ModTemplate
             }
 
             _killVoiceSource.clip = _killVoiceClips[index];
-            if (!_isSfxDucked)
-            {
-                _backend?.SetSfxDucking(true);
-                _isSfxDucked = true;
-            }
             _killVoiceSource.Play();
         }
 
@@ -888,7 +1006,6 @@ namespace Elin_ModTemplate
             }
 
             WidgetPopText.Say(text, color);
-            Msg.SayRaw(text);
             _overlay?.ShowNotice(text, GetOverlayColor(color));
         }
 

@@ -21,6 +21,7 @@ namespace Elin_ArsMoriendi
                 }
             }
 
+            HecatiaTraitNormalizer.Normalize(npc);
             npc.SetGlobal();
             npc.MoveZone(SomewhereZoneId);
             return npc;

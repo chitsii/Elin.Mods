@@ -1,0 +1,72 @@
+このフォルダへのDOOM Mod導入方法
+最終確認: 2026-03-07
+
+このフォルダはクラシック DOOM の .wad PWAD 用です。
+対応: クラシック WAD ベースの PWAD
+非対応: .pk3, .pk7, .deh, .bex, .exe インストーラ, ソースポート本体
+
+ベースゲームについて
+- この Mod には Freedoom Phase 1 と Freedoom Phase 2 が同梱されています。
+- 外部から追加で入れる必要があるのは PWAD のみです。
+- 下の例にある PWAD 本体はこのパッケージに同梱していません。
+
+簡単な手順
+1. 下のリンク先でクラシック Doom WAD をダウンロードします。
+2. zip の場合は展開します。
+3. `wad/mods` の中に Mod ごとのフォルダを1つ作ります。
+4. 必要な .wad ファイルをそのフォルダに入れます。
+5. Elin を起動し、筐体メニューからまず `CHANGE GAME` を開きます。
+6. 先にベースゲームを合わせます。
+   - Doom / Ultimate Doom / Freedoom Phase 1: Doom 1 系 Mod
+   - Doom II / Freedoom Phase 2: Doom II 系 Mod
+7. 次に `CONFIGURE MODS` を開きます。
+8. 複数 .wad の Mod なら、検出されたファイル一覧を確認し、必要なら順序を調整してセットアップを承認します。
+9. 承認後はその場で一覧が更新され、すぐ選べるようになります。
+10. 遊びたい Mod を選びます。
+
+簡単なルール
+- Mod は `1フォルダ = 1本` で管理します。
+- 複数 .wad が必要な場合は、そのフォルダに必要ファイルを全部入れて下さい。
+- 複数 .wad を使う Mod でも、JSON を手で編集する必要はありません。
+- 例: `wad/mods/alien_vendetta/`
+
+動作確認した有名どころ
+
+1. Alien Vendetta
+- 種別: 高難度の定番 Doom II メガワッド
+- 対応 IWAD: Doom II / Freedoom Phase 2
+- 入れるファイル: `AV.WAD` + `AVMOVFIX.WAD`
+- 配布元:
+  https://doom2.net/av/get.html
+- 紹介:
+  https://doomwiki.org/wiki/Alien_Vendetta
+
+2. Memento Mori
+- 種別: 有名な協作クラシックメガワッド
+- 対応 IWAD: Doom II / Freedoom Phase 2
+- 入れるファイル: `MM.WAD` + `MMMUS.WAD`
+- 配布元:
+  https://www.doomworld.com/idgames/themes/mm/mm_allup
+- 紹介:
+  https://doomwiki.org/wiki/Memento_Mori
+
+3. No End in Sight
+- 種別: 評価の高い Ultimate Doom 系メガワッド
+- 対応 IWAD: Ultimate Doom / Freedoom Phase 1
+- 入れるファイル: `NEIS.wad`
+- 配布元:
+  https://www.dukeworld.com/idgames/levels/doom/Ports/megawads/neis.zip
+- 紹介:
+  https://doomwiki.org/wiki/No_End_In_Sight
+
+補足
+- この Mod はクラシックエンジン互換の PWAD を前提にしています。
+- PWAD によって必要な IWAD が違います。ベースゲームが違うと正しく起動しません。
+- 後からベースゲームを変えた場合、対応しない MOD は自動で無効化されます。
+- 複数WADのフォルダは、ゲーム内で一度だけセットアップ確認が出ます。
+- セットアップをやり直したい場合は、`CONFIGURE MODS` の `RESET SETUP` を使って下さい。
+- `RESET SETUP` には確認ダイアログがあります。
+- `.deh` / `.bex` / `.pk3` / `.pk7` を含む Mod は v1 では `[UNSUPPORTED]` と表示され、起動できません。
+- 初回の大きい Mod 走査では `SCANNING MODS...` が少し出ることがあります。
+- `[LAYOUT]` が出る場合は、`.wad` が深いサブフォルダに入っていないか確認して下さい。
+- 新しいファイルがすぐ出ない場合は、`CONFIGURE MODS` を開き直して下さい。

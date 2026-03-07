@@ -1,0 +1,72 @@
+如何把 DOOM Mod 放进这个文件夹
+最后确认: 2026-03-07
+
+这个文件夹只用于经典 DOOM 的 .wad PWAD 文件。
+支持: 仅经典 WAD 型 PWAD
+不支持: .pk3, .pk7, .deh, .bex, .exe 安装器, 源端口程序
+
+基础游戏说明
+- 这个 Mod 已经自带 Freedoom Phase 1 和 Freedoom Phase 2。
+- 你只需要额外下载 PWAD 地图 Mod。
+- 下面列出的示例 PWAD 文件本体不包含在这个包里。
+
+简单步骤
+1. 在下面的链接下载经典 Doom WAD。
+2. 如果是 zip, 先解压。
+3. 在 `wad/mods` 里为这个 Mod 新建一个文件夹。
+4. 把需要的 .wad 文件复制到那个文件夹里。
+5. 启动 Elin, 打开街机菜单, 先进入 `CHANGE GAME`。
+6. 先选择正确的基础游戏:
+   - Doom / Ultimate Doom / Freedoom Phase 1: Doom 1 类 Mod
+   - Doom II / Freedoom Phase 2: Doom II 类 Mod
+7. 再进入 `CONFIGURE MODS`。
+8. 如果文件夹里有多个 .wad, 在游戏里确认自动检测到的文件列表, 必要时调整顺序。
+9. 确认后列表会立刻刷新, 这个 Mod 会马上变成可选状态。
+10. 选择你要玩的 Mod。
+
+简单规则
+- 一个 Mod 使用一个文件夹。
+- 如果压缩包里有多个必需的 .wad, 请把所有必需文件都放进同一个文件夹。
+- 多 WAD Mod 由游戏内完成设置, 不需要手动编辑 JSON。
+- 例如: `wad/mods/alien_vendetta/`
+
+已经确认可用的知名 Mod
+
+1. Alien Vendetta
+- 类型: 高难度经典 Doom II megawad
+- 使用 IWAD: Doom II 或 Freedoom Phase 2
+- 需要放入: `AV.WAD` + `AVMOVFIX.WAD`
+- 下载:
+  https://doom2.net/av/get.html
+- 介绍:
+  https://doomwiki.org/wiki/Alien_Vendetta
+
+2. Memento Mori
+- 类型: 很有名的经典合作 megawad
+- 使用 IWAD: Doom II 或 Freedoom Phase 2
+- 需要放入: `MM.WAD` + `MMMUS.WAD`
+- 下载:
+  https://www.doomworld.com/idgames/themes/mm/mm_allup
+- 介绍:
+  https://doomwiki.org/wiki/Memento_Mori
+
+3. No End in Sight
+- 类型: 评价很高的 Ultimate Doom 风格 megawad
+- 使用 IWAD: Ultimate Doom 或 Freedoom Phase 1
+- 需要放入: `NEIS.wad`
+- 下载:
+  https://www.dukeworld.com/idgames/levels/doom/Ports/megawads/neis.zip
+- 介绍:
+  https://doomwiki.org/wiki/No_End_In_Sight
+
+说明
+- 这个 Mod 只支持经典引擎兼容的 PWAD 流程。
+- 不同 PWAD 需要不同的 IWAD。基础游戏选错时，可能无法正常启动。
+- 如果你之后更改基础游戏，不兼容的 Mod 会被自动禁用。
+- 多 WAD 文件夹会在游戏里出现一次设置确认。
+- 如果你想重新设置，请在 `CONFIGURE MODS` 中使用 `RESET SETUP`。
+- `RESET SETUP` 会先显示确认对话框。
+- 如果 Mod 包含 `.deh`、`.bex`、`.pk3` 或 `.pk7`，v1 会显示为 `[UNSUPPORTED]`，无法启动。
+- 第一次扫描较大的 Mod 时，可能会短暂显示 `SCANNING MODS...`。
+- 如果出现 `[LAYOUT]`, 请检查 `.wad` 是否被放进了更深的子文件夹。
+- 如果新文件没有马上显示，请重新打开 `CONFIGURE MODS`。

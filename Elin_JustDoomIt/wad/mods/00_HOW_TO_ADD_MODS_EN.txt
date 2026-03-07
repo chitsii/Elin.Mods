@@ -1,0 +1,72 @@
+How to add DOOM map mods to this folder
+Last checked: 2026-03-07
+
+This folder is for classic .wad PWAD files.
+Supported here: classic WAD-only PWAD workflows.
+Not supported here: .pk3, .pk7, .deh, .bex, .exe installers, source ports.
+
+Base game note
+- This mod already includes Freedoom Phase 1 and Freedoom Phase 2.
+- You only need to download extra PWAD map mods.
+- The example PWADs below are not bundled in this package.
+
+Quick steps
+1. Download a classic Doom WAD from one of the links below.
+2. Extract the archive if needed.
+3. Create one folder for the mod inside `wad/mods`
+4. Copy the required .wad file(s) into that mod folder
+5. Start Elin -> use the arcade machine -> CHANGE GAME
+6. Select the correct base game first:
+   - Doom / Ultimate Doom / Freedoom Phase 1 for Doom 1 style mods
+   - Doom II / Freedoom Phase 2 for Doom II style mods
+7. Open CONFIGURE MODS
+8. If the folder has multiple .wad files, confirm the detected file list and adjust order if needed
+9. After confirmation, the list updates immediately and the mod becomes selectable.
+10. Pick the mod you want to play.
+
+Simple rule
+- Use one folder per mod.
+- If the mod contains more than one required .wad, put all required .wad files in that folder.
+- Multi-WAD mods are set up in-game. You do not need to edit JSON files.
+- Example folder: `wad/mods/alien_vendetta/`
+
+Tested famous mods
+
+1. Alien Vendetta
+- Type: hard classic megawad for Doom II
+- Use with: Doom II or Freedoom Phase 2
+- Files to copy: AV.WAD + AVMOVFIX.WAD
+- Download:
+  https://doom2.net/av/get.html
+- Info:
+  https://doomwiki.org/wiki/Alien_Vendetta
+
+2. Memento Mori
+- Type: famous classic collaborative megawad
+- Use with: Doom II or Freedoom Phase 2
+- Files to copy: MM.WAD + MMMUS.WAD
+- Download:
+  https://www.doomworld.com/idgames/themes/mm/mm_allup
+- Info:
+  https://doomwiki.org/wiki/Memento_Mori
+
+3. No End in Sight
+- Type: highly regarded Ultimate Doom style megawad
+- Use with: Ultimate Doom or Freedoom Phase 1
+- Files to copy: NEIS.wad
+- Download:
+  https://www.dukeworld.com/idgames/levels/doom/Ports/megawads/neis.zip
+- Info:
+  https://doomwiki.org/wiki/No_End_In_Sight
+
+Notes
+- This mod only supports classic-engine-compatible PWAD workflows.
+- Some PWADs need a specific IWAD. If the wrong base game is selected, the mod may not start correctly.
+- If you change the base game later, incompatible mods are automatically disabled.
+- Multi-WAD folders will ask for a one-time setup confirmation in-game.
+- If you want to redo that setup, use `RESET SETUP` in `CONFIGURE MODS`.
+- `RESET SETUP` always asks for confirmation first.
+- Mods that include `.deh`, `.bex`, `.pk3`, or `.pk7` files will show `[UNSUPPORTED]` and are not playable in v1.
+- Large mods may briefly show `SCANNING MODS...` the first time they are scanned.
+- If you see a layout error, move the .wad files closer to the mod folder instead of leaving them in deeper subfolders.
+- If a new file does not appear immediately, open CONFIGURE MODS again.

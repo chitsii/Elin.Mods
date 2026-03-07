@@ -55,6 +55,7 @@ xcopy "%~dp0package.xml" "%~dp0elin_link\Package\Elin_JustDoomIt\" /Y
 if exist "%~dp0preview.jpg" xcopy "%~dp0preview.jpg" "%~dp0elin_link\Package\Elin_JustDoomIt\" /Y
 if exist "%~dp0LICENSES" xcopy "%~dp0LICENSES" "%~dp0elin_link\Package\Elin_JustDoomIt\LICENSES\" /E /I /Y
 if exist "%~dp0LangMod" xcopy "%~dp0LangMod" "%~dp0elin_link\Package\Elin_JustDoomIt\LangMod\" /E /I /Y
+if exist "%~dp0Texture" xcopy "%~dp0Texture" "%~dp0elin_link\Package\Elin_JustDoomIt\Texture\" /E /I /Y
 if exist "%~dp0Sound" xcopy "%~dp0Sound" "%~dp0elin_link\Package\Elin_JustDoomIt\Sound\" /E /I /Y
 if exist "%~dp0LangMod\EN\SourceThing.xlsx" del /f /q "%~dp0LangMod\EN\SourceThing.xlsx"
 if exist "%~dp0LangMod\JP\SourceThing.xlsx" del /f /q "%~dp0LangMod\JP\SourceThing.xlsx"
@@ -78,6 +79,7 @@ xcopy "%~dp0package.xml" %STEAM_PACKAGE_DIR% /Y
 if exist "%~dp0preview.jpg" xcopy "%~dp0preview.jpg" %STEAM_PACKAGE_DIR% /Y
 if exist "%~dp0LICENSES" xcopy "%~dp0LICENSES" %STEAM_PACKAGE_DIR%\LICENSES\ /E /I /Y
 if exist "%~dp0LangMod" xcopy "%~dp0LangMod" %STEAM_PACKAGE_DIR%\LangMod\ /E /I /Y
+if exist "%~dp0Texture" xcopy "%~dp0Texture" %STEAM_PACKAGE_DIR%\Texture\ /E /I /Y
 if exist "%~dp0Sound" xcopy "%~dp0Sound" %STEAM_PACKAGE_DIR%\Sound\ /E /I /Y
 if exist %STEAM_PACKAGE_DIR%\LangMod\EN\SourceThing.xlsx del /f /q %STEAM_PACKAGE_DIR%\LangMod\EN\SourceThing.xlsx
 if exist %STEAM_PACKAGE_DIR%\LangMod\JP\SourceThing.xlsx del /f /q %STEAM_PACKAGE_DIR%\LangMod\JP\SourceThing.xlsx

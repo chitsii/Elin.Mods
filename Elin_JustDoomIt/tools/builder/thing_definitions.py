@@ -14,7 +14,7 @@ class ThingDefinition:
     category: str = "mech"
     sort: str = "furniture_mech"
     tile_type: str = "ObjBig"
-    render_data: str = "obj"
+    render_data: str = "@obj"
     tiles: str = "3033"
     value: int = 45000
     weight: int = 120000

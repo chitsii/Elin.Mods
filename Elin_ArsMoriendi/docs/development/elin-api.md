@@ -12,6 +12,13 @@
 | `chara.SetSummon(duration)` | 一時召喚（ターン経過で消滅） |
 | `SpawnListChara.Get(id, filter)` | フィルタ付きスポーンリスト取得 |
 
+## 種族由来Featの個体単位打ち消し（実装確認済み）
+
+- 最終確認: 2026-03-07
+- `Chara.SetFeat(id, 0)` は現在値をいったん逆適用してから base 値を再設定するため、`race` や `elements` 由来の feat でも個体単位で無効化できる。
+- 単純に `elements.Remove(id)` すると feat の適用/逆適用を通らないため、種族由来 feat の打ち消しには使わない。
+- 日光弱点は `Chara.Refresh()` 内で `HasElement(featAshborn) && !HasElement(431)` により再計算されるため、個体から日光体質を外したい場合は `featAshborn` を `SetFeat(..., 0)` で消す。
+
 ## Act クラスのパターン
 
 - `Spell` を継承（`Ability` → `Act` の階層）
@@ -95,6 +102,45 @@ grep "drink" ../SourceExcels/csv/SourceCard_Category.csv
 - **Food**: 食品の追加属性（食事効果等）
 
 アイテムの正式なカテゴリは Thing/ThingV の `category` 列で確認する。
+
+## 固定マップの保存・再生成・差分適用（実装確認済み）
+
+- 最終確認: 2026-03-05
+
+### 保存/ロードの実体
+
+- ゾーン実マップは `Spatial.pathSave`（`<save>/<gameId>/<zoneUid>/`）配下に保存される。
+- `Map.Save(path)` は `map` 本体 + セル配列ファイル（`blocks`, `floors`, `flags` など）を保存する。
+- `Zone.Activate()` は通常、`base.pathSave + "map"` を `GameIO.LoadFile<Map>` して `map.Load(...)` でセル配列を復元する。
+
+### 固定マップ（.z）の読み込み
+
+- 固定マップは `Zone.pathExport`（`CorePath.ZoneSave + idExport + ".z"`）から `Zone.Import(pathExport)` で展開される。
+- インポート時は `pathTemp` に展開後、`pathTemp + "map"` を読み込む。
+- その後 `map.OnImport(zoneExportData)` で `ZoneExportData.serializedCards` が復元される。
+
+### 再生成時の既存データ引き継ぎ
+
+- `Zone.Activate()` の再生成分岐（`flag3`）では `zoneExportData.orgMap = GameIO.LoadFile<Map>(base.pathSave + "map")` を保持し、読み込み後に一部マージする。
+- 既存セーブからは主に以下が引き継がれる:
+  - `charas / serializedCharas / deadCharas`
+  - 視界フラグ（`flags` の bit1）
+  - 一部の特殊 Thing（`TraitNewZone`, `TraitPowerStatue`, `TraitTent` など）
+- 任意の設置物（通常 Thing）を完全保持する仕組みではないため、ゲーム更新や再生成で消えるケースがある。
+
+### PartialMap の性質（注意）
+
+- `PartialMap.Apply(..., ApplyMode.Apply)` は対象範囲タイルを書き換えた後、範囲内の `trait.CanBeDestroyed` な Thing を削除する。
+- その後 `exportData.serializedCards.Restore(..., addToZone: true, partial)` で Partial 側カードを再配置する。
+- したがって `PartialMap` は「差分追加」より「局所上書き」に近い。
+
+### Mod実装指針（壊れにくい固定マップ拡張）
+
+- 元 `.z` を直接上書きせず、Mod側で「非破壊の差分レイヤ」を持つ。
+- 適用タイミングは `Zone.Activate` Postfix か、`OnVisitNewMapOrRegenerate` 相当の初回/再生成フローに同期する。
+- 差分は `zoneId + anchor + relative placements` で定義し、絶対座標依存を下げる。
+- 各配置に一意キーを持たせて冪等化し、重複配置を防ぐ。
+- 競合セル（既存カードあり・通行不可など）は fail-soft で skip + ログ。
 
 ## Drama Runtime 連携キー（Quest Bridge）
 

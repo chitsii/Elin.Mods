@@ -68,6 +68,8 @@ namespace Elin_JustDoomIt
         private GameContent _content;
         private Color32[] _frame;
         private DoomInputState _currentInput;
+        private DoomPendingWeaponInput _pendingWeaponInput;
+        private DoomWeaponCyclePlanner _weaponCyclePlanner;
 
         private int _fpsScale = 2;
         private int _frameCount = -1;
@@ -185,6 +187,9 @@ namespace Elin_JustDoomIt
 
                 _frame = new Color32[_video.Width * _video.Height];
                 _stats = default;
+                _pendingWeaponInput.Clear();
+                _weaponCyclePlanner.Reset(0);
+                SyncWeaponPlannerFromGameState();
                 _killStreak = 0;
                 _mapKillCount = 0;
                 _lastEpisode = -1;
@@ -208,6 +213,7 @@ namespace Elin_JustDoomIt
         public void SubmitInput(DoomInputState input)
         {
             _currentInput = input;
+            _pendingWeaponInput.Capture(ExtractWeaponSlot(input), input.WeaponCycleSteps);
         }
 
         public bool TryDequeueKillEvent(out DoomKillEvent killEvent)
@@ -235,12 +241,15 @@ namespace Elin_JustDoomIt
                 {
                     _doom.LoadGame(0);
                     _loadPersistentSaveOnStart = false;
+                    SyncWeaponPlannerFromGameState();
                 }
 
                 _frameCount++;
 
                 if (_frameCount % _fpsScale == 0)
                 {
+                    // One-shot inputs must survive until an actual DOOM simulation step runs.
+                    ApplyPendingWeaponInputForTick();
                     if (_doom.Update() == UpdateResult.Completed)
                     {
                         _running = false;
@@ -318,6 +327,7 @@ namespace Elin_JustDoomIt
         public void Shutdown()
         {
             _running = false;
+            _pendingWeaponInput.Clear();
             _doom = null;
             _video = null;
             _input = null;
@@ -342,6 +352,82 @@ namespace Elin_JustDoomIt
             _lastHealth = -1;
             _lastDamageCount = -1;
             _killEvents.Clear();
+        }
+
+        private void ApplyPendingWeaponInputForTick()
+        {
+            _pendingWeaponInput.ConsumeOneTick(out var weaponSlot, out var weaponCycleSteps);
+            if (weaponSlot >= 1 && weaponSlot <= 7)
+            {
+                ApplyWeaponSlotForTick(_weaponCyclePlanner.PlanDirectSlot(weaponSlot));
+                return;
+            }
+
+            if (weaponCycleSteps != 0)
+            {
+                ApplyWeaponSlotForTick(_weaponCyclePlanner.PlanCycleStep(weaponCycleSteps));
+                return;
+            }
+
+            ApplyWeaponSlotForTick(0);
+        }
+
+        private static int ExtractWeaponSlot(DoomInputState input)
+        {
+            if (input.Weapon1) return 1;
+            if (input.Weapon2) return 2;
+            if (input.Weapon3) return 3;
+            if (input.Weapon4) return 4;
+            if (input.Weapon5) return 5;
+            if (input.Weapon6) return 6;
+            if (input.Weapon7) return 7;
+            return 0;
+        }
+
+        private static int ToWeaponSlot(WeaponType weapon)
+        {
+            switch (weapon)
+            {
+                case WeaponType.Fist:
+                case WeaponType.Chainsaw:
+                    return 1;
+                case WeaponType.Pistol:
+                    return 2;
+                case WeaponType.Shotgun:
+                case WeaponType.SuperShotgun:
+                    return 3;
+                case WeaponType.Chaingun:
+                    return 4;
+                case WeaponType.Missile:
+                    return 5;
+                case WeaponType.Plasma:
+                    return 6;
+                case WeaponType.Bfg:
+                    return 7;
+                default:
+                    return 1;
+            }
+        }
+
+        private void ApplyWeaponSlotForTick(int weaponSlot)
+        {
+            _currentInput.Weapon1 = weaponSlot == 1;
+            _currentInput.Weapon2 = weaponSlot == 2;
+            _currentInput.Weapon3 = weaponSlot == 3;
+            _currentInput.Weapon4 = weaponSlot == 4;
+            _currentInput.Weapon5 = weaponSlot == 5;
+            _currentInput.Weapon6 = weaponSlot == 6;
+            _currentInput.Weapon7 = weaponSlot == 7;
+            _currentInput.WeaponCycleSteps = 0;
+        }
+
+        private void SyncWeaponPlannerFromGameState()
+        {
+            var readyWeapon = _doom?.Game?.World?.ConsolePlayer?.ReadyWeapon;
+            if (readyWeapon.HasValue)
+            {
+                _weaponCyclePlanner.SyncActualReady(ToWeaponSlot(readyWeapon.Value));
+            }
         }
 
         private void UpdatePendingPersistentSaveExport()
@@ -417,7 +503,8 @@ namespace Elin_JustDoomIt
                 return;
             }
 
-            _input?.SetObservedWeapon(player.ReadyWeapon);
+                _input?.SetObservedWeapon(player.ReadyWeapon);
+                _weaponCyclePlanner.SyncActualReady(ToWeaponSlot(player.ReadyWeapon));
             ApplyInvincibility(player);
 
             var episode = game.Options?.Episode ?? 1;

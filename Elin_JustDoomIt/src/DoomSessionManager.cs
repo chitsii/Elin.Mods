@@ -162,6 +162,7 @@ namespace Elin_JustDoomIt
 
         private void StartSessionDirect(DoomRuntimeLoadout loadout, bool loadExisting)
         {
+            ModConfig.ReloadRuntimeConfig();
             var launch = DoomWadLocator.BuildLaunchConfig(loadout);
             if (string.IsNullOrWhiteSpace(launch.IwadPath))
             {

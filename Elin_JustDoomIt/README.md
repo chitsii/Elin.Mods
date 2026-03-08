@@ -62,6 +62,9 @@ Elin のカスタムアーケード筐体（CWLで追加）から、オーバー
 - DOOMモード中のBGMは `Sound/BGM/*.ogg` を順番に再生します（ファイル名昇順）。
 - FreeDoom 由来の音源（OGG化済み）を `Sound/BGM` に配置してください。
 - DOOM の内部解像度と明るさは `BepInEx/config/chitsii.elin_justdoomit.cfg` の `DOOM.ScreenWidth` / `DOOM.ScreenHeight` / `DOOM.Brightness` で調整できます。
+- DOOM のキーバインドは `BepInEx/config/chitsii.elin_justdoomit.cfg` の `Input.*` で調整できます。値は `W,UpArrow` のようなカンマ区切りです。`Mouse0` / `Mouse1` / `Mouse2` も使えます。`WheelUp` / `WheelDown` は `NextWeapon` / `PreviousWeapon` 専用です。キー名は Unity 公式 `KeyCode` 一覧を参照してください: <https://docs.unity3d.com/ScriptReference/KeyCode.html>
+- `cfg` を編集した後は Elin 再起動ではなく、次に DOOM を起動した時点で再読込されます。
+- `OpenMenu` の入力項目はありません。メニュー操作は Elin 側 UI が直接処理します。
 - 外部PWADは `OPEN MOD FOLDER` で案内を確認し、`CHANGE GAME` -> `CONFIGURE MODS` の順で導入します。`CONFIGURE MODS` を開くと自動で再判定されます。
 - PWADは v1 仕様で1つだけ有効化できます（`unknown` は起動前警告つきで選択可）。
 - Mod導入手引き: `docs/doom_mod_install_guide.md`

@@ -13,7 +13,6 @@ namespace Elin_JustDoomIt
         public bool Fire;
         public bool Use;
         public bool Run;
-        public bool OpenMenu;
         public bool Weapon1;
         public bool Weapon2;
         public bool Weapon3;
@@ -26,39 +25,47 @@ namespace Elin_JustDoomIt
 
         public static DoomInputState ReadFromUnity()
         {
+            var bindings = ModConfig.InputBindings ?? DoomInputBindings.FromConfig(
+                DoomInputBindingDefaults.MoveForward,
+                DoomInputBindingDefaults.MoveBackward,
+                DoomInputBindingDefaults.TurnLeft,
+                DoomInputBindingDefaults.TurnRight,
+                DoomInputBindingDefaults.StrafeLeft,
+                DoomInputBindingDefaults.StrafeRight,
+                DoomInputBindingDefaults.Fire,
+                DoomInputBindingDefaults.Use,
+                DoomInputBindingDefaults.Run,
+                DoomInputBindingDefaults.Weapon1,
+                DoomInputBindingDefaults.Weapon2,
+                DoomInputBindingDefaults.Weapon3,
+                DoomInputBindingDefaults.Weapon4,
+                DoomInputBindingDefaults.Weapon5,
+                DoomInputBindingDefaults.Weapon6,
+                DoomInputBindingDefaults.Weapon7,
+                DoomInputBindingDefaults.NextWeapon,
+                DoomInputBindingDefaults.PreviousWeapon);
+
             return new DoomInputState
             {
-                MoveForward = Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow),
-                MoveBackward = Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow),
-                TurnLeft = Input.GetKey(KeyCode.LeftArrow),
-                TurnRight = Input.GetKey(KeyCode.RightArrow),
-                StrafeLeft = Input.GetKey(KeyCode.A),
-                StrafeRight = Input.GetKey(KeyCode.D),
-                Fire = Input.GetMouseButton(0),
-                Use = Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.E),
-                Run = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift),
-                OpenMenu = Input.GetKeyDown(KeyCode.Tab),
-                Weapon1 = Input.GetKeyDown(KeyCode.Alpha1),
-                Weapon2 = Input.GetKeyDown(KeyCode.Alpha2),
-                Weapon3 = Input.GetKeyDown(KeyCode.Alpha3),
-                Weapon4 = Input.GetKeyDown(KeyCode.Alpha4),
-                Weapon5 = Input.GetKeyDown(KeyCode.Alpha5),
-                Weapon6 = Input.GetKeyDown(KeyCode.Alpha6),
-                Weapon7 = Input.GetKeyDown(KeyCode.Alpha7),
-                WeaponCycleSteps = ReadWheelSteps(),
+                MoveForward = bindings.MoveForward.IsHeld(),
+                MoveBackward = bindings.MoveBackward.IsHeld(),
+                TurnLeft = bindings.TurnLeft.IsHeld(),
+                TurnRight = bindings.TurnRight.IsHeld(),
+                StrafeLeft = bindings.StrafeLeft.IsHeld(),
+                StrafeRight = bindings.StrafeRight.IsHeld(),
+                Fire = bindings.Fire.IsHeld(),
+                Use = bindings.Use.IsHeld(),
+                Run = bindings.Run.IsHeld(),
+                Weapon1 = bindings.Weapon1.IsPressed(),
+                Weapon2 = bindings.Weapon2.IsPressed(),
+                Weapon3 = bindings.Weapon3.IsPressed(),
+                Weapon4 = bindings.Weapon4.IsPressed(),
+                Weapon5 = bindings.Weapon5.IsPressed(),
+                Weapon6 = bindings.Weapon6.IsPressed(),
+                Weapon7 = bindings.Weapon7.IsPressed(),
+                WeaponCycleSteps = bindings.NextWeapon.ReadStepDelta() - bindings.PreviousWeapon.ReadStepDelta(),
                 MouseDeltaX = Input.GetAxis("Mouse X")
             };
-        }
-
-        private static int ReadWheelSteps()
-        {
-            var wheel = Input.mouseScrollDelta.y;
-            if (Mathf.Abs(wheel) < 0.01f)
-            {
-                return 0;
-            }
-
-            return wheel > 0f ? Mathf.CeilToInt(wheel) : Mathf.FloorToInt(wheel);
         }
     }
 }

@@ -16,7 +16,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\src\DoomInputBindingDefaults.cs" Link="DoomInputBindingDefaults.cs" />
+    <Compile Include="..\src\DoomBindingToken.cs" Link="DoomBindingToken.cs" />
+    <Compile Include="..\src\DoomBindingParser.cs" Link="DoomBindingParser.cs" />
     <Compile Include="..\src\DoomModEntryCore.cs" Link="DoomModEntryCore.cs" />
+    <Compile Include="..\src\DoomPendingWeaponInput.cs" Link="DoomPendingWeaponInput.cs" />
+    <Compile Include="..\src\DoomWeaponCyclePlanner.cs" Link="DoomWeaponCyclePlanner.cs" />
     <Compile Include="..\src\DoomVideoSettings.cs" Link="DoomVideoSettings.cs" />
   </ItemGroup>
 </Project>

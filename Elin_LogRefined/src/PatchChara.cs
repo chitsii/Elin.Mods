@@ -58,7 +58,7 @@ namespace Elin_LogRefined
         [HarmonyPostfix]
         public static void Postfix(Chara __instance, object __result, object[] __args)
         {
-            if (!ModConfig.EnableMod.Value || !ModConfig.ShowConditionLog.Value)
+            if (!ModConfig.EnableMod.Value || !ModConfig.ShowConditionLog.Value || !RuntimeGuard.IsGameplayReady())
             {
                 return;
             }
@@ -70,7 +70,7 @@ namespace Elin_LogRefined
                 return;
             }
 
-            bool isRelatedToPC = __instance.IsPC || __instance.IsPCFaction || EClass.pc.CanSee(__instance);
+            bool isRelatedToPC = RuntimeGuard.CanInspectCard(__instance);
             if (!isRelatedToPC)
             {
                 return;

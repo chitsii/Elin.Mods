@@ -75,7 +75,7 @@ namespace Elin_LogRefined
         [HarmonyPostfix]
         public static void Postfix(Card __instance, int __state, object[] __args)
         {
-            if (!ModConfig.EnableMod.Value || !ModConfig.ShowDamageLog.Value)
+            if (!ModConfig.EnableMod.Value || !ModConfig.ShowDamageLog.Value || !RuntimeGuard.IsGameplayReady())
             {
                 return;
             }
@@ -86,7 +86,7 @@ namespace Elin_LogRefined
                 return;
             }
 
-            bool isRelatedToPC = __instance.IsPC || __instance.IsPCFaction || EClass.pc.CanSee(__instance);
+            bool isRelatedToPC = RuntimeGuard.CanInspectCard(__instance);
 
             if (isRelatedToPC)
             {
@@ -250,7 +250,7 @@ namespace Elin_LogRefined
         [HarmonyPostfix]
         public static void Postfix(Card __instance, int __state)
         {
-            if (!ModConfig.EnableMod.Value || !ModConfig.ShowHealLog.Value)
+            if (!ModConfig.EnableMod.Value || !ModConfig.ShowHealLog.Value || !RuntimeGuard.IsGameplayReady())
             {
                 return;
             }
@@ -261,7 +261,7 @@ namespace Elin_LogRefined
                 return;
             }
 
-            bool isRelatedToPC = __instance.IsPC || __instance.IsPCFaction || EClass.pc.CanSee(__instance);
+            bool isRelatedToPC = RuntimeGuard.CanInspectCard(__instance);
 
             if (isRelatedToPC)
             {

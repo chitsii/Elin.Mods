@@ -24,11 +24,19 @@ namespace Elin_LogRefined
             _initialized = true;
 
             string dir = GetCommentaryDir();
-            string lang = Lang.langCode?.ToLower() ?? "jp";
+            string lang = GetSupportedLanguageCode().ToLowerInvariant();
 
             _customDamage = LoadCustomFile(dir, "damage", lang);
             _customHeal = LoadCustomFile(dir, "heal", lang);
             _customDebuff = LoadCustomFile(dir, "debuff", lang);
+        }
+
+        private static string GetSupportedLanguageCode()
+        {
+            string langCode = Lang.langCode;
+            if (langCode == "JP" || langCode == "CN" || langCode == "EN")
+                return langCode;
+            return "EN";
         }
 
         private static List<string> LoadCustomFile(string dir, string category, string lang)
@@ -103,9 +111,9 @@ namespace Elin_LogRefined
             if (_customDamage != null && _customDamage.Count > 0)
                 return _customDamage.RandomItem();
 
+            if (Lang.langCode == "JP") return Damage_JP.RandomItem();
             if (Lang.langCode == "CN") return Damage_CN.RandomItem();
-            if (Lang.langCode == "EN") return Damage_EN.RandomItem();
-            return Damage_JP.RandomItem();
+            return Damage_EN.RandomItem();
         }
 
         public static string GetRandomHeal()
@@ -114,9 +122,9 @@ namespace Elin_LogRefined
             if (_customHeal != null && _customHeal.Count > 0)
                 return _customHeal.RandomItem();
 
+            if (Lang.langCode == "JP") return Heal_JP.RandomItem();
             if (Lang.langCode == "CN") return Heal_CN.RandomItem();
-            if (Lang.langCode == "EN") return Heal_EN.RandomItem();
-            return Heal_JP.RandomItem();
+            return Heal_EN.RandomItem();
         }
 
         public static string GetRandomDebuff()
@@ -125,9 +133,9 @@ namespace Elin_LogRefined
             if (_customDebuff != null && _customDebuff.Count > 0)
                 return _customDebuff.RandomItem();
 
+            if (Lang.langCode == "JP") return Debuff_JP.RandomItem();
             if (Lang.langCode == "CN") return Debuff_CN.RandomItem();
-            if (Lang.langCode == "EN") return Debuff_EN.RandomItem();
-            return Debuff_JP.RandomItem();
+            return Debuff_EN.RandomItem();
         }
 
         // テンプレートファイルを生成

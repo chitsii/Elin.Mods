@@ -50,7 +50,7 @@ namespace Elin_LogRefined
         [HarmonyPrefix]
         public static bool Prefix(BaseCondition __instance)
         {
-            if (!ModConfig.EnableMod.Value)
+            if (!ModConfig.EnableMod.Value || !RuntimeGuard.IsGameplayReady())
                 return true;
 
             if (__instance.owner == null)
@@ -118,7 +118,7 @@ namespace Elin_LogRefined
         [HarmonyPrefix]
         public static void Prefix(Condition __instance, ref bool silent)
         {
-            if (!ModConfig.EnableMod.Value || silent)
+            if (!ModConfig.EnableMod.Value || !RuntimeGuard.IsGameplayReady() || silent)
                 return;
 
             if (__instance.owner == null)

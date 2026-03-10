@@ -71,7 +71,7 @@ namespace Elin_LogRefined
         [HarmonyPrefix]
         public static void Prefix(object[] __args)
         {
-            if (!ModConfig.EnableMod.Value) return;
+            if (!ModConfig.EnableMod.Value || !RuntimeGuard.IsGameplayReady()) return;
             if (__args == null || _idxColorArg < 0 || _idxColorArg >= __args.Length) return;
 
             object colorArg = __args[_idxColorArg];
@@ -107,7 +107,7 @@ namespace Elin_LogRefined
         [HarmonyPostfix]
         public static void Postfix(MsgBlock __instance)
         {
-            if (!ModConfig.EnableMod.Value) return;
+            if (!ModConfig.EnableMod.Value || !RuntimeGuard.IsGameplayReady()) return;
             var surfaceColor = RefinedLogUtil.GetSurfaceColor();
             if (surfaceColor.HasValue)
             {

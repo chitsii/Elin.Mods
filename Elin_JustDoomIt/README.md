@@ -55,12 +55,28 @@ Elin のカスタムアーケード筐体（CWLで追加）から、オーバー
 - `doom1.wad` など id Software の商用アセットは本 Mod に同梱しません。
 - 利用者が自身で正規に保有するデータのみ利用してください。
 
-## Notes
+## 設定と補足
 
 - この Mod は Elin 本体、BepInEx、および上記サードパーティ資産に依存します。
 - ライセンスの最終判断は各プロジェクトの原文ライセンスに従ってください。
 - DOOMモード中のBGMは `Sound/BGM/*.ogg` を順番に再生します（ファイル名昇順）。
 - FreeDoom 由来の音源（OGG化済み）を `Sound/BGM` に配置してください。
+
+## 操作方法
+
+デフォルト設定では以下の操作です。
+
+- 移動: `W / A / S / D`（矢印キーでも可）
+- エイム / 射撃: `マウス移動` / `左クリック`
+- 使う/開ける: `E` / `Space`
+- ダッシュ: `Shift`
+- 武器切替: `1 - 7` / `マウスホイール`
+- 終了: `ESC`
+
+キーバインドを変更している場合は、実際の操作は `BepInEx/config/chitsii.elin_justdoomit.cfg` の `Input.*` に従います。
+
+## Notes
+
 - DOOM の内部解像度と明るさは `BepInEx/config/chitsii.elin_justdoomit.cfg` の `DOOM.ScreenWidth` / `DOOM.ScreenHeight` / `DOOM.Brightness` で調整できます。
 - DOOM のキーバインドは `BepInEx/config/chitsii.elin_justdoomit.cfg` の `Input.*` で調整できます。値は `W,UpArrow` のようなカンマ区切りです。`Mouse0` / `Mouse1` / `Mouse2` も使えます。`WheelUp` / `WheelDown` は `NextWeapon` / `PreviousWeapon` 専用です。キー名は Unity 公式 `KeyCode` 一覧を参照してください: <https://docs.unity3d.com/ScriptReference/KeyCode.html>
 - `cfg` を編集した後は Elin 再起動ではなく、次に DOOM を起動した時点で再読込されます。

@@ -11,6 +11,7 @@
 | `Elin_ArsMoriendi` | Ars Moriendi | 死霊術とクエストライン追加。魂の捕獲、禁術の習得、アンデッド従者の使役 |
 | `Elin_SukutsuArena` | 狭間の闘技場 | レシマス付近に闘技場とクエストライン追加。エンドコンテンツ向け難易度 |
 | `Elin_LogRefined` | Log Refined | ダメージ・回復・バフ・デバフのログ強化 |
+| `Elin_JustDoomIt` | Just Doom It | カジノのアーケード筐体から DOOM 互換プレイを起動。FreeDoom 同梱、外部 PWAD 対応 |
 | `Elin_ItemRelocator` | Item Relocator | フィルタプリセット付きアイテム検索・一括移動ツール |
 | `Elin_AutoOfferingAlter` | SleepOffer - 睡眠奉納 | 睡眠中に信仰ボックスから自動奉納。配分最適化付き |
 
@@ -23,6 +24,7 @@
 | `Elin_RapidFireMagic` | Rapid Fire Magic | ホットバー魔法ボタン長押しで連射詠唱 |
 | `Elin_BottleNeckFinder` | BottleNeckFinder | Mod環境のパフォーマンスプロファイラー |
 | `Elin_JumpAndBop` | Dynamic Jump & Bop | 待機時のリズミカルなバウンスアニメーション |
+| `Elin_NiComment` | NiComment | AIによるニコニコ風コメント表示 |
 
 ## 開発中
 

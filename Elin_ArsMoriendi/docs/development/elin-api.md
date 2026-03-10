@@ -59,6 +59,33 @@
 
 追放時: `FactionBranch.BanishMember` -> `RemoveMemeber` -> `SetFaction(Wilds)` -> `IsPCFactionOrMinion == false`
 
+## `MakeMinion(EClass.pc)` 従者のバニラ制限（実装確認済み）
+
+- 最終確認: 2026-03-09
+- バニラは召喚系 Effect 実行時に `EClass._zone.CountMinions(CC) >= CC.MaxSummon || CC.c_uidMaster != 0` を見ており、`c_uidMaster != 0` のキャラは召喚系能力を使えない。
+- そのため、`source.actCombat` に召喚能力を持つ個体でも、`MakeMinion(EClass.pc)` 後は召喚に失敗する。これは Trait 交換の有無ではなく、minion 化そのものによる制限。
+- 例: シュブ＝ニグラスは `SpSummonShubKid` を持つが、従者化後は `c_uidMaster != 0` により落とし子召喚が失敗する。
+- 現行の Ars Moriendi 従者モデルでは `MakeMinion(EClass.pc)` を使っているため、この制限を受ける。
+
+### 通常ペットとの違い
+
+- 通常のペット加入は主に `Party.AddMemeber` で処理され、party 参加だけでは `c_uidMaster` は立たない。
+- したがって、通常ペット枠のキャラは原則として上記の「minion の召喚禁止」条件には引っかからない。
+- 一方で Ars Moriendi の従者は `Party` ではなく `minion` として管理されるため、以下の差分が出る:
+  - 召喚系能力を使えない
+  - `WidgetRoster` / `maxAlly` など party ベース UI に出ない
+  - ゾーン遷移時に PC 近傍 spawn ではなく、minion/carryover 側の経路で追従する
+  - `AI_Idle` の一部 party 専用挙動（party 全体回復、共有コンテナ取得、読書、釣り追従など）に入らない
+  - `CanJoinParty == false` の場合、`GetRevived()` はバニラで `homeZone` へ戻そうとする
+
+### 設計上の含意
+
+- 「召喚能力を持つ敵/ボスを従者化しても召喚能力を維持したい」場合、現行の `MakeMinion(EClass.pc)` モデルのままではバニラ制限に止められる。
+- 回避策は実質的に次のどちらか:
+  - 召喚系 Effect の `c_uidMaster != 0` 制限を個別パッチで緩和する
+  - 従者の管理モデルを minion 以外（party / 独自追従管理など）へ再設計する
+- Trait 差し替えや tactic 調整だけでは、この召喚禁止は解除できない。
+
 ## SourceExcel データの探索
 
 ゲーム内の全アイテム・キャラ・カテゴリ等は SourceExcel（xlsx）で定義されている。

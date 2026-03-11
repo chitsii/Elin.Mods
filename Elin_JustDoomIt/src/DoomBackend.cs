@@ -19,7 +19,6 @@ namespace Elin_JustDoomIt
     {
         public int TotalKills;
         public int CurrentKillStreak;
-        public int Reward;
         public string Enemy;
         public int Health;
         public int Armor;
@@ -30,12 +29,106 @@ namespace Elin_JustDoomIt
         public int MapKillTotal;
     }
 
+    public struct DoomMapStartEvent
+    {
+        public int Episode;
+        public int Map;
+        public int Skill;
+        public string MapCode;
+        public string MapTitle;
+    }
+
+    public struct DoomDamageEvent
+    {
+        public int Health;
+        public int Armor;
+        public string MapCode;
+        public string MapTitle;
+    }
+
+    public struct DoomDeathEvent
+    {
+        public int Episode;
+        public int Map;
+        public string MapCode;
+        public string MapTitle;
+    }
+
+    public struct DoomSecretEvent
+    {
+        public int Count;
+        public int SecretCount;
+        public int TotalSecrets;
+        public string MapCode;
+        public string MapTitle;
+    }
+
+    public enum DoomBackendEventType
+    {
+        None = 0,
+        MapStart = 1,
+        Damage = 2,
+        Death = 3,
+        Kill = 4,
+        Secret = 5
+    }
+
+    public readonly struct DoomBackendEvent
+    {
+        public DoomBackendEventType Type { get; }
+        public DoomMapStartEvent MapStartEvent { get; }
+        public DoomDamageEvent DamageEvent { get; }
+        public DoomDeathEvent DeathEvent { get; }
+        public DoomKillEvent KillEvent { get; }
+        public DoomSecretEvent SecretEvent { get; }
+
+        private DoomBackendEvent(
+            DoomBackendEventType type,
+            DoomMapStartEvent mapStartEvent,
+            DoomDamageEvent damageEvent,
+            DoomDeathEvent deathEvent,
+            DoomKillEvent killEvent,
+            DoomSecretEvent secretEvent)
+        {
+            Type = type;
+            MapStartEvent = mapStartEvent;
+            DamageEvent = damageEvent;
+            DeathEvent = deathEvent;
+            KillEvent = killEvent;
+            SecretEvent = secretEvent;
+        }
+
+        public static DoomBackendEvent FromMapStart(DoomMapStartEvent mapStartEvent)
+        {
+            return new DoomBackendEvent(DoomBackendEventType.MapStart, mapStartEvent, default, default, default, default);
+        }
+
+        public static DoomBackendEvent FromDamage(DoomDamageEvent damageEvent)
+        {
+            return new DoomBackendEvent(DoomBackendEventType.Damage, default, damageEvent, default, default, default);
+        }
+
+        public static DoomBackendEvent FromDeath(DoomDeathEvent deathEvent)
+        {
+            return new DoomBackendEvent(DoomBackendEventType.Death, default, default, deathEvent, default, default);
+        }
+
+        public static DoomBackendEvent FromKill(DoomKillEvent killEvent)
+        {
+            return new DoomBackendEvent(DoomBackendEventType.Kill, default, default, default, killEvent, default);
+        }
+
+        public static DoomBackendEvent FromSecret(DoomSecretEvent secretEvent)
+        {
+            return new DoomBackendEvent(DoomBackendEventType.Secret, default, default, default, default, secretEvent);
+        }
+    }
+
     public struct DoomRunStats
     {
         public int TotalKills;
         public int MaxKillStreak;
         public int CurrentKillStreak;
-        public int KillChipPayout;
         public int ClearEventCount;
         public int BossClearEventCount;
     }
@@ -46,9 +139,11 @@ namespace Elin_JustDoomIt
         int Height { get; }
         bool IsRunning { get; }
         DoomRunStats Stats { get; }
+        int PersistentTotalChips { get; set; }
         bool Initialize(DoomLaunchConfig launchConfig, ManualLogSource logger);
+        void PrimeSessionState();
         void SubmitInput(DoomInputState input);
-        bool TryDequeueKillEvent(out DoomKillEvent killEvent);
+        bool TryDequeueEvent(out DoomBackendEvent backendEvent);
         void SavePersistentCheckpoint();
         void SavePersistentNow();
         void Tick(float deltaTime);
@@ -90,12 +185,21 @@ namespace Elin_JustDoomIt
         private GameState _lastGameState = GameState.Level;
         private int _lastHealth = -1;
         private int _lastDamageCount = -1;
-        private readonly Queue<DoomKillEvent> _killEvents = new Queue<DoomKillEvent>();
+        private int _lastSecretCount = -1;
+        private PlayerState _lastPlayerState;
+        private bool _hasLastPlayerState;
+        private int _persistentTotalChips;
+        private readonly Queue<DoomBackendEvent> _orderedEvents = new Queue<DoomBackendEvent>();
 
         public int Width => _video?.Width ?? Mathf.Max(160, _requestedWidth);
         public int Height => _video?.Height ?? Mathf.Max(100, _requestedHeight);
         public bool IsRunning => _running;
         public DoomRunStats Stats => _stats;
+        public int PersistentTotalChips
+        {
+            get => _persistentTotalChips;
+            set => _persistentTotalChips = Mathf.Max(0, value);
+        }
 
         public ManagedDoomBackend(int requestedWidth, int requestedHeight)
         {
@@ -171,6 +275,11 @@ namespace Elin_JustDoomIt
                     DoomPersistentSaveStore.TryLoadSummary(_saveSlotKey, out var loadedSummary))
                 {
                     _loadedTotalPlaySeconds = Mathf.Max(0, loadedSummary.TotalPlaySeconds);
+                    _persistentTotalChips = Mathf.Max(0, loadedSummary.TotalChips);
+                }
+                else
+                {
+                    _persistentTotalChips = 0;
                 }
                 if (launchConfig.LoadExistingSave && !string.IsNullOrWhiteSpace(_saveSlotKey))
                 {
@@ -197,7 +306,10 @@ namespace Elin_JustDoomIt
                 _lastGameState = GameState.Level;
                 _lastHealth = -1;
                 _lastDamageCount = -1;
-                _killEvents.Clear();
+                _lastSecretCount = -1;
+                _lastPlayerState = default;
+                _hasLastPlayerState = false;
+                _orderedEvents.Clear();
                 _running = true;
                 logger.LogInfo("[JustDoomIt] Managed Doom initialized. saveKey=" + (_saveSlotKey ?? "(none)"));
                 return true;
@@ -216,15 +328,36 @@ namespace Elin_JustDoomIt
             _pendingWeaponInput.Capture(ExtractWeaponSlot(input), input.WeaponCycleSteps);
         }
 
-        public bool TryDequeueKillEvent(out DoomKillEvent killEvent)
+        public void PrimeSessionState()
         {
-            if (_killEvents.Count > 0)
+            if (!_running || _doom == null || _video == null)
             {
-                killEvent = _killEvents.Dequeue();
+                return;
+            }
+
+            try
+            {
+                EnsurePersistentSaveLoaded();
+                CaptureCurrentState(queueLevelStart: true);
+                _video.Render(_doom, Fixed.Zero);
+                _video.CopyFrame(_frame);
+            }
+            catch (System.Exception ex)
+            {
+                DoomDiagnostics.Error("[JustDoomIt] ManagedDoomBackend.PrimeSessionState failed.", ex);
+                _running = false;
+            }
+        }
+
+        public bool TryDequeueEvent(out DoomBackendEvent backendEvent)
+        {
+            if (_orderedEvents.Count > 0)
+            {
+                backendEvent = _orderedEvents.Dequeue();
                 return true;
             }
 
-            killEvent = default;
+            backendEvent = default;
             return false;
         }
 
@@ -237,12 +370,7 @@ namespace Elin_JustDoomIt
 
             try
             {
-                if (_loadPersistentSaveOnStart)
-                {
-                    _doom.LoadGame(0);
-                    _loadPersistentSaveOnStart = false;
-                    SyncWeaponPlannerFromGameState();
-                }
+                EnsurePersistentSaveLoaded();
 
                 _frameCount++;
 
@@ -351,7 +479,11 @@ namespace Elin_JustDoomIt
             _lastGameState = GameState.Level;
             _lastHealth = -1;
             _lastDamageCount = -1;
-            _killEvents.Clear();
+            _lastSecretCount = -1;
+            _lastPlayerState = default;
+            _hasLastPlayerState = false;
+            _persistentTotalChips = 0;
+            _orderedEvents.Clear();
         }
 
         private void ApplyPendingWeaponInputForTick()
@@ -430,6 +562,18 @@ namespace Elin_JustDoomIt
             }
         }
 
+        private void EnsurePersistentSaveLoaded()
+        {
+            if (!_loadPersistentSaveOnStart || _doom == null)
+            {
+                return;
+            }
+
+            _doom.LoadGame(0);
+            _loadPersistentSaveOnStart = false;
+            SyncWeaponPlannerFromGameState();
+        }
+
         private void UpdatePendingPersistentSaveExport()
         {
             if (!_pendingSaveExport)
@@ -493,6 +637,19 @@ namespace Elin_JustDoomIt
             }
         }
 
+        private static int ToSkillNumber(GameSkill skill)
+        {
+            switch (skill)
+            {
+                case GameSkill.Baby: return 1;
+                case GameSkill.Easy: return 2;
+                case GameSkill.Medium: return 3;
+                case GameSkill.Hard: return 4;
+                case GameSkill.Nightmare: return 5;
+                default: return 3;
+            }
+        }
+
         private void UpdateRunStats()
         {
             var game = _doom?.Game;
@@ -503,12 +660,14 @@ namespace Elin_JustDoomIt
                 return;
             }
 
-                _input?.SetObservedWeapon(player.ReadyWeapon);
-                _weaponCyclePlanner.SyncActualReady(ToWeaponSlot(player.ReadyWeapon));
+            _input?.SetObservedWeapon(player.ReadyWeapon);
+            _weaponCyclePlanner.SyncActualReady(ToWeaponSlot(player.ReadyWeapon));
             ApplyInvincibility(player);
 
             var episode = game.Options?.Episode ?? 1;
             var map = game.Options?.Map ?? 1;
+            var skill = ToSkillNumber(game.Options?.Skill ?? GameSkill.Medium);
+            var playerState = player.PlayerState;
             var mapChanged = episode != _lastEpisode || map != _lastMap;
             if (mapChanged)
             {
@@ -518,6 +677,7 @@ namespace Elin_JustDoomIt
                 _mapKillCount = 0;
                 _lastHealth = player.Health;
                 _lastDamageCount = player.DamageCount;
+                _lastSecretCount = player.SecretCount;
             }
 
             if (_lastHealth < 0)
@@ -530,36 +690,79 @@ namespace Elin_JustDoomIt
                 _lastDamageCount = player.DamageCount;
             }
 
+            if (_lastSecretCount < 0)
+            {
+                _lastSecretCount = player.SecretCount;
+            }
+
+            if (game.State == GameState.Level &&
+                playerState == PlayerState.Live &&
+                (mapChanged || _lastGameState != GameState.Level || !_hasLastPlayerState || _lastPlayerState != PlayerState.Live))
+            {
+                EnqueueMapStartEvent(episode, map, skill, world.Map?.Title ?? string.Empty);
+            }
+
             var invincible = ModConfig.InvincibleMode != null && ModConfig.InvincibleMode.Value;
             var tookDamage = !invincible &&
                 (player.Health < _lastHealth || player.DamageCount > _lastDamageCount);
-            if (tookDamage)
+            if (playerState == PlayerState.Dead && (!_hasLastPlayerState || _lastPlayerState != PlayerState.Dead))
             {
                 _killStreak = 0;
                 _stats.CurrentKillStreak = 0;
+                EnqueueDeathEvent(new DoomDeathEvent
+                {
+                    Episode = episode,
+                    Map = map,
+                    MapCode = "E" + episode + "M" + map,
+                    MapTitle = world.Map?.Title ?? string.Empty
+                });
+            }
+            else if (tookDamage)
+            {
+                _killStreak = 0;
+                _stats.CurrentKillStreak = 0;
+                EnqueueDamageEvent(new DoomDamageEvent
+                {
+                    Health = player.Health,
+                    Armor = player.ArmorPoints,
+                    MapCode = "E" + episode + "M" + map,
+                    MapTitle = world.Map?.Title ?? string.Empty
+                });
             }
 
             _lastHealth = player.Health;
             _lastDamageCount = player.DamageCount;
+            _lastPlayerState = playerState;
+            _hasLastPlayerState = true;
+
+            if (player.SecretCount > _lastSecretCount)
+            {
+                EnqueueSecretEvent(new DoomSecretEvent
+                {
+                    Count = player.SecretCount - _lastSecretCount,
+                    SecretCount = player.SecretCount,
+                    TotalSecrets = world.TotalSecrets,
+                    MapCode = "E" + episode + "M" + map,
+                    MapTitle = world.Map?.Title ?? string.Empty
+                });
+            }
+            _lastSecretCount = player.SecretCount;
 
             while (DoomKillFeed.TryDequeueEnemy(out var enemyName))
             {
                 _killStreak++;
                 _mapKillCount++;
-                var reward = GetKillRewardByStreak(_killStreak);
                 _stats.TotalKills++;
-                _stats.KillChipPayout += reward;
                 _stats.CurrentKillStreak = _killStreak;
                 if (_killStreak > _stats.MaxKillStreak)
                 {
                     _stats.MaxKillStreak = _killStreak;
                 }
 
-                _killEvents.Enqueue(new DoomKillEvent
+                EnqueueKillEvent(new DoomKillEvent
                 {
                     TotalKills = _stats.TotalKills,
                     CurrentKillStreak = _killStreak,
-                    Reward = reward,
                     Enemy = enemyName ?? "Unknown",
                     Health = player.Health,
                     Armor = player.ArmorPoints,
@@ -586,6 +789,73 @@ namespace Elin_JustDoomIt
             _lastGameState = game.State;
         }
 
+        private void CaptureCurrentState(bool queueLevelStart)
+        {
+            var game = _doom?.Game;
+            var world = game?.World;
+            var player = world?.ConsolePlayer;
+            if (game == null || world == null || player == null)
+            {
+                return;
+            }
+
+            _input?.SetObservedWeapon(player.ReadyWeapon);
+            _weaponCyclePlanner.SyncActualReady(ToWeaponSlot(player.ReadyWeapon));
+            ApplyInvincibility(player);
+
+            var episode = game.Options?.Episode ?? 1;
+            var map = game.Options?.Map ?? 1;
+            var skill = ToSkillNumber(game.Options?.Skill ?? GameSkill.Medium);
+            _lastEpisode = episode;
+            _lastMap = map;
+            _lastHealth = player.Health;
+            _lastDamageCount = player.DamageCount;
+            _lastSecretCount = player.SecretCount;
+            _lastGameState = game.State;
+            _lastPlayerState = player.PlayerState;
+            _hasLastPlayerState = true;
+            _killStreak = 0;
+            _mapKillCount = 0;
+            _stats.CurrentKillStreak = 0;
+
+            if (queueLevelStart && game.State == GameState.Level && player.PlayerState == PlayerState.Live)
+            {
+                EnqueueMapStartEvent(episode, map, skill, world.Map?.Title ?? string.Empty);
+            }
+        }
+
+        private void EnqueueMapStartEvent(int episode, int map, int skill, string mapTitle)
+        {
+            _orderedEvents.Enqueue(DoomBackendEvent.FromMapStart(new DoomMapStartEvent
+            {
+                Episode = episode,
+                Map = map,
+                Skill = Mathf.Clamp(skill, 1, 5),
+                MapCode = "E" + episode + "M" + map,
+                MapTitle = mapTitle ?? string.Empty
+            }));
+        }
+
+        private void EnqueueDamageEvent(DoomDamageEvent damageEvent)
+        {
+            _orderedEvents.Enqueue(DoomBackendEvent.FromDamage(damageEvent));
+        }
+
+        private void EnqueueDeathEvent(DoomDeathEvent deathEvent)
+        {
+            _orderedEvents.Enqueue(DoomBackendEvent.FromDeath(deathEvent));
+        }
+
+        private void EnqueueKillEvent(DoomKillEvent killEvent)
+        {
+            _orderedEvents.Enqueue(DoomBackendEvent.FromKill(killEvent));
+        }
+
+        private void EnqueueSecretEvent(DoomSecretEvent secretEvent)
+        {
+            _orderedEvents.Enqueue(DoomBackendEvent.FromSecret(secretEvent));
+        }
+
         private DoomSaveSummary BuildSaveSummary()
         {
             var sessionSeconds = Mathf.Max(0, Mathf.RoundToInt(_sessionPlaySeconds));
@@ -597,7 +867,7 @@ namespace Elin_JustDoomIt
                 LastSessionSeconds = sessionSeconds,
                 TotalKills = _stats.TotalKills,
                 MaxKillStreak = _stats.MaxKillStreak,
-                TotalChips = _stats.KillChipPayout
+                TotalChips = _persistentTotalChips
             };
         }
 
@@ -627,28 +897,6 @@ namespace Elin_JustDoomIt
 
             // Doom-format episodes place bosses mainly on M8 (and optional secret finale on M9).
             return map == 8 || map == 9;
-        }
-
-        private static int GetKillRewardByStreak(int streak)
-        {
-            if (streak <= 1)
-            {
-                return 100;
-            }
-
-            // Use integer doubling with an explicit cap to avoid overflow on high streaks.
-            var reward = 100;
-            for (var i = 1; i < streak; i++)
-            {
-                if (reward >= 5000)
-                {
-                    return 5000;
-                }
-
-                reward *= 2;
-            }
-
-            return Mathf.Clamp(reward, 100, 5000);
         }
 
         private static string GetWeaponName(WeaponType weapon)

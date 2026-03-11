@@ -19,6 +19,7 @@ namespace Elin_JustDoomIt
         public string selectedIwadFile = "freedoom1.wad";
         public string selectedModId = string.Empty;
         public int selectedSkill = 3;
+        public string selectedRewardRateMode = DoomLaunchPreferences.RewardRateAskEveryMap;
 
         // Legacy in-memory carry-over only. Do not persist in new format.
         public List<string> enabledModFiles = new List<string>();
@@ -34,6 +35,7 @@ namespace Elin_JustDoomIt
         public string SaveSlotKey;
         public bool LoadExistingSave;
         public DoomModEntryDefinition SelectedEntry;
+        public DoomRewardRateSelectionMode RewardRateSelectionMode;
     }
 
     public static class DoomWadLocator
@@ -121,11 +123,13 @@ namespace Elin_JustDoomIt
             var beforeIwad = loadout.selectedIwadFile ?? string.Empty;
             var beforeSkill = loadout.selectedSkill;
             var beforeMod = loadout.selectedModId ?? string.Empty;
+            var beforeRateMode = loadout.selectedRewardRateMode ?? string.Empty;
             SanitizeLoadout(loadout, FindModEntries());
 
             return !string.Equals(beforeIwad, loadout.selectedIwadFile, StringComparison.Ordinal) ||
                    beforeSkill != loadout.selectedSkill ||
-                   !string.Equals(beforeMod, loadout.selectedModId ?? string.Empty, StringComparison.Ordinal);
+                   !string.Equals(beforeMod, loadout.selectedModId ?? string.Empty, StringComparison.Ordinal) ||
+                   !string.Equals(beforeRateMode, loadout.selectedRewardRateMode ?? string.Empty, StringComparison.Ordinal);
         }
 
         public static string GetIwadDisplayName(string fileName)
@@ -190,7 +194,8 @@ namespace Elin_JustDoomIt
             {
                 "selected_iwad=" + sanitized.selectedIwadFile,
                 "selected_mod_id=" + (sanitized.selectedModId ?? string.Empty),
-                "selected_skill=" + sanitized.selectedSkill
+                "selected_skill=" + sanitized.selectedSkill,
+                "selected_reward_rate_mode=" + (sanitized.selectedRewardRateMode ?? DoomLaunchPreferences.RewardRateAskEveryMap)
             };
             File.WriteAllLines(path, lines);
         }
@@ -243,7 +248,8 @@ namespace Elin_JustDoomIt
                 Map = 1,
                 SaveSlotKey = DoomPersistentSaveStore.BuildSlotKey(iwad?.FileName, manifestHash),
                 LoadExistingSave = false,
-                SelectedEntry = selectedEntry
+                SelectedEntry = selectedEntry,
+                RewardRateSelectionMode = DoomLaunchPreferences.ParseRewardRateSelectionMode(sanitized.selectedRewardRateMode)
             };
         }
 
@@ -422,6 +428,8 @@ namespace Elin_JustDoomIt
             }
 
             loadout.selectedSkill = Mathf.Clamp(loadout.selectedSkill, 1, 5);
+            loadout.selectedRewardRateMode = DoomLaunchPreferences.SerializeRewardRateSelectionMode(
+                DoomLaunchPreferences.ParseRewardRateSelectionMode(loadout.selectedRewardRateMode));
             return loadout;
         }
 
@@ -521,6 +529,10 @@ namespace Elin_JustDoomIt
                     {
                         loadout.selectedSkill = skill;
                     }
+                }
+                else if (key.Equals("selected_reward_rate_mode", StringComparison.OrdinalIgnoreCase))
+                {
+                    loadout.selectedRewardRateMode = value;
                 }
             }
 

@@ -2,9 +2,11 @@
 
 Adds a playable DOOM arcade cabinet next to the Fortune Bell reception desk.
 
-Kill demons to earn 100 casino chips per frag. 
-Chain kills without taking damage and your payout doubles each time. 
-Get hit? Back to square one.
+Choose a `LOW / MID / HIGH` RATE at the start of each map.
+`LOW` is the safe lane, `MID` is the standard lane, and `HIGH` is the dream lane for long clean maps.
+Kills build an unbanked pool for that map, hits shave part of the pool and reset the kill bonus, and only a clear lets you `CASH OUT`.
+Each secret found also adds a flat `+500` to the same unbanked pool.
+Death cashes out the current map's unbanked pool, while `ESC` exits still wipe it.
 It's basically the world's most violent slot machine.
 
 Play it at the casino, steal it, put it in your barn — your call.

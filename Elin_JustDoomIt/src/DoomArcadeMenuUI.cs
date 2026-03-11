@@ -11,7 +11,7 @@ namespace Elin_JustDoomIt
 {
     public sealed class DoomArcadeMenuUI : MonoBehaviour
     {
-        private enum MenuState { Main, IwadPicker, PwadPicker, SkillPicker, GeneralSettings, ResolutionPicker, BrightnessPicker, ModSetup, ResetSetupConfirm, ExitConfirm }
+        private enum MenuState { Main, IwadPicker, PwadPicker, SkillPicker, GeneralSettings, RewardRatePicker, ResolutionPicker, BrightnessPicker, ModSetup, ResetSetupConfirm, ExitConfirm }
         private enum RowKind { Setting, Action, Separator }
         private enum RowTag
         {
@@ -22,6 +22,7 @@ namespace Elin_JustDoomIt
             Iwad,
             Resolution,
             Brightness,
+            RewardRate,
             Mods,
             GeneralSettings,
             OpenModFolder,
@@ -52,6 +53,13 @@ namespace Elin_JustDoomIt
             public RowTag Tag;
         }
 
+        private struct SummaryRowUi
+        {
+            public GameObject Root;
+            public Text Label;
+            public Text Value;
+        }
+
         // ── Palette ──
         private static readonly Color ColBgPanel = new Color(10 / 255f, 10 / 255f, 15 / 255f, 0.97f);
         private static readonly Color ColDim = new Color(0f, 0f, 0f, 0.72f);
@@ -72,9 +80,13 @@ namespace Elin_JustDoomIt
         private static readonly Color ColOverlayBg = new Color(5 / 255f, 5 / 255f, 8 / 255f, 0.98f);
         private static readonly Color ColFlashRed = new Color(1f, 0.2f, 0.2f);
         private static readonly Color ColAmber = new Color(1f, 0.75f, 0.15f);
+        private static readonly Color ColSummaryLabel = new Color(0.80f, 0.40f, 0.20f); // #CC6633
+        private static readonly Color ColSummaryValue = new Color(1f, 0.72f, 0f); // #FFB800
+        private static readonly Color ColHelpText = new Color(0.82f, 0.88f, 0.92f); // #D0E0EC
+        private static readonly Color ColSettingRow = new Color(0.60f, 0.60f, 0.60f); // #999999
 
-        private const float PanelWidth = 680f;
-        private const float PanelHeight = 520f;
+        private const float PanelWidth = 760f;
+        private const float PanelHeight = 560f;
         private const float RowHeight = 28f;
         private const float RowSpacing = 4f;
         private const int FontSizeTitle = 28;
@@ -114,7 +126,15 @@ namespace Elin_JustDoomIt
         private Text _titleText;
         private Text _sectionHeader;
         private Text _statusLine;
+        private GameObject _mainSummaryRoot;
+        private SummaryRowUi _summaryIwadRow;
+        private SummaryRowUi _summaryModRow;
+        private SummaryRowUi _summarySkillRow;
+        private SummaryRowUi _summaryRateRow;
+        private Image _helpBoxBg;
+        private Text _helpText;
         private Text _footerText;
+        private GameObject _headerDivider;
         private RectTransform _listRoot;
         private Image _slotMeter;
         private Image _slotMeterBg;
@@ -338,7 +358,10 @@ namespace Elin_JustDoomIt
 
             BuildBackground();
             BuildHeader();
+            BuildMainSummaryPanel();
+            BuildSummaryDivider();
             BuildListArea();
+            BuildHelpBox();
             BuildSlotMeter();
             BuildFooter();
             BuildOverlayPanel();
@@ -432,7 +455,7 @@ namespace Elin_JustDoomIt
             srt.sizeDelta = new Vector2(-60, 24);
             _sectionHeader.alignment = TextAnchor.MiddleLeft;
 
-            // Divider
+            // Divider (below section header, for sub-menus only)
             var divGo = new GameObject("Divider");
             divGo.transform.SetParent(panelTr, false);
             var divImg = divGo.AddComponent<Image>();
@@ -444,6 +467,7 @@ namespace Elin_JustDoomIt
             drt.pivot = new Vector2(0.5f, 1f);
             drt.anchoredPosition = new Vector2(0, -88);
             drt.sizeDelta = new Vector2(-40, 1);
+            _headerDivider = divGo;
 
             // Status line
             _statusLine = MakeText(panelTr, "StatusLine", 16, FontStyle.Normal, ColAmber);
@@ -467,7 +491,113 @@ namespace Elin_JustDoomIt
             _listRoot.anchorMax = new Vector2(1, 1);
             _listRoot.pivot = new Vector2(0f, 1f);
             _listRoot.anchoredPosition = new Vector2(30, -114);
-            _listRoot.sizeDelta = new Vector2(-60, 340);
+            _listRoot.sizeDelta = new Vector2(-60, 286);
+        }
+
+        private void BuildMainSummaryPanel()
+        {
+            var panelTr = _panelImage.transform;
+            _mainSummaryRoot = new GameObject("MainSummaryRoot");
+            _mainSummaryRoot.transform.SetParent(panelTr, false);
+            var rootRt = _mainSummaryRoot.AddComponent<RectTransform>();
+            rootRt.anchorMin = new Vector2(0, 1);
+            rootRt.anchorMax = new Vector2(1, 1);
+            rootRt.pivot = new Vector2(0f, 1f);
+            rootRt.anchoredPosition = new Vector2(0, -58);
+            rootRt.sizeDelta = new Vector2(0f, 80f);
+
+            const float rowH = 20f;
+            _summaryIwadRow = CreateSummaryRow(_mainSummaryRoot.transform, "IwadRow", 0 * rowH);
+            _summaryModRow = CreateSummaryRow(_mainSummaryRoot.transform, "ModRow", 1 * rowH);
+            _summarySkillRow = CreateSummaryRow(_mainSummaryRoot.transform, "SkillRow", 2 * rowH);
+            _summaryRateRow = CreateSummaryRow(_mainSummaryRoot.transform, "RateRow", 3 * rowH);
+            _mainSummaryRoot.SetActive(false);
+        }
+
+        private SummaryRowUi CreateSummaryRow(Transform parent, string name, float yOffset)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0, 1);
+            rt.anchorMax = new Vector2(1, 1);
+            rt.pivot = new Vector2(0f, 1f);
+            rt.anchoredPosition = new Vector2(0, -yOffset);
+            rt.sizeDelta = new Vector2(0, 20f);
+
+            var label = MakeText(go.transform, "Label", 14, FontStyle.Bold, ColSummaryLabel);
+            label.alignment = TextAnchor.MiddleLeft;
+            var labelRt = label.GetComponent<RectTransform>();
+            labelRt.anchorMin = new Vector2(0, 0);
+            labelRt.anchorMax = new Vector2(0, 1);
+            labelRt.pivot = new Vector2(0f, 0.5f);
+            labelRt.anchoredPosition = new Vector2(30f, 0f);
+            labelRt.sizeDelta = new Vector2(80f, 0f);
+
+            var value = MakeText(go.transform, "Value", 15, FontStyle.Normal, ColSummaryValue);
+            value.alignment = TextAnchor.MiddleLeft;
+            value.horizontalOverflow = HorizontalWrapMode.Overflow;
+            var valueRt = value.GetComponent<RectTransform>();
+            valueRt.anchorMin = new Vector2(0, 0);
+            valueRt.anchorMax = new Vector2(1, 1);
+            valueRt.pivot = new Vector2(0f, 0.5f);
+            valueRt.anchoredPosition = new Vector2(100f, 0f);
+            valueRt.sizeDelta = new Vector2(-130f, 0f);
+
+            return new SummaryRowUi
+            {
+                Root = go,
+                Label = label,
+                Value = value
+            };
+        }
+
+        private void BuildSummaryDivider()
+        {
+            // Intentionally empty — dividers removed for cleaner look.
+            // Method kept to avoid changing Awake() call order.
+        }
+
+        private void BuildHelpBox()
+        {
+            var panelTr = _panelImage.transform;
+
+            var helpBgGo = new GameObject("HelpBox");
+            helpBgGo.transform.SetParent(panelTr, false);
+            _helpBoxBg = helpBgGo.AddComponent<Image>();
+            _helpBoxBg.color = new Color(1f, 1f, 1f, 0.07f);
+            _helpBoxBg.raycastTarget = false;
+            var hrt = helpBgGo.GetComponent<RectTransform>();
+            hrt.anchorMin = new Vector2(0, 0);
+            hrt.anchorMax = new Vector2(1, 0);
+            hrt.pivot = new Vector2(0.5f, 0f);
+            hrt.anchoredPosition = new Vector2(0, 74);
+            hrt.sizeDelta = new Vector2(-60, 72);
+
+            // Left accent bar
+            var accentBar = new GameObject("HelpAccentBar");
+            accentBar.transform.SetParent(helpBgGo.transform, false);
+            var accentImg = accentBar.AddComponent<Image>();
+            accentImg.color = ColAccent;
+            accentImg.raycastTarget = false;
+            var abrt = accentBar.GetComponent<RectTransform>();
+            abrt.anchorMin = new Vector2(0, 0);
+            abrt.anchorMax = new Vector2(0, 1);
+            abrt.pivot = new Vector2(0f, 0.5f);
+            abrt.anchoredPosition = Vector2.zero;
+            abrt.sizeDelta = new Vector2(3f, 0f);
+
+            _helpText = MakeText(panelTr, "HelpText", 14, FontStyle.Normal, ColHelpText);
+            _helpText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _helpText.verticalOverflow = VerticalWrapMode.Overflow;
+            _helpText.alignment = TextAnchor.UpperLeft;
+            var htrt = _helpText.GetComponent<RectTransform>();
+            htrt.anchorMin = new Vector2(0, 0);
+            htrt.anchorMax = new Vector2(1, 0);
+            htrt.pivot = new Vector2(0.5f, 0f);
+            htrt.anchoredPosition = new Vector2(4, 82);
+            htrt.sizeDelta = new Vector2(-88, 56);
+            _helpText.text = string.Empty;
         }
 
         private void BuildSlotMeter()
@@ -624,6 +754,7 @@ namespace Elin_JustDoomIt
             _state = next;
             _overlayPanel.SetActive(false);
             SetSlotMeterVisible(false);
+            ConfigureLayoutForState(next);
 
             switch (next)
             {
@@ -642,6 +773,9 @@ namespace Elin_JustDoomIt
                     break;
                 case MenuState.GeneralSettings:
                     RefreshGeneralSettings();
+                    break;
+                case MenuState.RewardRatePicker:
+                    RefreshRewardRatePicker();
                     break;
                 case MenuState.ResolutionPicker:
                     RefreshResolutionPicker();
@@ -672,46 +806,34 @@ namespace Elin_JustDoomIt
             "5 - NIGHTMARE!"
         };
 
+        private static readonly DoomRewardRateSelectionMode[] RewardRateOptions =
+        {
+            DoomRewardRateSelectionMode.AskEveryMap,
+            DoomRewardRateSelectionMode.FixedLow,
+            DoomRewardRateSelectionMode.FixedMid,
+            DoomRewardRateSelectionMode.FixedHigh
+        };
+
         private void RefreshMain()
         {
             ClearRows();
 
-            // ── CURRENT LOADOUT (display-only block) ──
-            _sectionHeader.text = L("現在の構成", "CURRENT LOADOUT", "当前配置");
-
-            var iwadName = DoomWadLocator.GetIwadDisplayName(_loadout.selectedIwadFile);
-            AddRow("IWAD     " + iwadName, RowKind.Setting, ColValue, enabled: false);
-
-            var skillIdx = Mathf.Clamp(_loadout.selectedSkill, 1, 5) - 1;
-            AddRow("DIFFICULTY " + SkillNames[skillIdx], RowKind.Setting, ColValue, enabled: false);
-
-            AddRow("MODS     " + GetSelectedModSummary(), RowKind.Setting, ColValue, enabled: false);
+            _sectionHeader.text = string.Empty;
+            RefreshMainSummaryPanel();
 
             if (_hasSave)
             {
-                AddRow("SAVE     ● exists  [" + FormatCurrentSaveSlotKey() + "]", RowKind.Setting, ColModOn, enabled: false, fontSizeOverride: 16);
-                if (_hasSaveSummary)
-                {
-                    AddRow("         " + BuildSaveSummaryLine(_saveSummary), RowKind.Setting, ColNormal, enabled: false, fontSizeOverride: 16);
-                }
+                AddRow(L("再開", "CONTINUE", "继续"), RowKind.Action, ColAccent, tag: RowTag.Continue, fontSizeOverride: 22);
             }
-            else
-                AddRow("SAVE     - none  [" + FormatCurrentSaveSlotKey() + "]", RowKind.Setting, ColDisabled, enabled: false, fontSizeOverride: 16);
 
-            // Separator
+            AddRow(L("最初から", "START OVER", "从头开始"), RowKind.Action, _hasSave ? ColNormal : ColAccent, tag: RowTag.NewRun, fontSizeOverride: 22);
+
             AddRow("", RowKind.Separator, ColDisabled, false);
 
-            if (_hasSave)
-            {
-                AddRow(L("再開", "CONTINUE", "继续"), RowKind.Action, ColAccent, tag: RowTag.Continue, fontSizeOverride: 24);
-            }
-
-            AddRow(L("最初から", "START OVER", "从头开始"), RowKind.Action, _hasSave ? ColNormal : ColAccent, tag: RowTag.NewRun, fontSizeOverride: 24);
-
-            AddRow(L("ゲーム切替", "CHANGE GAME", "切换游戏"), RowKind.Action, ColNormal, tag: RowTag.Iwad);
-            AddRow(L("難易度変更", "DIFFICULTY", "难度"), RowKind.Action, ColNormal, tag: RowTag.Skill);
-            AddRow(L("MOD設定", "MOD CONFIG", "MOD设置"), RowKind.Action, ColNormal, tag: RowTag.Mods);
-            AddRow(L("一般設定", "GENERAL SETTINGS", "常规设置"), RowKind.Action, ColNormal, tag: RowTag.GeneralSettings);
+            AddRow(L("ゲーム切替", "CHANGE GAME", "切换游戏"), RowKind.Action, ColSettingRow, tag: RowTag.Iwad, fontSizeOverride: 16);
+            AddRow(L("難易度変更", "DIFFICULTY", "难度"), RowKind.Action, ColSettingRow, tag: RowTag.Skill, fontSizeOverride: 16);
+            AddRow(L("MOD設定", "MOD CONFIG", "MOD设置"), RowKind.Action, ColSettingRow, tag: RowTag.Mods, fontSizeOverride: 16);
+            AddRow(L("一般設定", "GENERAL SETTINGS", "常规设置"), RowKind.Action, ColSettingRow, tag: RowTag.GeneralSettings, fontSizeOverride: 16);
 
             ForceMainPrimaryActionStyle();
 
@@ -872,7 +994,7 @@ namespace Elin_JustDoomIt
                 : (string.IsNullOrWhiteSpace(_pendingResetEntry.DisplayName) ? _pendingResetEntry.EntryId : _pendingResetEntry.DisplayName);
             _sectionHeader.text = L("<< 設定を初期化 >>", "<< RESET SETUP >>", "<< 重置设置 >>");
             AddRow(title, RowKind.Setting, ColValue, enabled: false);
-            AddRow(L("選択ファイルと順序を忘れます。", "Selected files and order will be forgotten.", "已选择的文件和顺序会被清除。"), RowKind.Setting, ColNormal, enabled: false, fontSizeOverride: 16);
+            AddRow(L("選択ファイルと順序を忘れます。", "Selected files and order will be forgotten.", "已选择的文件和顺序会被清除。"), RowKind.Setting, ColNormal, enabled: false, fontSizeOverride: 16, wrapText: true, rowHeightOverride: 36f);
             AddRow("", RowKind.Separator, ColDisabled, false);
             AddRow(L("いいえ、戻る", "NO / BACK", "否，返回"), RowKind.Action, ColNormal, tag: RowTag.ResetSetupNo);
             AddRow(L("はい、初期化", "YES / RESET", "是，重置"), RowKind.Action, ColAmber, tag: RowTag.ResetSetupYes);
@@ -910,11 +1032,12 @@ namespace Elin_JustDoomIt
             _cursor = 0;
         }
 
-        private int AddRow(string label, RowKind kind, Color color, bool enabled = true, RowTag tag = RowTag.None, int fontSizeOverride = 0)
+        private int AddRow(string label, RowKind kind, Color color, bool enabled = true, RowTag tag = RowTag.None, int fontSizeOverride = 0, bool wrapText = false, float rowHeightOverride = 0f)
         {
             var idx = _rows.Count;
-            var y = -(idx * (RowHeight + RowSpacing));
+            var y = GetNextRowY();
             var fontSize = fontSizeOverride > 0 ? fontSizeOverride : FontSizeRow;
+            var rowHeight = rowHeightOverride > 0f ? rowHeightOverride : RowHeight;
 
             var go = new GameObject("Row_" + idx);
             go.transform.SetParent(_listRoot, false);
@@ -923,7 +1046,7 @@ namespace Elin_JustDoomIt
             rt.anchorMax = new Vector2(1, 1);
             rt.pivot = new Vector2(0f, 1f);
             rt.anchoredPosition = new Vector2(0, y);
-            rt.sizeDelta = new Vector2(0, RowHeight);
+            rt.sizeDelta = new Vector2(0, rowHeight);
 
             // Cursor ">"
             var curText = MakeText(go.transform, "Cursor", fontSize, FontStyle.Bold, ColCursor);
@@ -941,10 +1064,12 @@ namespace Elin_JustDoomIt
             var lrt = labelText.GetComponent<RectTransform>();
             lrt.anchorMin = new Vector2(0, 0);
             lrt.anchorMax = new Vector2(1, 1);
-            lrt.pivot = new Vector2(0f, 0.5f);
-            lrt.anchoredPosition = new Vector2(22, 0);
+            lrt.pivot = new Vector2(0f, wrapText ? 1f : 0.5f);
+            lrt.anchoredPosition = new Vector2(22, wrapText ? -2f : 0f);
             lrt.sizeDelta = new Vector2(-22, 0);
-            labelText.alignment = TextAnchor.MiddleLeft;
+            labelText.alignment = wrapText ? TextAnchor.UpperLeft : TextAnchor.MiddleLeft;
+            labelText.horizontalOverflow = wrapText ? HorizontalWrapMode.Wrap : HorizontalWrapMode.Overflow;
+            labelText.verticalOverflow = VerticalWrapMode.Overflow;
             labelText.text = label;
 
             if (kind == RowKind.Separator)
@@ -966,6 +1091,24 @@ namespace Elin_JustDoomIt
             });
 
             return idx;
+        }
+
+        private float GetNextRowY()
+        {
+            var y = 0f;
+            for (var i = 0; i < _rows.Count; i++)
+            {
+                if (_rows[i].Rect != null)
+                {
+                    y -= _rows[i].Rect.sizeDelta.y + RowSpacing;
+                }
+                else
+                {
+                    y -= RowHeight + RowSpacing;
+                }
+            }
+
+            return y;
         }
 
         private void SetCursor(int index)
@@ -1039,7 +1182,7 @@ namespace Elin_JustDoomIt
         {
             if (_loadout == null || string.IsNullOrWhiteSpace(_loadout.selectedModId))
             {
-                return "- none";
+                return L("なし", "NONE", "无");
             }
 
             var entry = _modEntries?.FirstOrDefault(m =>
@@ -1080,12 +1223,12 @@ namespace Elin_JustDoomIt
                 if (_rows[i].LabelText != null)
                 {
                     _rows[i].LabelText.fontStyle = FontStyle.Bold;
-                    _rows[i].LabelText.fontSize = 24;
+                    _rows[i].LabelText.fontSize = 22;
                 }
 
                 if (_rows[i].CursorText != null)
                 {
-                    _rows[i].CursorText.fontSize = 24;
+                    _rows[i].CursorText.fontSize = 22;
                 }
             }
         }
@@ -1136,7 +1279,7 @@ namespace Elin_JustDoomIt
                     "ENTER: 确认  ESC: 返回");
                 _statusLine.text = "";
             }
-            else if (_state == MenuState.IwadPicker || _state == MenuState.SkillPicker || _state == MenuState.ResolutionPicker || _state == MenuState.BrightnessPicker || _state == MenuState.GeneralSettings)
+            else if (_state == MenuState.IwadPicker || _state == MenuState.SkillPicker || _state == MenuState.RewardRatePicker || _state == MenuState.ResolutionPicker || _state == MenuState.BrightnessPicker || _state == MenuState.GeneralSettings)
             {
                 _footerText.text = L(
                     "ENTER: 選択  ESC: 戻る",
@@ -1150,6 +1293,8 @@ namespace Elin_JustDoomIt
                     "ENTER: confirm  ESC: back",
                     "ENTER: 确认  ESC: 返回");
             }
+
+            UpdateHelpForCurrentRow();
         }
 
         private void SetSlotMeterVisible(bool visible)
@@ -1157,6 +1302,228 @@ namespace Elin_JustDoomIt
             if (_slotMeter != null) _slotMeter.gameObject.SetActive(visible);
             if (_slotMeterBg != null) _slotMeterBg.gameObject.SetActive(visible);
             if (_slotMeterText != null) _slotMeterText.gameObject.SetActive(visible);
+        }
+
+        private void ConfigureLayoutForState(MenuState state)
+        {
+            var isMain = state == MenuState.Main;
+            if (_mainSummaryRoot != null)
+            {
+                _mainSummaryRoot.SetActive(isMain);
+            }
+            if (_headerDivider != null)
+            {
+                _headerDivider.SetActive(!isMain);
+            }
+
+            if (_listRoot == null)
+            {
+                return;
+            }
+
+            if (isMain)
+            {
+                _listRoot.anchoredPosition = new Vector2(30, -192);
+                _listRoot.sizeDelta = new Vector2(-60, 200);
+            }
+            else
+            {
+                _listRoot.anchoredPosition = new Vector2(30, -114);
+                _listRoot.sizeDelta = new Vector2(-60, 286);
+            }
+        }
+
+        private void RefreshMainSummaryPanel()
+        {
+            if (_mainSummaryRoot == null)
+            {
+                return;
+            }
+
+            _mainSummaryRoot.SetActive(true);
+            SetSummaryRow(_summaryIwadRow, L("IWAD", "IWAD", "IWAD"), DoomWadLocator.GetIwadDisplayName(_loadout.selectedIwadFile));
+            SetSummaryRow(_summaryModRow, L("MOD", "MOD", "MOD"), GetSelectedModSummary());
+            SetSummaryRow(_summarySkillRow, L("SKILL", "SKILL", "难度"), GetSkillBadgeText());
+            SetSummaryRow(_summaryRateRow, L("賭け", "WAGER", "赌法"), GetRewardRateModeSummary());
+        }
+
+        private static void SetSummaryRow(SummaryRowUi row, string label, string value)
+        {
+            if (row.Root == null)
+            {
+                return;
+            }
+
+            if (row.Label != null)
+            {
+                row.Label.text = label ?? string.Empty;
+            }
+
+            if (row.Value != null)
+            {
+                row.Value.text = value ?? string.Empty;
+            }
+        }
+
+        private void UpdateHelpForCurrentRow()
+        {
+            if (_helpText == null)
+            {
+                return;
+            }
+
+            _helpText.text = BuildHelpTextForCurrentRow();
+        }
+
+        private string BuildHelpTextForCurrentRow()
+        {
+            var tag = GetCurrentRowTag();
+            switch (_state)
+            {
+                case MenuState.Main:
+                    switch (tag)
+                    {
+                        case RowTag.Continue:
+                            var continueHelp = L(
+                                "保存済みのDOOM進行を再開します。報酬ラウンドは現在の賭け設定でそのマップから新規開始します。",
+                                "Resume the saved DOOM progress. The reward round restarts on that map using your current wager setting.",
+                                "继续已保存的DOOM进度。奖励回合会按当前赌法设置在该地图重新开始。");
+                            if (_hasSaveSummary)
+                            {
+                                continueHelp += "\n" + BuildSaveSummaryLine(_saveSummary);
+                            }
+
+                            return continueHelp;
+                        case RowTag.NewRun:
+                            return L(
+                                "最初のマップから開始します。現在のIWAD / MOD / 難易度設定を使います。",
+                                "Start from the first map using the current IWAD / MOD / difficulty settings.",
+                                "从第一张地图开始，使用当前的IWAD / MOD / 难度设置。");
+                        case RowTag.Iwad:
+                            return L(
+                                "ベースゲームを切り替えます。IWADが変わると互換性のないMODは自動で外れます。",
+                                "Switch the base game. Incompatible mods will be removed automatically if the IWAD changes.",
+                                "切换基础游戏。更换IWAD时，不兼容的MOD会被自动移除。");
+                        case RowTag.Skill:
+                            return L(
+                                "DOOM本体の難易度を変更します。報酬倍率の難易度補正にも使われます。",
+                                "Change the DOOM game difficulty. It also drives the reward difficulty multiplier.",
+                                "更改DOOM本体难度，也会影响奖励的难度倍率。");
+                        case RowTag.Mods:
+                            return L(
+                                "外部PWADや設定済みエントリを切り替えます。複数WAD構成の初期設定もここで行います。",
+                                "Switch external PWADs and configured entries. Multi-WAD setup is also managed here.",
+                                "切换外部PWAD和已配置条目，多WAD设置也在这里完成。");
+                        case RowTag.GeneralSettings:
+                            return L(
+                                "表示と賭け設定を調整します。ここで普段使いのUXを整えます。",
+                                "Adjust display and wager behavior. This is where you tune the day-to-day UX.",
+                                "调整显示和赌法设置，在这里优化平时游玩的UX。");
+                        default:
+                            return L(
+                                "前回使った構成を確認してから、再開か新規開始を選びます。",
+                                "Review the last-used setup, then choose continue or start over.",
+                                "先确认上次使用的配置，再选择继续或重新开始。");
+                    }
+
+                case MenuState.GeneralSettings:
+                    switch (tag)
+                    {
+                        case RowTag.Resolution:
+                            return L(
+                                "DOOMの内部レンダリング解像度を変更します。変更は次回DOOM起動時から反映されます。",
+                                "Change DOOM's internal render resolution. Applies from the next DOOM launch.",
+                                "更改DOOM内部渲染分辨率，将在下次启动DOOM时生效。");
+                        case RowTag.Brightness:
+                            return L(
+                                "DOOM画面の明るさを調整します。暗いWADや見づらいマップ向けです。",
+                                "Adjust the DOOM screen brightness. Useful for dark WADs or low-visibility maps.",
+                                "调整DOOM画面亮度，适合较暗的WAD或能见度差的地图。");
+                        case RowTag.RewardRate:
+                            return L(
+                                "賭けを上げるほど1キル報酬は増えますが、被弾で失う未精算チップも大きくなります。",
+                                "Higher wagers increase per-kill payout, but you lose more uncashed chips when hit.",
+                                "赌法越激进，每杀奖励越高，但受伤时损失的未结算筹码也越多。");
+                        default:
+                            return L(
+                                "普段の遊びやすさに直結する設定です。よく変える項目だけをここにまとめています。",
+                                "These settings shape the day-to-day feel of the arcade flow. Only the most frequently changed items live here.",
+                                "这些设置会直接影响日常游玩体验，这里只放最常调整的项目。");
+                    }
+
+                case MenuState.RewardRatePicker:
+                {
+                    var rateIdx = _cursor - 2;
+                    if (rateIdx >= 0 && rateIdx < RewardRateOptions.Length)
+                    {
+                        switch (RewardRateOptions[rateIdx])
+                        {
+                            case DoomRewardRateSelectionMode.FixedLow:
+                                return L(
+                                    "賭け金が安く被弾の痛みも軽い。堅実に稼ぎたいならここから。",
+                                    "Low stakes and forgiving on damage. A safe start for steady earnings.",
+                                    "赌注低，受伤惩罚也轻。想稳定赚取筹码就从这里开始。");
+                            case DoomRewardRateSelectionMode.FixedMid:
+                                return L(
+                                    "報酬とリスクのバランス型。慣れてきたらこれが安定。",
+                                    "Balanced risk and reward. A solid pick once you know the maps.",
+                                    "报酬和风险均衡。熟悉地图后这是稳定之选。");
+                            case DoomRewardRateSelectionMode.FixedHigh:
+                                return L(
+                                    "大きく稼げるが、被弾すると稼ぎが一気に吹き飛ぶ。腕に自信があるなら。",
+                                    "Huge payoff, but taking hits wipes your earnings fast. For the confident.",
+                                    "收益巨大，但被击中会迅速清空收益。有自信就选这个。");
+                        }
+                    }
+                    return L(
+                        "マップごとに賭けを選べます。大勝負ほど1キル報酬は伸びますが、被弾で失う未精算チップも大きくなります。",
+                        "Choose your wager before each map. Bigger plays mean higher per-kill payout, but you lose more uncashed chips when hit.",
+                        "每张地图前选择赌法。赌得越大，每杀奖励越高，但受伤时损失的未结算筹码也越多。");
+                }
+
+                case MenuState.SkillPicker:
+                    return L(
+                        "難易度はDOOM本体の進行と報酬倍率の両方に影響します。CONTINUE時は保存側の難易度が優先されます。",
+                        "Difficulty affects both the DOOM run and reward scaling. On CONTINUE, the difficulty stored in the save takes priority.",
+                        "难度会同时影响DOOM进程和奖励倍率。CONTINUE 时会优先使用存档中的难度。");
+
+                case MenuState.IwadPicker:
+                    return L(
+                        "遊ぶDOOM本体を選びます。IWADによってステージ構成や対応MODが変わります。",
+                        "Choose which base DOOM game to play. The IWAD changes map sets and mod compatibility.",
+                        "选择要游玩的DOOM本体。不同IWAD会影响地图结构和MOD兼容性。");
+
+                case MenuState.PwadPicker:
+                    return L(
+                        "MODごとの差分や互換性を確認しながら切り替えます。複数WAD構成が必要なものは SETUP を使います。",
+                        "Switch mods while checking their compatibility notes. Use SETUP for entries that need multiple WAD files.",
+                        "切换MOD时可以同时查看兼容性说明。需要多WAD的条目请使用 SETUP。");
+
+                case MenuState.ModSetup:
+                    return L(
+                        "使用するファイルと順序を決めます。上から順に読み込まれるため、並び順がそのまま優先度になります。",
+                        "Choose which files to use and in what order. Files are loaded top to bottom, so order defines priority.",
+                        "决定要使用的文件及其顺序。文件会按从上到下加载，因此顺序就是优先级。");
+
+                case MenuState.ResetSetupConfirm:
+                    return L(
+                        "このMODエントリに保存されたファイル選択と順序を消去します。元には戻せません。",
+                        "This clears the saved file selection and order for the mod entry. It cannot be undone.",
+                        "这会清除该MOD条目已保存的文件选择和顺序，无法撤销。");
+
+                default:
+                    return string.Empty;
+            }
+        }
+
+        private RowTag GetCurrentRowTag()
+        {
+            if (_cursor < 0 || _cursor >= _rows.Count)
+            {
+                return RowTag.None;
+            }
+
+            return _rows[_cursor].Tag;
         }
 
         // ═══════════════════════════════════════════════
@@ -1238,6 +1605,7 @@ namespace Elin_JustDoomIt
 
         private void InvokePlayAndClose(bool loadExisting)
         {
+            DoomWadLocator.SaveRuntimeLoadout(_loadout);
             StopMenuBgm();
             Close();
             try
@@ -1313,6 +1681,10 @@ namespace Elin_JustDoomIt
                     SE.Tab();
                     TransitionTo(MenuState.BrightnessPicker);
                     break;
+                case RowTag.RewardRate:
+                    SE.Tab();
+                    TransitionTo(MenuState.RewardRatePicker);
+                    break;
             }
         }
 
@@ -1322,7 +1694,13 @@ namespace Elin_JustDoomIt
             {
                 SE.Tab();
                 EInput.Consume(consumeAxis: true, _skipFrame: 1);
-                TransitionTo(MenuState.Main);
+                var backState =
+                    _state == MenuState.RewardRatePicker ||
+                    _state == MenuState.ResolutionPicker ||
+                    _state == MenuState.BrightnessPicker
+                        ? MenuState.GeneralSettings
+                        : MenuState.Main;
+                TransitionTo(backState);
                 return;
             }
 
@@ -1335,6 +1713,8 @@ namespace Elin_JustDoomIt
                     OnIwadConfirm();
                 else if (_state == MenuState.SkillPicker)
                     OnSkillConfirm();
+                else if (_state == MenuState.RewardRatePicker)
+                    OnRewardRateConfirm();
                 else if (_state == MenuState.ResolutionPicker)
                     OnResolutionConfirm();
                 else if (_state == MenuState.BrightnessPicker)
@@ -1422,7 +1802,7 @@ namespace Elin_JustDoomIt
                 var isCurrent = i == selectedIdx - 2;
                 var marker = isCurrent ? "(*) " : "( ) ";
                 var color = isCurrent ? ColIwadSel : ColNormal;
-                AddRow(marker + SkillNames[i], RowKind.Action, color);
+                AddRow(marker + BuildSkillOptionLabel(i + 1), RowKind.Action, color);
             }
 
             SetCursor(selectedIdx);
@@ -1437,17 +1817,50 @@ namespace Elin_JustDoomIt
             AddRow("", RowKind.Separator, ColDisabled, false);
             AddRow("VIDEO    " + DoomVideoSettings.FormatResolutionSummary(ModConfig.DoomWidth.Value, ModConfig.DoomHeight.Value), RowKind.Action, ColNormal, tag: RowTag.Resolution);
             AddRow("LIGHT    " + DoomVideoSettings.FormatBrightnessSummary(ModConfig.DoomBrightness.Value), RowKind.Action, ColNormal, tag: RowTag.Brightness);
-            AddRow(
-                L(
-                    "※ 解像度は次回のDOOM起動から反映されます。",
-                    "Resolution changes apply on next DOOM launch.",
-                    "分辨率会在下次DOOM启动时生效。"),
-                RowKind.Setting,
-                ColDisabled,
-                enabled: false,
-                fontSizeOverride: 16);
+            AddRow(BuildRateSummaryRow(), RowKind.Action, ColNormal, tag: RowTag.RewardRate);
 
             SetCursor(2);
+        }
+
+        private void RefreshRewardRatePicker()
+        {
+            ClearRows();
+            _sectionHeader.text = L("<< 賭け設定 >>", "<< WAGER SETTINGS >>", "<< 赌法设置 >>");
+
+            AddRow(L("戻る", "BACK", "返回"), RowKind.Action, ColNormal, tag: RowTag.Back);
+            AddRow("", RowKind.Separator, ColDisabled, false);
+
+            var current = DoomLaunchPreferences.ParseRewardRateSelectionMode(_loadout?.selectedRewardRateMode);
+            var selectedIdx = 2;
+            for (var i = 0; i < RewardRateOptions.Length; i++)
+            {
+                var mode = RewardRateOptions[i];
+                var isCurrent = mode == current;
+                var marker = isCurrent ? "(*) " : "( ) ";
+                var color = isCurrent ? ColIwadSel : ColNormal;
+                AddRow(marker + GetRewardRateModeLabel(mode) + GetBetCostSuffix(mode), RowKind.Action, color);
+                if (isCurrent)
+                {
+                    selectedIdx = i + 2;
+                }
+            }
+
+            SetCursor(selectedIdx);
+        }
+
+        private string GetBetCostSuffix(DoomRewardRateSelectionMode mode)
+        {
+            switch (mode)
+            {
+                case DoomRewardRateSelectionMode.FixedLow:
+                    return L("     参加100 / 1キル報酬30 / 被弾-18%", "     entry 100 / payout 30 / hit -18%", "     入场100 / 每杀奖励30 / 受伤-18%");
+                case DoomRewardRateSelectionMode.FixedMid:
+                    return L("     参加500 / 1キル報酬70 / 被弾-24%", "     entry 500 / payout 70 / hit -24%", "     入场500 / 每杀奖励70 / 受伤-24%");
+                case DoomRewardRateSelectionMode.FixedHigh:
+                    return L("     参加1000 / 1キル報酬110 / 被弾-30%", "     entry 1000 / payout 110 / hit -30%", "     入场1000 / 每杀奖励110 / 受伤-30%");
+                default:
+                    return "";
+            }
         }
 
         private void RefreshResolutionPicker()
@@ -1547,6 +1960,25 @@ namespace Elin_JustDoomIt
             if (selectedIndex < 0 || selectedIndex > 10) return;
 
             ModConfig.SetDoomBrightness(selectedIndex);
+            SE.Click();
+            TransitionTo(MenuState.GeneralSettings);
+        }
+
+        private void OnRewardRateConfirm()
+        {
+            if (_cursor < 0 || _cursor >= _rows.Count) return;
+            if (_rows[_cursor].Tag == RowTag.Back)
+            {
+                SE.Tab();
+                TransitionTo(MenuState.GeneralSettings);
+                return;
+            }
+
+            var selectedIndex = _cursor - 2;
+            if (selectedIndex < 0 || selectedIndex >= RewardRateOptions.Length) return;
+
+            _loadout.selectedRewardRateMode = DoomLaunchPreferences.SerializeRewardRateSelectionMode(RewardRateOptions[selectedIndex]);
+            DoomWadLocator.SaveRuntimeLoadout(_loadout);
             SE.Click();
             TransitionTo(MenuState.GeneralSettings);
         }
@@ -1966,6 +2398,8 @@ namespace Elin_JustDoomIt
                             OnIwadConfirm();
                         else if (_state == MenuState.SkillPicker)
                             OnSkillConfirm();
+                        else if (_state == MenuState.RewardRatePicker)
+                            OnRewardRateConfirm();
                         else if (_state == MenuState.ResolutionPicker)
                             OnResolutionConfirm();
                         else if (_state == MenuState.BrightnessPicker)
@@ -2118,6 +2552,61 @@ namespace Elin_JustDoomIt
                 _rows[_resetActionRowIndex].LabelText.text = text;
                 _rows[_resetActionRowIndex].LabelText.color = ColAmber;
             }
+        }
+
+        private string GetRewardRateModeSummary()
+        {
+            return GetRewardRateModeLabel(DoomLaunchPreferences.ParseRewardRateSelectionMode(_loadout?.selectedRewardRateMode));
+        }
+
+        private string GetRewardRateModeLabel(DoomRewardRateSelectionMode mode)
+        {
+            switch (mode)
+            {
+                case DoomRewardRateSelectionMode.FixedLow:
+                    return L("安全重視で固定", "Lock Safe Play", "固定稳扎稳打");
+                case DoomRewardRateSelectionMode.FixedMid:
+                    return L("標準勝負で固定", "Lock Standard Play", "固定标准胜负");
+                case DoomRewardRateSelectionMode.FixedHigh:
+                    return L("大勝負で固定", "Lock High Stakes", "固定放手一搏");
+                default:
+                    return L("毎回選ぶ", "Choose Each Map", "每次选择");
+            }
+        }
+
+        private string BuildRateSummaryRow()
+        {
+            return L(
+                "賭け      " + GetRewardRateModeSummary(),
+                "WAGER    " + GetRewardRateModeSummary(),
+                "赌法      " + GetRewardRateModeSummary());
+        }
+
+        private string GetSkillBadgeText()
+        {
+            switch (Mathf.Clamp(_loadout?.selectedSkill ?? 3, 1, 5))
+            {
+                case 1:
+                    return "1 / ITYTD";
+                case 2:
+                    return "2 / HNTR";
+                case 4:
+                    return "4 / UV";
+                case 5:
+                    return "5 / NM";
+                default:
+                    return "3 / HMP";
+            }
+        }
+
+        private string BuildSkillOptionLabel(int skill)
+        {
+            var index = Mathf.Clamp(skill, 1, SkillNames.Length) - 1;
+            var multiplier = DoomRewardRoundLogic.GetDifficultyMultiplier(skill).ToString("0.00");
+            return SkillNames[index] + L(
+                "  /  1キル報酬補正 x",
+                "  /  Per-kill mod x",
+                "  /  每杀补正 x") + multiplier;
         }
 
         private void HandleOverlayMouse()

@@ -75,6 +75,22 @@ Elin のカスタムアーケード筐体（CWLで追加）から、オーバー
 
 キーバインドを変更している場合は、実際の操作は `BepInEx/config/chitsii.elin_justdoomit.cfg` の `Input.*` に従います。
 
+## 報酬ルール
+
+- 1マップごとに `LOW / MID / HIGH` の RATE を使い、参加コストとしてカジノチップを支払います。
+- `LOW` は安定、`MID` は標準、`HIGH` は長マップ無被弾で大きく狙う夢枠です。
+- 現在の RATE 値は `LOW: entry 100 / base 30 / hit loss 18%`、`MID: entry 500 / base 70 / hit loss 24%`、`HIGH: entry 1000 / base 110 / hit loss 30%` です。
+- `GENERAL SETTINGS` で `RATE` を `ASK EVERY MAP / FIX LOW / FIX MID / FIX HIGH` から選べます。
+- `FIX *` を選んだ場合は毎マップの `SELECT RATE` を省略し、設定した RATE で自動参加します。チップ不足時だけ手動選択に戻ります。
+- 撃破報酬は即時支給されず、そのマップ専用の未確定プールへ加算されます。
+- シークレット発見でも、そのマップの未確定プールへ固定 `+500` が加算されます。
+- 連続ボーナスは `LOW +400% / MID +600% / HIGH +999%` まで伸び、被弾で初期値に戻ります。
+- 被弾するとプールの一部を失い、連続ボーナスは初期値に戻ります。
+- マップクリア時または死亡時に `CASH OUT` され、未確定プールがカジノチップに変換されます。
+- `ESC` 退出では、そのマップの未確定プールを失います。
+- ボスマップクリアの追加 `+10000` は初版で維持しています。
+- HUD は `賭け / 未精算チップ / 1キル報酬` を表示し、未精算チップは増減が分かるゲージで見せます。
+
 ## Notes
 
 - DOOM の内部解像度と明るさは `BepInEx/config/chitsii.elin_justdoomit.cfg` の `DOOM.ScreenWidth` / `DOOM.ScreenHeight` / `DOOM.Brightness` で調整できます。

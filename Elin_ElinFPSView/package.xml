@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Meta>
+  <title>Elin FPS View</title>
+  <id>chitsii.elin_fpsview</id>
+  <loadPriority>100</loadPriority>
+  <author>chitsii</author>
+  <version>0.23.282</version>
+  <tags>General</tags>
+  <description>
+See your 2D world in pseudo-3D FPS perspective via raycasting.
+  </description>
+  <builtin>false</builtin>
+</Meta>

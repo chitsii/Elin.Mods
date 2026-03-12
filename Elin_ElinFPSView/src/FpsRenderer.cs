@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Elin_ElinFPSView
@@ -6,9 +7,15 @@ namespace Elin_ElinFPSView
     internal sealed class FpsRenderer
     {
         private Color32[] _pixels;
+        private float[] _depthBuffer;
+        private float[] _sceneDepthBuffer;
         private int _width;
         private int _height;
         private readonly FpsAtlasSampler _atlasSampler = new FpsAtlasSampler();
+        private readonly FpsIdealizedWorld _idealizedWorld = new FpsIdealizedWorld();
+        private readonly List<FpsResolvedUprightSprite> _uprightSprites = new List<FpsResolvedUprightSprite>(64);
+        private readonly List<FpsResolvedGroundSprite> _groundSprites = new List<FpsResolvedGroundSprite>(64);
+        private readonly List<FpsResolvedEffectSprite> _effectSprites = new List<FpsResolvedEffectSprite>(32);
 
         private static readonly Color32 CeilingColor = new Color32(34, 40, 52, 255);
         private static readonly Color32 FloorFallbackColor = new Color32(60, 52, 40, 255);
@@ -24,6 +31,8 @@ namespace Elin_ElinFPSView
             _width = width;
             _height = height;
             _pixels = new Color32[width * height];
+            _depthBuffer = new float[width];
+            _sceneDepthBuffer = new float[width * height];
         }
 
         public Color32[] RenderFrame()
@@ -46,9 +55,13 @@ namespace Elin_ElinFPSView
 
             float halfHeight = _height * (0.5f + pitchOffset);
             FillBackground(halfHeight);
+            ClearDepthBuffer(float.MaxValue);
+            ClearSceneDepthBuffer(float.MaxValue);
             float fovRadians = Mathf.Clamp(Plugin.Settings.FieldOfViewDegrees.Value, 30f, 120f) * Mathf.Deg2Rad;
             float planeLength = Mathf.Tan(fovRadians * 0.5f);
             float maxDistance = Mathf.Max(1f, Plugin.Settings.MaxDistance.Value);
+            float eyeHeight = Mathf.Max(0.05f, Plugin.Settings.EyeHeight.Value);
+            float cameraGroundHeight = FpsIdealizedWorld.GetCellSurfaceHeight(EClass.pc?.pos?.cell);
             Vector2 plane = new Vector2(-forward.y, forward.x) * planeLength;
 
             DrawFloor(origin, forward, plane, halfHeight, mapSize);
@@ -64,16 +77,41 @@ namespace Elin_ElinFPSView
                 }
 
                 float perpendicularDistance = Mathf.Max(hit.Distance, 0.0001f);
+                int drawStart;
+                int drawEnd;
                 int lineHeight = Mathf.Clamp(Mathf.RoundToInt(_height / perpendicularDistance), 1, _height);
-                int drawStart = Mathf.Max(0, Mathf.RoundToInt(halfHeight - lineHeight * 0.5f));
-                int drawEnd = Mathf.Min(_height - 1, Mathf.RoundToInt(halfHeight + lineHeight * 0.5f));
+                drawStart = Mathf.RoundToInt(halfHeight - lineHeight * 0.5f);
+                drawEnd = Mathf.RoundToInt(halfHeight + lineHeight * 0.5f);
+
+                if (drawStart > drawEnd)
+                {
+                    int temp = drawStart;
+                    drawStart = drawEnd;
+                    drawEnd = temp;
+                }
+
+                drawStart = Mathf.Max(0, drawStart);
+                drawEnd = Mathf.Min(_height - 1, drawEnd);
+                if (drawStart > drawEnd)
+                {
+                    continue;
+                }
 
                 for (int y = drawStart; y <= drawEnd; y++)
                 {
                     float v = (y - drawStart) / (float)Mathf.Max(1, drawEnd - drawStart);
-                    _pixels[y * _width + screenX] = SampleWallColor(hit, v);
+                    int index = y * _width + screenX;
+                    _pixels[index] = SampleWallColor(hit, v);
+                    _sceneDepthBuffer[index] = perpendicularDistance;
                 }
+
+                _depthBuffer[screenX] = perpendicularDistance;
             }
+
+            _idealizedWorld.GatherSprites(origin, maxDistance, _uprightSprites, _groundSprites, _effectSprites);
+            RenderGroundSprites(origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight);
+            RenderUprightSprites(origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight);
+            RenderEffectSprites(origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight);
 
             return _pixels;
         }
@@ -89,6 +127,32 @@ namespace Elin_ElinFPSView
                 {
                     _pixels[rowOffset + x] = color;
                 }
+            }
+        }
+
+        private void ClearDepthBuffer(float value)
+        {
+            if (_depthBuffer == null || _depthBuffer.Length != _width)
+            {
+                _depthBuffer = new float[_width];
+            }
+
+            for (int i = 0; i < _depthBuffer.Length; i++)
+            {
+                _depthBuffer[i] = value;
+            }
+        }
+
+        private void ClearSceneDepthBuffer(float value)
+        {
+            if (_sceneDepthBuffer == null || _sceneDepthBuffer.Length != _width * _height)
+            {
+                _sceneDepthBuffer = new float[_width * _height];
+            }
+
+            for (int i = 0; i < _sceneDepthBuffer.Length; i++)
+            {
+                _sceneDepthBuffer[i] = value;
             }
         }
 
@@ -118,7 +182,7 @@ namespace Elin_ElinFPSView
                     if (cellX >= 0 && cellZ >= 0 && cellX < mapSize && cellZ < mapSize)
                     {
                         Cell cell = EClass._map.cells[cellX, cellZ];
-                        if (_atlasSampler.TrySampleFloor(cell, world.x, world.y, out Color32 floorColor))
+                        if (TrySampleFloorComposite(cell, cellX + cellZ * mapSize, world.x, world.y, out Color32 floorColor))
                         {
                             _pixels[rowIndex + x] = ApplyDistanceShading(floorColor, rowDistance, 0.75f);
                         }
@@ -183,6 +247,345 @@ namespace Elin_ElinFPSView
             }
 
             return new Vector2(x + 0.5f, z + 0.5f);
+        }
+
+        private void RenderGroundSprites(
+            Vector2 origin,
+            Vector2 forward,
+            Vector2 plane,
+            float halfHeight,
+            float eyeHeight,
+            float cameraGroundHeight)
+        {
+            _groundSprites.Sort((a, b) => b.Distance.CompareTo(a.Distance));
+
+            for (int i = 0; i < _groundSprites.Count; i++)
+            {
+                FpsResolvedGroundSprite sprite = _groundSprites[i];
+                float halfWidth = sprite.SizeWorld.x * 0.5f;
+                float halfDepth = sprite.SizeWorld.y * 0.5f;
+
+                Vector3 corner0 = new Vector3(
+                    sprite.CenterWorld.x - halfWidth,
+                    sprite.CenterWorld.y,
+                    sprite.CenterWorld.z + halfDepth);
+                Vector3 corner1 = new Vector3(
+                    sprite.CenterWorld.x + halfWidth,
+                    sprite.CenterWorld.y,
+                    sprite.CenterWorld.z + halfDepth);
+                Vector3 corner2 = new Vector3(
+                    sprite.CenterWorld.x + halfWidth,
+                    sprite.CenterWorld.y,
+                    sprite.CenterWorld.z - halfDepth);
+                Vector3 corner3 = new Vector3(
+                    sprite.CenterWorld.x - halfWidth,
+                    sprite.CenterWorld.y,
+                    sprite.CenterWorld.z - halfDepth);
+
+                if (!TryProjectWorld(corner0, origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight, out ProjectedPoint p0)
+                    || !TryProjectWorld(corner1, origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight, out ProjectedPoint p1)
+                    || !TryProjectWorld(corner2, origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight, out ProjectedPoint p2)
+                    || !TryProjectWorld(corner3, origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight, out ProjectedPoint p3))
+                {
+                    continue;
+                }
+
+                DrawGroundTriangle(sprite, p0, p1, p2, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(1f, 1f));
+                DrawGroundTriangle(sprite, p0, p2, p3, new Vector2(0f, 0f), new Vector2(1f, 1f), new Vector2(0f, 1f));
+            }
+        }
+
+        private void RenderUprightSprites(
+            Vector2 origin,
+            Vector2 forward,
+            Vector2 plane,
+            float halfHeight,
+            float eyeHeight,
+            float cameraGroundHeight)
+        {
+            _uprightSprites.Sort((a, b) => b.Distance.CompareTo(a.Distance));
+            for (int i = 0; i < _uprightSprites.Count; i++)
+            {
+                FpsResolvedUprightSprite sprite = _uprightSprites[i];
+                RenderVerticalSprite(
+                    sprite.AnchorWorld,
+                    sprite.Sprite,
+                    sprite.RenderData,
+                    sprite.Tile,
+                    sprite.WidthWorld,
+                    sprite.HeightWorld,
+                    sprite.PivotX,
+                    sprite.PivotY,
+                    sprite.CastsShadow,
+                    sprite.ShadowSizeWorld,
+                    origin,
+                    forward,
+                    plane,
+                    halfHeight,
+                    eyeHeight,
+                    cameraGroundHeight);
+            }
+        }
+
+        private void RenderEffectSprites(
+            Vector2 origin,
+            Vector2 forward,
+            Vector2 plane,
+            float halfHeight,
+            float eyeHeight,
+            float cameraGroundHeight)
+        {
+            _effectSprites.Sort((a, b) => b.Distance.CompareTo(a.Distance));
+            for (int i = 0; i < _effectSprites.Count; i++)
+            {
+                FpsResolvedEffectSprite sprite = _effectSprites[i];
+                RenderVerticalSprite(
+                    sprite.AnchorWorld,
+                    null,
+                    sprite.RenderData,
+                    sprite.Tile,
+                    sprite.WidthWorld,
+                    sprite.HeightWorld,
+                    sprite.PivotX,
+                    sprite.PivotY,
+                    false,
+                    0f,
+                    origin,
+                    forward,
+                    plane,
+                    halfHeight,
+                    eyeHeight,
+                    cameraGroundHeight);
+            }
+        }
+
+        private void RenderVerticalSprite(
+            Vector3 anchorWorld,
+            Sprite sprite,
+            RenderData renderData,
+            int tile,
+            float widthWorld,
+            float heightWorld,
+            float pivotX,
+            float pivotY,
+            bool castsShadow,
+            float shadowSizeWorld,
+            Vector2 origin,
+            Vector2 forward,
+            Vector2 plane,
+            float halfHeight,
+            float eyeHeight,
+            float cameraGroundHeight)
+        {
+            if (!TryProjectWorld(anchorWorld, origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight, out ProjectedPoint projected))
+            {
+                return;
+            }
+
+            if (sprite != null && _atlasSampler.TryGetSpriteMetrics(sprite, out FpsAtlasSampler.SpriteMetrics metrics))
+            {
+                pivotY = Mathf.Max(pivotY, metrics.BottomV);
+            }
+
+            int screenX = Mathf.RoundToInt(projected.ScreenX);
+            float spriteDistance = Mathf.Max(0.05f, projected.RadialDistance);
+            int spriteHeight = Mathf.Max(1, Mathf.Abs(Mathf.RoundToInt((_height * heightWorld) / spriteDistance)));
+            int spriteWidth = Mathf.Max(1, Mathf.Abs(Mathf.RoundToInt((_height * widthWorld) / spriteDistance)));
+            int groundY = Mathf.RoundToInt(projected.ScreenY);
+            int rawStartX = Mathf.RoundToInt(screenX - spriteWidth * pivotX);
+            int rawEndX = rawStartX + spriteWidth - 1;
+            int rawStartY = Mathf.RoundToInt(groundY - spriteHeight * (1f - pivotY));
+            int rawEndY = rawStartY + spriteHeight - 1;
+            int drawStartX = Mathf.Max(0, rawStartX);
+            int drawEndX = Mathf.Min(_width - 1, rawEndX);
+            int drawStartY = Mathf.Max(0, rawStartY);
+            int drawEndY = Mathf.Min(_height - 1, rawEndY);
+            if (drawStartX > drawEndX || drawStartY > drawEndY)
+            {
+                return;
+            }
+
+            if (castsShadow)
+            {
+                DrawGroundShadow(spriteDistance, screenX, groundY, shadowSizeWorld);
+            }
+
+            for (int stripe = drawStartX; stripe <= drawEndX; stripe++)
+            {
+                float u = (stripe - rawStartX) / (float)Mathf.Max(1, rawEndX - rawStartX);
+                for (int y = drawStartY; y <= drawEndY; y++)
+                {
+                    float v = 1f - ((y - rawStartY) / (float)Mathf.Max(1, rawEndY - rawStartY));
+                    if (!TrySampleSpriteInstance(sprite, renderData, tile, u, v, out Color32 color))
+                    {
+                        continue;
+                    }
+
+                    int index = y * _width + stripe;
+                    if (projected.Depth >= _sceneDepthBuffer[index])
+                    {
+                        continue;
+                    }
+
+                    _pixels[index] = ApplyDistanceShading(color, projected.Depth, 1f);
+                    _sceneDepthBuffer[index] = projected.Depth;
+                }
+            }
+        }
+
+        private bool TrySampleSpriteInstance(Sprite sprite, RenderData renderData, int tile, float u, float v, out Color32 color)
+        {
+            if (sprite != null)
+            {
+                return _atlasSampler.TrySampleSprite(sprite, u, v, out color);
+            }
+
+            if (renderData != null)
+            {
+                return _atlasSampler.TrySampleRenderTile(renderData, tile, u, v, out color);
+            }
+
+            color = default;
+            return false;
+        }
+
+        private void DrawGroundTriangle(
+            FpsResolvedGroundSprite sprite,
+            ProjectedPoint a,
+            ProjectedPoint b,
+            ProjectedPoint c,
+            Vector2 uvA,
+            Vector2 uvB,
+            Vector2 uvC)
+        {
+            int minX = Mathf.Max(0, Mathf.FloorToInt(Mathf.Min(a.ScreenX, Mathf.Min(b.ScreenX, c.ScreenX))));
+            int maxX = Mathf.Min(_width - 1, Mathf.CeilToInt(Mathf.Max(a.ScreenX, Mathf.Max(b.ScreenX, c.ScreenX))));
+            int minY = Mathf.Max(0, Mathf.FloorToInt(Mathf.Min(a.ScreenY, Mathf.Min(b.ScreenY, c.ScreenY))));
+            int maxY = Mathf.Min(_height - 1, Mathf.CeilToInt(Mathf.Max(a.ScreenY, Mathf.Max(b.ScreenY, c.ScreenY))));
+            float area = EdgeFunction(a.ScreenX, a.ScreenY, b.ScreenX, b.ScreenY, c.ScreenX, c.ScreenY);
+            if (Mathf.Abs(area) < 0.0001f)
+            {
+                return;
+            }
+
+            for (int y = minY; y <= maxY; y++)
+            {
+                float py = y + 0.5f;
+                for (int x = minX; x <= maxX; x++)
+                {
+                    float px = x + 0.5f;
+                    float w0 = EdgeFunction(b.ScreenX, b.ScreenY, c.ScreenX, c.ScreenY, px, py);
+                    float w1 = EdgeFunction(c.ScreenX, c.ScreenY, a.ScreenX, a.ScreenY, px, py);
+                    float w2 = EdgeFunction(a.ScreenX, a.ScreenY, b.ScreenX, b.ScreenY, px, py);
+                    if (!IsInsideTriangle(w0, w1, w2, area))
+                    {
+                        continue;
+                    }
+
+                    w0 /= area;
+                    w1 /= area;
+                    w2 /= area;
+
+                    float depth = a.Depth * w0 + b.Depth * w1 + c.Depth * w2;
+                    int index = y * _width + x;
+                    if (depth >= _sceneDepthBuffer[index])
+                    {
+                        continue;
+                    }
+
+                    float u = uvA.x * w0 + uvB.x * w1 + uvC.x * w2;
+                    float v = uvA.y * w0 + uvB.y * w1 + uvC.y * w2;
+                    if (!TrySampleSpriteInstance(sprite.Sprite, null, 0, u, v, out Color32 color))
+                    {
+                        continue;
+                    }
+
+                    _pixels[index] = AlphaBlend(_pixels[index], ApplyDistanceShading(color, depth, 1f));
+                    _sceneDepthBuffer[index] = depth;
+                }
+            }
+        }
+
+        private void DrawGroundShadow(float depth, int screenX, int groundY, float shadowSizeWorld)
+        {
+            int radiusX = Mathf.Max(1, Mathf.RoundToInt((_height * shadowSizeWorld) / depth));
+            int radiusY = Mathf.Max(1, Mathf.RoundToInt(radiusX * 0.35f));
+            int centerY = Mathf.Clamp(groundY + 1, 0, _height - 1);
+            int startX = Mathf.Max(0, screenX - radiusX);
+            int endX = Mathf.Min(_width - 1, screenX + radiusX);
+            int startY = Mathf.Max(0, centerY - radiusY);
+            int endY = Mathf.Min(_height - 1, centerY + radiusY);
+
+            for (int y = startY; y <= endY; y++)
+            {
+                float dy = radiusY <= 0 ? 0f : (y - centerY) / (float)radiusY;
+                for (int x = startX; x <= endX; x++)
+                {
+                    float dx = radiusX <= 0 ? 0f : (x - screenX) / (float)radiusX;
+                    float dist = dx * dx + dy * dy;
+                    if (dist > 1f)
+                    {
+                        continue;
+                    }
+
+                    int index = y * _width + x;
+                    if (depth >= _sceneDepthBuffer[index])
+                    {
+                        continue;
+                    }
+
+                    float alpha = (1f - dist) * 0.28f;
+                    _pixels[index] = AlphaBlend(_pixels[index], new Color32(0, 0, 0, (byte)Mathf.RoundToInt(alpha * 255f)));
+                }
+            }
+        }
+
+        private bool TryProjectWorld(
+            Vector3 world,
+            Vector2 origin,
+            Vector2 forward,
+            Vector2 plane,
+            float halfHeight,
+            float eyeHeight,
+            float cameraGroundHeight,
+            out ProjectedPoint projected)
+        {
+            projected = default;
+            float invDet = 1f / (plane.x * forward.y - forward.x * plane.y);
+            Vector2 relative = new Vector2(world.x - origin.x, world.z - origin.y);
+            float transformX = invDet * (forward.y * relative.x - forward.x * relative.y);
+            float transformY = invDet * (-plane.y * relative.x + plane.x * relative.y);
+            if (transformY <= 0.05f)
+            {
+                return false;
+            }
+
+            projected = new ProjectedPoint
+            {
+                ScreenX = (_width * 0.5f) * (1f + transformX / transformY),
+                ScreenY = halfHeight + (_height * (eyeHeight + cameraGroundHeight - world.y)) / transformY,
+                Depth = transformY,
+                RadialDistance = Mathf.Max(0.05f, Mathf.Sqrt(
+                    relative.x * relative.x
+                    + relative.y * relative.y
+                    + (world.y - (cameraGroundHeight + eyeHeight)) * (world.y - (cameraGroundHeight + eyeHeight))))
+            };
+            return true;
+        }
+
+        private static float EdgeFunction(float ax, float ay, float bx, float by, float px, float py)
+        {
+            return (px - ax) * (by - ay) - (py - ay) * (bx - ax);
+        }
+
+        private static bool IsInsideTriangle(float w0, float w1, float w2, float area)
+        {
+            if (area < 0f)
+            {
+                return w0 <= 0f && w1 <= 0f && w2 <= 0f;
+            }
+
+            return w0 >= 0f && w1 >= 0f && w2 >= 0f;
         }
 
         private static Vector2 DirToVector(int dir)
@@ -290,7 +693,9 @@ namespace Elin_ElinFPSView
                     Cell = cell,
                     Distance = perpendicularDistance,
                     HitVertical = hitVertical,
-                    TextureU = textureU
+                    TextureU = textureU,
+                    WorldX = hitX,
+                    WorldZ = hitZ
                 };
                 return true;
             }
@@ -305,8 +710,10 @@ namespace Elin_ElinFPSView
 
         private Color32 SampleWallColor(RayHit hit, float v)
         {
-            if (_atlasSampler.TrySampleBlock(hit.Cell, hit.TextureU, v, hit.HitVertical, out Color32 sampled))
+            if (_idealizedWorld.TryResolveWall(hit.Cell, out FpsResolvedWallSurface surface)
+                && _atlasSampler.TrySampleBlock(surface, hit.TextureU, v, hit.HitVertical, out Color32 sampled))
             {
+                sampled = FpsIdealizedWorld.ApplyMatTint(sampled, surface.MaterialColor);
                 return ApplyDistanceShading(sampled, hit.Distance, hit.HitVertical ? 1f : 0.82f);
             }
 
@@ -330,13 +737,62 @@ namespace Elin_ElinFPSView
                 color.a);
         }
 
+        private bool TrySampleFloorComposite(Cell cell, int index, float worldX, float worldZ, out Color32 color)
+        {
+            color = FloorFallbackColor;
+            if (!_idealizedWorld.TryResolveFloor(cell, index, out FpsResolvedFloorSurface surface))
+            {
+                return false;
+            }
+
+            if (!_atlasSampler.TrySampleFloorState(surface, worldX, worldZ, out Color32 baseColor))
+            {
+                return false;
+            }
+
+            color = FpsIdealizedWorld.ApplyMatTint(baseColor, surface.MaterialColor);
+
+            if (surface.AutoTileOverlay >= 0)
+            {
+                if (_atlasSampler.TrySampleAutoTile(surface.UseWaterAutoTileAtlas, surface.AutoTileOverlay, worldX, worldZ, out Color32 overlayColor))
+                {
+                    overlayColor = FpsIdealizedWorld.ApplyMatTint(overlayColor, surface.MaterialColor);
+                    color = AlphaBlend(color, overlayColor);
+                }
+            }
+
+            return true;
+        }
+
+        private static Color32 AlphaBlend(Color32 under, Color32 over)
+        {
+            float alpha = over.a / 255f;
+            float inv = 1f - alpha;
+            return new Color32(
+                (byte)Mathf.Clamp(Mathf.RoundToInt(under.r * inv + over.r * alpha), 0, 255),
+                (byte)Mathf.Clamp(Mathf.RoundToInt(under.g * inv + over.g * alpha), 0, 255),
+                (byte)Mathf.Clamp(Mathf.RoundToInt(under.b * inv + over.b * alpha), 0, 255),
+                255);
+        }
+
         private struct RayHit
         {
             public Cell Cell;
             public float Distance;
             public bool HitVertical;
             public float TextureU;
+            public float WorldX;
+            public float WorldZ;
         }
+
+        private struct ProjectedPoint
+        {
+            public float ScreenX;
+            public float ScreenY;
+            public float Depth;
+            public float RadialDistance;
+        }
+
     }
 
     internal struct FpsViewState

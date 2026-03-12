@@ -5,11 +5,17 @@ namespace Elin_ElinFPSView
 {
     internal sealed class FpsViewManager : MonoBehaviour
     {
+        private static FpsViewManager _instance;
+
         private FpsOverlayDisplay _overlay;
         private FpsRenderer _renderer;
         private float _nextRenderTime;
         private float _yawRadians;
         private float _pitchOffset;
+
+        public static bool IsFpsViewActive => _instance != null && _instance._overlay != null && _instance._overlay.IsVisible;
+
+        public static float CurrentYawRadians => _instance?._yawRadians ?? 0f;
 
         public static void EnsureCreated()
         {
@@ -28,6 +34,7 @@ namespace Elin_ElinFPSView
         {
             try
             {
+                _instance = this;
                 _renderer = new FpsRenderer();
                 _renderer.Initialize(
                     Math.Max(1, Plugin.Settings.RenderWidth.Value),
@@ -99,6 +106,11 @@ namespace Elin_ElinFPSView
 
         private void OnDestroy()
         {
+            if (_instance == this)
+            {
+                _instance = null;
+            }
+
             ReleaseCursor();
         }
 

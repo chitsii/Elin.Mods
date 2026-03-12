@@ -1,6 +1,7 @@
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using HarmonyLib;
 using UnityEngine;
 
 namespace Elin_ElinFPSView
@@ -14,17 +15,22 @@ namespace Elin_ElinFPSView
 
         internal static ManualLogSource Log;
         internal static ModConfig Settings;
+        private Harmony _harmony;
 
         private void Awake()
         {
             Log = Logger;
             Settings = ModConfig.Bind(base.Config);
+            _harmony = new Harmony(ModGuid);
+            _harmony.PatchAll(typeof(Plugin).Assembly);
             FpsViewManager.EnsureCreated();
             Logger.LogInfo($"{ModName} v{ModVersion} loaded.");
         }
 
         private void OnDestroy()
         {
+            _harmony?.UnpatchSelf();
+            _harmony = null;
         }
     }
 }

@@ -1,32 +1,35 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Elin_ElinFPSView
 {
     internal sealed class FpsAtlasSampler
     {
+        private readonly Dictionary<int, TextureData> _textureCache = new Dictionary<int, TextureData>();
+        private readonly Dictionary<int, SpriteMetrics> _spriteMetricsCache = new Dictionary<int, SpriteMetrics>();
         private AtlasData _blockAtlas;
         private AtlasData _blockSnowAtlas;
         private AtlasData _floorAtlas;
         private AtlasData _floorSnowAtlas;
+        private AtlasData _autoTileAtlas;
+        private AtlasData _autoTileWaterAtlas;
 
-        public bool TrySampleBlock(Cell cell, float u, float v, bool hitVertical, out Color32 color)
+        public bool TrySampleBlock(FpsResolvedWallSurface surface, float u, float v, bool hitVertical, out Color32 color)
         {
             color = default;
-            if (cell == null || cell.sourceBlock == null || cell.sourceBlock._tiles == null || cell.sourceBlock._tiles.Length == 0)
+            if (surface.Cell == null)
             {
                 return false;
             }
 
-            int dir = cell.blockDir % cell.sourceBlock._tiles.Length;
-            int tile = cell.sourceBlock.GetTile(cell.matBlock, dir);
-            AtlasData atlas = cell.IsSnowTile ? GetBlockSnowAtlas() : GetBlockAtlas();
+            AtlasData atlas = surface.UseSnowAtlas ? GetBlockSnowAtlas() : GetBlockAtlas();
             if (!atlas.IsReady)
             {
                 return false;
             }
 
             Vector2 uv = MapWallUv(u, v, hitVertical);
-            return atlas.TrySample(tile, uv.x, uv.y, out color);
+            return atlas.TrySample(surface.Tile, uv.x, uv.y, out color);
         }
 
         public bool TrySampleFloor(Cell cell, float worldX, float worldZ, out Color32 color)
@@ -47,6 +50,183 @@ namespace Elin_ElinFPSView
             int dir = cell.floorDir % floor._tiles.Length;
             int tile = floor.GetTile(mat, dir);
             AtlasData atlas = cell.IsSnowTile ? GetFloorSnowAtlas() : GetFloorAtlas();
+            if (!atlas.IsReady)
+            {
+                return false;
+            }
+
+            Vector2 uv = MapFloorUv(Mathf.Repeat(worldX, 1f), Mathf.Repeat(worldZ, 1f));
+            return atlas.TrySample(tile, uv.x, uv.y, out color);
+        }
+
+        public bool TrySampleFloorState(FpsResolvedFloorSurface surface, float worldX, float worldZ, out Color32 color)
+        {
+            color = default;
+            if (surface.Cell == null || surface.Floor == null || surface.Material == null)
+            {
+                return false;
+            }
+
+            AtlasData atlas = surface.UseSnowAtlas ? GetFloorSnowAtlas() : GetFloorAtlas();
+            if (surface.Floor == FLOOR.sourceIce)
+            {
+                atlas = GetFloorAtlas();
+            }
+            if (!atlas.IsReady)
+            {
+                return false;
+            }
+
+            Vector2 uv = MapFloorUv(Mathf.Repeat(worldX, 1f), Mathf.Repeat(worldZ, 1f));
+            return atlas.TrySample(surface.BaseTile, uv.x, uv.y, out color);
+        }
+
+        public bool TrySampleSprite(Sprite sprite, float u, float v, out Color32 color)
+        {
+            color = default;
+            if (sprite == null || sprite.texture == null)
+            {
+                return false;
+            }
+
+            int textureId = sprite.texture.GetInstanceID();
+            if (!_textureCache.TryGetValue(textureId, out TextureData textureData))
+            {
+                textureData = new TextureData
+                {
+                    Pixels = sprite.texture.GetPixels32(),
+                    Width = sprite.texture.width,
+                    Height = sprite.texture.height
+                };
+                _textureCache[textureId] = textureData;
+            }
+
+            Rect rect = sprite.textureRect;
+            int x = Mathf.Clamp(Mathf.FloorToInt(rect.x + Mathf.Clamp01(u) * (rect.width - 1f)), 0, textureData.Width - 1);
+            int yFromBottom = Mathf.Clamp(Mathf.FloorToInt(rect.y + Mathf.Clamp01(v) * (rect.height - 1f)), 0, textureData.Height - 1);
+            int index = yFromBottom * textureData.Width + x;
+            if (index < 0 || index >= textureData.Pixels.Length)
+            {
+                return false;
+            }
+
+            color = textureData.Pixels[index];
+            return color.a > 0;
+        }
+
+        public bool TrySampleRenderTile(RenderData renderData, int tile, float u, float v, out Color32 color)
+        {
+            color = default;
+            if (renderData?.pass == null)
+            {
+                return false;
+            }
+
+            AtlasData atlas = AtlasData.Create(renderData.pass);
+            if (!atlas.IsReady)
+            {
+                return false;
+            }
+
+            return atlas.TrySample(tile, u, v, out color);
+        }
+
+        public bool TryGetSpriteMetrics(Sprite sprite, out SpriteMetrics metrics)
+        {
+            metrics = default;
+            if (sprite == null || sprite.texture == null)
+            {
+                return false;
+            }
+
+            int spriteId = sprite.GetInstanceID();
+            if (_spriteMetricsCache.TryGetValue(spriteId, out metrics))
+            {
+                return metrics.HasOpaquePixels;
+            }
+
+            int textureId = sprite.texture.GetInstanceID();
+            if (!_textureCache.TryGetValue(textureId, out TextureData textureData))
+            {
+                textureData = new TextureData
+                {
+                    Pixels = sprite.texture.GetPixels32(),
+                    Width = sprite.texture.width,
+                    Height = sprite.texture.height
+                };
+                _textureCache[textureId] = textureData;
+            }
+
+            Rect rect = sprite.textureRect;
+            int minX = Mathf.FloorToInt(rect.xMin);
+            int minY = Mathf.FloorToInt(rect.yMin);
+            int maxX = Mathf.CeilToInt(rect.xMax) - 1;
+            int maxY = Mathf.CeilToInt(rect.yMax) - 1;
+
+            int opaqueMinX = maxX;
+            int opaqueMaxX = minX;
+            int opaqueMinY = maxY;
+            int opaqueMaxY = minY;
+            bool hasOpaque = false;
+            for (int y = minY; y <= maxY; y++)
+            {
+                int row = y * textureData.Width;
+                for (int x = minX; x <= maxX; x++)
+                {
+                    Color32 pixel = textureData.Pixels[row + x];
+                    if (pixel.a <= 8)
+                    {
+                        continue;
+                    }
+
+                    hasOpaque = true;
+                    if (x < opaqueMinX)
+                    {
+                        opaqueMinX = x;
+                    }
+                    if (x > opaqueMaxX)
+                    {
+                        opaqueMaxX = x;
+                    }
+                    if (y < opaqueMinY)
+                    {
+                        opaqueMinY = y;
+                    }
+                    if (y > opaqueMaxY)
+                    {
+                        opaqueMaxY = y;
+                    }
+                }
+            }
+
+            if (!hasOpaque)
+            {
+                metrics = new SpriteMetrics
+                {
+                    HasOpaquePixels = false
+                };
+                _spriteMetricsCache[spriteId] = metrics;
+                return false;
+            }
+
+            float width = Mathf.Max(1f, rect.width - 1f);
+            float height = Mathf.Max(1f, rect.height - 1f);
+            metrics = new SpriteMetrics
+            {
+                MinU = Mathf.Clamp01((opaqueMinX - rect.xMin) / width),
+                MaxU = Mathf.Clamp01((opaqueMaxX - rect.xMin) / width),
+                BottomV = Mathf.Clamp01((opaqueMinY - rect.yMin) / height),
+                TopV = Mathf.Clamp01((opaqueMaxY - rect.yMin) / height),
+                HasOpaquePixels = true
+            };
+            _spriteMetricsCache[spriteId] = metrics;
+            return true;
+        }
+
+        public bool TrySampleAutoTile(bool water, int tile, float worldX, float worldZ, out Color32 color)
+        {
+            color = default;
+            AtlasData atlas = water ? GetAutoTileWaterAtlas() : GetAutoTileAtlas();
             if (!atlas.IsReady)
             {
                 return false;
@@ -132,6 +312,26 @@ namespace Elin_ElinFPSView
             return _floorSnowAtlas;
         }
 
+        private AtlasData GetAutoTileAtlas()
+        {
+            if (!_autoTileAtlas.IsReady)
+            {
+                _autoTileAtlas = AtlasData.Create(EClass.scene?.screenElin?.tileMap?.passAutoTile);
+            }
+
+            return _autoTileAtlas;
+        }
+
+        private AtlasData GetAutoTileWaterAtlas()
+        {
+            if (!_autoTileWaterAtlas.IsReady)
+            {
+                _autoTileWaterAtlas = AtlasData.Create(EClass.scene?.screenElin?.tileMap?.passAutoTileWater);
+            }
+
+            return _autoTileWaterAtlas;
+        }
+
         private struct AtlasData
         {
             public Color32[] Pixels;
@@ -206,6 +406,22 @@ namespace Elin_ElinFPSView
                 color = Pixels[index];
                 return color.a > 0;
             }
+        }
+
+        private struct TextureData
+        {
+            public Color32[] Pixels;
+            public int Width;
+            public int Height;
+        }
+
+        public struct SpriteMetrics
+        {
+            public float MinU;
+            public float MaxU;
+            public float BottomV;
+            public float TopV;
+            public bool HasOpaquePixels;
         }
     }
 }

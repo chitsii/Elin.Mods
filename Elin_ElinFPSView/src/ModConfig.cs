@@ -12,6 +12,8 @@ namespace Elin_ElinFPSView
 
         public ConfigEntry<KeyCode> ToggleKey { get; private set; }
 
+        public ConfigEntry<FpsRenderBackend> RenderBackend { get; private set; }
+
         public ConfigEntry<int> RenderWidth { get; private set; }
 
         public ConfigEntry<int> RenderHeight { get; private set; }
@@ -35,6 +37,7 @@ namespace Elin_ElinFPSView
             ModConfig settings = new ModConfig
             {
                 ToggleKey = configFile.Bind("General", "ToggleKey", KeyCode.F9, "Toggle the FPS overlay."),
+                RenderBackend = configFile.Bind("General", "RenderBackend", FpsRenderBackend.Software, "Rendering backend. Software keeps the current CPU renderer; GpuPreview enables the offscreen Unity camera preview path."),
                 RenderWidth = configFile.Bind("Rendering", "RenderWidth", DefaultRenderWidth, "Internal render width."),
                 RenderHeight = configFile.Bind("Rendering", "RenderHeight", DefaultRenderHeight, "Internal render height."),
                 FieldOfViewDegrees = configFile.Bind("Rendering", "FieldOfViewDegrees", 75f, "Horizontal field of view."),

@@ -9,6 +9,7 @@ namespace Elin_ElinFPSView
 
         private FpsOverlayDisplay _overlay;
         private FpsRenderer _renderer;
+        private FpsGpuPreviewRenderer _gpuPreviewRenderer;
         private float _nextRenderTime;
         private float _yawRadians;
         private float _pitchOffset;
@@ -50,6 +51,13 @@ namespace Elin_ElinFPSView
 
                 _overlay = gameObject.AddComponent<FpsOverlayDisplay>();
                 _overlay.Initialize(_renderer.Width, _renderer.Height);
+
+                if (UseGpuPreviewBackend())
+                {
+                    _gpuPreviewRenderer = new FpsGpuPreviewRenderer();
+                    _gpuPreviewRenderer.Initialize(_renderer.Width, _renderer.Height);
+                    _overlay.SetDisplayTexture(_gpuPreviewRenderer.OutputTexture, flipVertical: false);
+                }
             }
             catch (Exception ex)
             {
@@ -95,14 +103,23 @@ namespace Elin_ElinFPSView
                 UpdateMouseLook();
                 UpdateCameraDistance();
                 _nextRenderTime = Time.unscaledTime + (1f / 60f);
-                _overlay.Upload(_renderer.RenderFrame(new FpsViewState
+                FpsViewState viewState = new FpsViewState
                 {
                     HasCustomYaw = true,
                     YawRadians = _yawRadians,
                     PitchOffset = _pitchOffset,
                     CameraDistance = _cameraDistance,
                     CameraHeightOffset = _cameraDistance > 0.01f ? ThirdPersonHeightOffset : 0f
-                }));
+                };
+
+                if (UseGpuPreviewBackend())
+                {
+                    _gpuPreviewRenderer?.RenderFrame(viewState);
+                }
+                else
+                {
+                    _overlay.Upload(_renderer.RenderFrame(viewState));
+                }
             }
             catch (Exception ex)
             {
@@ -122,7 +139,14 @@ namespace Elin_ElinFPSView
                 _instance = null;
             }
 
+            _gpuPreviewRenderer?.Dispose();
+            _gpuPreviewRenderer = null;
             ReleaseCursor();
+        }
+
+        private static bool UseGpuPreviewBackend()
+        {
+            return Plugin.Settings != null && Plugin.Settings.RenderBackend.Value == FpsRenderBackend.GpuPreview;
         }
 
         private static bool CanRenderFrame()

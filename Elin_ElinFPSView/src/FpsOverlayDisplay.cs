@@ -19,6 +19,8 @@ namespace Elin_ElinFPSView
 
         public bool IsVisible => _canvas != null && _canvas.enabled;
 
+        public Texture FrameTexture => _frameTex;
+
         public void Initialize(int width, int height)
         {
             _width = width;
@@ -40,6 +42,19 @@ namespace Elin_ElinFPSView
             FlipRows(pixels);
             _frameTex.SetPixels32(_uploadBuffer);
             _frameTex.Apply(false, false);
+        }
+
+        public void SetDisplayTexture(Texture texture, bool flipVertical)
+        {
+            if (_image == null)
+            {
+                return;
+            }
+
+            _image.texture = texture;
+            _image.uvRect = flipVertical
+                ? new Rect(0f, 1f, 1f, -1f)
+                : new Rect(0f, 0f, 1f, 1f);
         }
 
         private void FlipRows(Color32[] pixels)
@@ -95,6 +110,7 @@ namespace Elin_ElinFPSView
             _image.texture = _frameTex;
             _image.color = Color.white;
             _image.raycastTarget = false;
+            _image.uvRect = new Rect(0f, 0f, 1f, 1f);
 
             var rt = _image.rectTransform;
             rt.anchorMin = Vector2.zero;

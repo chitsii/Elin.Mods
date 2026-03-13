@@ -15,7 +15,7 @@ namespace Elin_ElinFPSView
         private AtlasData _floorSnowAtlas;
         private AtlasData _autoTileAtlas;
         private AtlasData _autoTileWaterAtlas;
-        private const float TerrainFloorInset = 0.12f;
+        private const float TerrainFloorInset = 0.22f;
         private const int TerrainOpaqueSearchSteps = 6;
 
         public bool TrySampleBlock(FpsResolvedWallSurface surface, float u, float v, bool hitVertical, out Color32 color)
@@ -107,6 +107,21 @@ namespace Elin_ElinFPSView
                 InsetTerrainCoordinate(localU),
                 InsetTerrainCoordinate(localV));
             return TrySampleTerrainAtlas(atlas, surface.BaseTile, uv.x, uv.y, out color);
+        }
+
+        public bool TrySampleFloorTileSurface(bool snow, int tile, float localU, float localV, out Color32 color)
+        {
+            color = default;
+            AtlasData atlas = snow ? GetFloorSnowAtlas() : GetFloorAtlas();
+            if (!atlas.IsReady)
+            {
+                return false;
+            }
+
+            Vector2 uv = MapFloorSurfaceUv(
+                InsetTerrainCoordinate(localU),
+                InsetTerrainCoordinate(localV));
+            return TrySampleTerrainAtlas(atlas, tile, uv.x, uv.y, out color);
         }
 
         public bool TrySampleSprite(Sprite sprite, float u, float v, out Color32 color)

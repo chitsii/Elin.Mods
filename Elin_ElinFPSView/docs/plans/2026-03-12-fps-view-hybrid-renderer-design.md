@@ -1,5 +1,9 @@
 # FPS View Hybrid Renderer Design
 
+> 2026-03-13 追記:
+> この文書は CPU renderer 中心だった時点の hybrid 設計。
+> 現在の優先設計は `docs/plans/2026-03-13-fps-view-gpu-hybrid-design.md`。
+
 ## Goal
 
 Elin の 2D クォータービュー資産を使いながら、Daggerfall 系の「3D terrain + 2D impostor」を破綻なく描画する。

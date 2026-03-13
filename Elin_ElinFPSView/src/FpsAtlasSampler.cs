@@ -7,6 +7,8 @@ namespace Elin_ElinFPSView
     {
         private readonly Dictionary<int, TextureData> _textureCache = new Dictionary<int, TextureData>();
         private readonly Dictionary<int, SpriteMetrics> _spriteMetricsCache = new Dictionary<int, SpriteMetrics>();
+        private readonly Dictionary<MeshPass, AtlasData> _renderPassAtlasCache = new Dictionary<MeshPass, AtlasData>();
+        private readonly Dictionary<long, SpriteMetrics> _renderTileMetricsCache = new Dictionary<long, SpriteMetrics>();
         private AtlasData _blockAtlas;
         private AtlasData _blockSnowAtlas;
         private AtlasData _floorAtlas;
@@ -122,10 +124,20 @@ namespace Elin_ElinFPSView
                 return false;
             }
 
-            AtlasData atlas = AtlasData.Create(renderData.pass);
+            AtlasData atlas = GetRenderPassAtlas(renderData.pass);
             if (!atlas.IsReady)
             {
                 return false;
+            }
+
+            if (renderData.multiSize && tile >= atlas.TilesPerRow)
+            {
+                if (v < 0.5f)
+                {
+                    return atlas.TrySample(tile - atlas.TilesPerRow, u, Mathf.Clamp01(v * 2f), out color);
+                }
+
+                return atlas.TrySample(tile, u, Mathf.Clamp01((v - 0.5f) * 2f), out color);
             }
 
             return atlas.TrySample(tile, u, v, out color);
@@ -220,6 +232,92 @@ namespace Elin_ElinFPSView
                 HasOpaquePixels = true
             };
             _spriteMetricsCache[spriteId] = metrics;
+            return true;
+        }
+
+        public bool TryGetRenderTileMetrics(RenderData renderData, int tile, out SpriteMetrics metrics)
+        {
+            metrics = default;
+            if (renderData?.pass == null)
+            {
+                return false;
+            }
+
+            AtlasData atlas = GetRenderPassAtlas(renderData.pass);
+            if (!atlas.IsReady)
+            {
+                return false;
+            }
+
+            long cacheKey = (((long)renderData.pass.GetInstanceID()) << 32)
+                ^ (uint)tile
+                ^ (renderData.multiSize ? (1L << 63) : 0L);
+            if (_renderTileMetricsCache.TryGetValue(cacheKey, out metrics))
+            {
+                return metrics.HasOpaquePixels;
+            }
+
+            bool hasBounds;
+            int minX;
+            int maxX;
+            int minYFromTop;
+            int maxYFromTop;
+
+            if (renderData.multiSize && tile >= atlas.TilesPerRow)
+            {
+                bool hasUpper = atlas.TryGetOpaqueBounds(tile - atlas.TilesPerRow, out int upperMinX, out int upperMaxX, out int upperMinY, out int upperMaxY);
+                bool hasLower = atlas.TryGetOpaqueBounds(tile, out int lowerMinX, out int lowerMaxX, out int lowerMinY, out int lowerMaxY);
+                hasBounds = hasUpper || hasLower;
+                if (!hasBounds)
+                {
+                    metrics = new SpriteMetrics
+                    {
+                        HasOpaquePixels = false
+                    };
+                    _renderTileMetricsCache[cacheKey] = metrics;
+                    return false;
+                }
+
+                if (hasUpper)
+                {
+                    minX = upperMinX;
+                    maxX = upperMaxX;
+                    minYFromTop = upperMinY;
+                    maxYFromTop = upperMaxY;
+                }
+                else
+                {
+                    minX = lowerMinX;
+                    maxX = lowerMaxX;
+                    minYFromTop = lowerMinY + atlas.TileHeight;
+                    maxYFromTop = lowerMaxY + atlas.TileHeight;
+                }
+
+                if (hasLower)
+                {
+                    minX = Mathf.Min(minX, lowerMinX);
+                    maxX = Mathf.Max(maxX, lowerMaxX);
+                    minYFromTop = Mathf.Min(minYFromTop, lowerMinY + atlas.TileHeight);
+                    maxYFromTop = Mathf.Max(maxYFromTop, lowerMaxY + atlas.TileHeight);
+                }
+
+                metrics = CreateMetrics(minX, maxX, minYFromTop, maxYFromTop, atlas.TileWidth, atlas.TileHeight * 2);
+                _renderTileMetricsCache[cacheKey] = metrics;
+                return true;
+            }
+
+            if (!atlas.TryGetOpaqueBounds(tile, out minX, out maxX, out minYFromTop, out maxYFromTop))
+            {
+                metrics = new SpriteMetrics
+                {
+                    HasOpaquePixels = false
+                };
+                _renderTileMetricsCache[cacheKey] = metrics;
+                return false;
+            }
+
+            metrics = CreateMetrics(minX, maxX, minYFromTop, maxYFromTop, atlas.TileWidth, atlas.TileHeight);
+            _renderTileMetricsCache[cacheKey] = metrics;
             return true;
         }
 
@@ -332,6 +430,41 @@ namespace Elin_ElinFPSView
             return _autoTileWaterAtlas;
         }
 
+        private AtlasData GetRenderPassAtlas(MeshPass pass)
+        {
+            if (pass == null)
+            {
+                return default;
+            }
+
+            if (_renderPassAtlasCache.TryGetValue(pass, out AtlasData atlas) && atlas.IsReady)
+            {
+                return atlas;
+            }
+
+            atlas = AtlasData.Create(pass);
+            if (atlas.IsReady)
+            {
+                _renderPassAtlasCache[pass] = atlas;
+            }
+
+            return atlas;
+        }
+
+        private static SpriteMetrics CreateMetrics(int minX, int maxX, int minYFromTop, int maxYFromTop, int width, int height)
+        {
+            float widthScale = Mathf.Max(1f, width - 1f);
+            float heightScale = Mathf.Max(1f, height - 1f);
+            return new SpriteMetrics
+            {
+                MinU = Mathf.Clamp01(minX / widthScale),
+                MaxU = Mathf.Clamp01(maxX / widthScale),
+                BottomV = Mathf.Clamp01((height - 1 - maxYFromTop) / heightScale),
+                TopV = Mathf.Clamp01((height - 1 - minYFromTop) / heightScale),
+                HasOpaquePixels = true
+            };
+        }
+
         private struct AtlasData
         {
             public Color32[] Pixels;
@@ -405,6 +538,81 @@ namespace Elin_ElinFPSView
 
                 color = Pixels[index];
                 return color.a > 0;
+            }
+
+            public bool TryGetOpaqueBounds(int tile, out int minX, out int maxX, out int minYFromTop, out int maxYFromTop)
+            {
+                minX = 0;
+                maxX = 0;
+                minYFromTop = 0;
+                maxYFromTop = 0;
+                if (!IsReady)
+                {
+                    return false;
+                }
+
+                int tileIndex = Mathf.Abs(tile);
+                int tileX = tileIndex % TilesPerRow;
+                int tileY = tileIndex / TilesPerRow;
+                if (tileY < 0 || tileY >= TilesPerColumn)
+                {
+                    return false;
+                }
+
+                int startX = tileX * TileWidth;
+                int startYFromTop = tileY * TileHeight;
+                bool hasOpaque = false;
+                int foundMinX = TileWidth - 1;
+                int foundMaxX = 0;
+                int foundMinY = TileHeight - 1;
+                int foundMaxY = 0;
+
+                for (int localY = 0; localY < TileHeight; localY++)
+                {
+                    int atlasYFromTop = startYFromTop + localY;
+                    int atlasY = TextureHeight - 1 - atlasYFromTop;
+                    int row = atlasY * TextureWidth;
+                    for (int localX = 0; localX < TileWidth; localX++)
+                    {
+                        Color32 pixel = Pixels[row + startX + localX];
+                        if (pixel.a <= 8)
+                        {
+                            continue;
+                        }
+
+                        hasOpaque = true;
+                        if (localX < foundMinX)
+                        {
+                            foundMinX = localX;
+                        }
+
+                        if (localX > foundMaxX)
+                        {
+                            foundMaxX = localX;
+                        }
+
+                        if (localY < foundMinY)
+                        {
+                            foundMinY = localY;
+                        }
+
+                        if (localY > foundMaxY)
+                        {
+                            foundMaxY = localY;
+                        }
+                    }
+                }
+
+                if (!hasOpaque)
+                {
+                    return false;
+                }
+
+                minX = foundMinX;
+                maxX = foundMaxX;
+                minYFromTop = foundMinY;
+                maxYFromTop = foundMaxY;
+                return true;
             }
         }
 

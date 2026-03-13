@@ -9,6 +9,8 @@ namespace Elin_ElinFPSView
         private const float CharaBaseHeight = 1.05f;
         private const float InstalledBaseHeight = 0.9f;
         private const float TallObjectBaseHeight = 1.3f;
+        private static bool _loggedCellObjectSpriteFailure;
+        private static bool _loggedCellEffectSpriteFailure;
 
         public static float GetCellSurfaceHeight(Cell cell)
         {
@@ -17,7 +19,7 @@ namespace Elin_ElinFPSView
                 return 0f;
             }
 
-            float baseHeight = cell.bridgeHeight == 0 ? cell.height : cell.bridgeHeight;
+            float baseHeight = (cell.bridgeHeight == 0 ? cell.height : cell.bridgeHeight) * GetTerrainHeightScale();
             SourceFloor.Row floor = cell.HasBridge ? cell.sourceBridge : cell.sourceFloor;
             if (floor != null)
             {
@@ -25,6 +27,50 @@ namespace Elin_ElinFPSView
             }
 
             return baseHeight;
+        }
+
+        public static float GetTerrainHeightScale()
+        {
+            if (EClass.screen?.tileMap != null)
+            {
+                float referenceHeight = Mathf.Abs(EClass.screen.tileWorldSize.y);
+                if (referenceHeight <= 0.0001f)
+                {
+                    referenceHeight = Mathf.Abs(EClass.screen.tileAlign.y);
+                }
+
+                if (referenceHeight > 0.0001f)
+                {
+                    return Mathf.Abs(EClass.screen.tileMap._heightMod.y / referenceHeight) * 0.5f;
+                }
+            }
+
+            return 0.04f;
+        }
+
+        public static float GetSurfaceHeightAt(Vector2 position)
+        {
+            if (EClass._map == null || EClass._map.Size <= 0)
+            {
+                return 0f;
+            }
+
+            float sampleX = Mathf.Clamp(position.x - 0.5f, 0f, EClass._map.Size - 1f);
+            float sampleZ = Mathf.Clamp(position.y - 0.5f, 0f, EClass._map.Size - 1f);
+            int x0 = Mathf.FloorToInt(sampleX);
+            int z0 = Mathf.FloorToInt(sampleZ);
+            int x1 = Mathf.Min(x0 + 1, EClass._map.Size - 1);
+            int z1 = Mathf.Min(z0 + 1, EClass._map.Size - 1);
+            float tx = sampleX - x0;
+            float tz = sampleZ - z0;
+
+            float h00 = GetCellSurfaceHeight(EClass._map.cells[x0, z0]);
+            float h10 = GetCellSurfaceHeight(EClass._map.cells[x1, z0]);
+            float h01 = GetCellSurfaceHeight(EClass._map.cells[x0, z1]);
+            float h11 = GetCellSurfaceHeight(EClass._map.cells[x1, z1]);
+            float hx0 = Mathf.Lerp(h00, h10, tx);
+            float hx1 = Mathf.Lerp(h01, h11, tx);
+            return Mathf.Lerp(hx0, hx1, tz);
         }
 
         public bool TryResolveFloor(Cell cell, int index, out FpsResolvedFloorSurface surface)
@@ -84,7 +130,7 @@ namespace Elin_ElinFPSView
                 }
                 else
                 {
-                    if (cell.sourceObj.snowTile > 0)
+                    if (cell.sourceObj != null && cell.sourceObj.snowTile > 0)
                     {
                         sourceFloor = FLOOR.sourceSnow2;
                         floorDir = cell.sourceObj.snowTile - 1;
@@ -177,7 +223,31 @@ namespace Elin_ElinFPSView
                         }
                     }
 
-                    TryAddEffectSprite(cell, x, z, origin, maxDistance, effectOutput);
+                    try
+                    {
+                        TryAddCellObjectSprite(cell, x, z, origin, maxDistance, uprightOutput, groundOutput);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        if (!_loggedCellObjectSpriteFailure)
+                        {
+                            _loggedCellObjectSpriteFailure = true;
+                            Plugin.Log?.LogWarning($"Skipping broken cell object sprites. First failure at {x},{z}: {ex}");
+                        }
+                    }
+
+                    try
+                    {
+                        TryAddEffectSprite(cell, x, z, origin, maxDistance, effectOutput);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        if (!_loggedCellEffectSpriteFailure)
+                        {
+                            _loggedCellEffectSpriteFailure = true;
+                            Plugin.Log?.LogWarning($"Skipping broken cell effect sprites. First failure at {x},{z}: {ex}");
+                        }
+                    }
                 }
             }
         }
@@ -315,9 +385,89 @@ namespace Elin_ElinFPSView
             {
                 CenterWorld = new Vector3(position.x, groundHeightWorld + 0.01f, position.y),
                 Sprite = sprite,
+                RenderData = null,
+                Tile = 0,
                 Distance = distance,
-                SizeWorld = new Vector2(width, depth)
+                SizeWorld = new Vector2(width, depth),
+                MaterialColor = 0,
+                HasMaterialTint = false
             });
+        }
+
+        private static void TryAddCellObjectSprite(
+            Cell cell,
+            int cellX,
+            int cellZ,
+            Vector2 origin,
+            float maxDistance,
+            List<FpsResolvedUprightSprite> uprightOutput,
+            List<FpsResolvedGroundSprite> groundOutput)
+        {
+            if (cell == null || cell.obj == 0)
+            {
+                return;
+            }
+
+            SourceObj.Row sourceObj = cell.sourceObj;
+            RenderData renderData = ResolveCellObjectRenderData(cell);
+            if (sourceObj == null || renderData == null || renderData.SkipOnMap)
+            {
+                return;
+            }
+
+            Vector2 position = new Vector2(cellX + 0.5f, cellZ + 0.5f);
+            float distance = Vector2.Distance(position, origin);
+            if (distance <= 0.1f || distance > maxDistance + 1f)
+            {
+                return;
+            }
+
+            if (!TryResolveCellObjectTile(cell, out int tile))
+            {
+                return;
+            }
+
+            int materialColor = ResolveCellObjectMaterialColor(cell, sourceObj);
+            if (IsUprightCellObject(cell, sourceObj, renderData))
+            {
+                Vector2 worldSize = ResolveCellObjectUprightWorldSize(sourceObj, renderData);
+                float elevation = ResolveCellObjectElevation(cell, sourceObj);
+                float pivotX = 0.5f;
+                float pivotY = 0f;
+
+                uprightOutput.Add(new FpsResolvedUprightSprite
+                {
+                    AnchorWorld = new Vector3(position.x, GetCellSurfaceHeight(cell) + elevation, position.y),
+                    Sprite = null,
+                    RenderData = renderData,
+                    Tile = tile,
+                    Distance = distance,
+                    WidthWorld = worldSize.x,
+                    HeightWorld = worldSize.y,
+                    PivotX = pivotX,
+                    PivotY = pivotY,
+                    ShadowSizeWorld = Mathf.Max(0.16f, worldSize.x * 0.25f),
+                    CastsShadow = sourceObj.pref.shadow > 1 && !cell.ignoreObjShadow,
+                    FacingRule = BillboardFacingRule.CameraFacing,
+                    MaterialColor = materialColor,
+                    HasMaterialTint = true
+                });
+            }
+            else
+            {
+                Vector2 groundSize = ResolveCellObjectGroundWorldSize(renderData);
+                groundOutput.Add(new FpsResolvedGroundSprite
+                {
+                    CenterWorld = new Vector3(position.x, GetCellSurfaceHeight(cell) + ResolveCellObjectElevation(cell, sourceObj) + 0.01f, position.y),
+                    Sprite = null,
+                    RenderData = renderData,
+                    Tile = tile,
+                    Distance = distance,
+                    SizeWorld = groundSize,
+                    MaterialColor = materialColor,
+                    HasMaterialTint = true
+                });
+            }
         }
 
         private static BillboardKind ResolveBillboardKind(Card card)
@@ -461,6 +611,175 @@ namespace Elin_ElinFPSView
             return Mathf.Clamp(elevation, 0f, 0.6f);
         }
 
+        private static RenderData ResolveCellObjectRenderData(Cell cell)
+        {
+            if (cell?.sourceObj == null)
+            {
+                return null;
+            }
+
+            if (cell.sourceObj.HasGrowth && cell.growth?.stages != null && cell.growth.stages.Length > 0)
+            {
+                int stageIndex = Mathf.Clamp(cell.objVal / 30, 0, cell.growth.stages.Length - 1);
+                return cell.growth.stages[stageIndex].renderData ?? cell.sourceObj.renderData;
+            }
+
+            return cell.sourceObj.renderData;
+        }
+
+        private static int ResolveCellObjectMaterialColor(Cell cell, SourceObj.Row sourceObj)
+        {
+            if (sourceObj == null)
+            {
+                return 104025;
+            }
+
+            SourceMaterial.Row material = cell?.matObj ?? sourceObj.DefaultMaterial;
+            if (material == null)
+            {
+                return 104025;
+            }
+
+            return sourceObj.GetColorInt(material);
+        }
+
+        private static bool TryResolveCellObjectTile(Cell cell, out int tile)
+        {
+            tile = 0;
+            if (cell?.sourceObj == null)
+            {
+                return false;
+            }
+
+            SourceObj.Row sourceObj = cell.sourceObj;
+            if (sourceObj.HasGrowth && cell.growth?.stages != null && cell.growth.stages.Length > 0)
+            {
+                int stageIndex = Mathf.Clamp(cell.objVal / 30, 0, cell.growth.stages.Length - 1);
+                GrowSystem.Stage stage = cell.growth.stages[stageIndex];
+                if (stage?.tiles == null || stage.tiles.Length == 0)
+                {
+                    return false;
+                }
+
+                tile = stage.tiles[cell.objDir % stage.tiles.Length];
+                return true;
+            }
+
+            if (sourceObj._tiles == null || sourceObj._tiles.Length == 0)
+            {
+                return false;
+            }
+
+            if (cell.autotileObj != 0)
+            {
+                tile = sourceObj._tiles[0] + cell.autotileObj;
+            }
+            else if (sourceObj.tileType.IsUseBlockDir)
+            {
+                tile = sourceObj._tiles[cell.blockDir % sourceObj._tiles.Length];
+            }
+            else
+            {
+                tile = sourceObj._tiles[cell.objDir % sourceObj._tiles.Length];
+            }
+
+            return true;
+        }
+
+        private static bool IsUprightCellObject(Cell cell, SourceObj.Row sourceObj, RenderData renderData)
+        {
+            if (sourceObj == null || renderData == null)
+            {
+                return false;
+            }
+
+            if (sourceObj.HasGrowth && cell?.growth != null)
+            {
+                return cell.growth.IsTree || renderData.multiSize;
+            }
+
+            if (renderData.multiSize || renderData is RenderDataObjV || sourceObj.pref.shadow > 1 || sourceObj.pref.height > 0.05f)
+            {
+                return true;
+            }
+
+            if (renderData.pass?.pmesh != null && renderData.pass.pmesh.top)
+            {
+                return false;
+            }
+
+            return renderData.size.y * Mathf.Max(0.1f, renderData.imageScale.y)
+                >= renderData.size.x * Mathf.Max(0.1f, renderData.imageScale.x) * 0.9f;
+        }
+
+        private static Vector2 ResolveCellObjectUprightWorldSize(SourceObj.Row sourceObj, RenderData renderData)
+        {
+            float scaleX = Mathf.Max(0.1f, renderData.imageScale.x);
+            float scaleY = Mathf.Max(0.1f, renderData.imageScale.y);
+            float width = renderData.size.x * scaleX;
+            float height = renderData.size.y * scaleY;
+
+            if (renderData.pass?.pmesh != null)
+            {
+                ProceduralMesh pmesh = renderData.pass.pmesh;
+                width = pmesh.size.x * scaleX;
+                height = Mathf.Abs(pmesh.size.y - pmesh.offset.y) * scaleY;
+                if (renderData.multiSize)
+                {
+                    height += pmesh.size.y * scaleY;
+                }
+            }
+            else if (renderData.multiSize)
+            {
+                height *= 2f;
+            }
+
+            return new Vector2(
+                Mathf.Max(0.12f, width),
+                Mathf.Max(0.12f, height));
+        }
+
+        private static Vector2 ResolveCellObjectGroundWorldSize(RenderData renderData)
+        {
+            float scaleX = Mathf.Max(0.1f, renderData.imageScale.x);
+            float width = Mathf.Max(0.12f, renderData.size.x * scaleX);
+            float depth = width;
+            if (renderData.pass?.pmesh != null)
+            {
+                ProceduralMesh pmesh = renderData.pass.pmesh;
+                if (pmesh.top)
+                {
+                    width = pmesh.size.x * scaleX;
+                    depth = Mathf.Max(0.12f, pmesh.size.z);
+                }
+                else
+                {
+                    width = Mathf.Max(0.12f, pmesh.size.x * scaleX);
+                    depth = width;
+                }
+            }
+
+            return new Vector2(
+                Mathf.Max(0.12f, width),
+                Mathf.Max(0.12f, depth));
+        }
+
+        private static float ResolveCellObjectElevation(Cell cell, SourceObj.Row sourceObj)
+        {
+            if (cell == null || sourceObj == null)
+            {
+                return 0f;
+            }
+
+            float elevation = 0f;
+            if (sourceObj.pref.Float && cell.IsTopWater)
+            {
+                elevation += 0.08f;
+            }
+
+            return elevation;
+        }
+
         private static void TryAddEffectSprite(
             Cell cell,
             int cellX,
@@ -560,14 +879,20 @@ namespace Elin_ElinFPSView
         public float ShadowSizeWorld;
         public bool CastsShadow;
         public BillboardFacingRule FacingRule;
+        public int MaterialColor;
+        public bool HasMaterialTint;
     }
 
     internal struct FpsResolvedGroundSprite
     {
         public Vector3 CenterWorld;
         public Sprite Sprite;
+        public RenderData RenderData;
+        public int Tile;
         public float Distance;
         public Vector2 SizeWorld;
+        public int MaterialColor;
+        public bool HasMaterialTint;
     }
 
     internal struct FpsResolvedEffectSprite

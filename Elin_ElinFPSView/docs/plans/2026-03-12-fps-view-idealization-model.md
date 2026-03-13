@@ -4,7 +4,9 @@
 >
 > この文書は floor/wall 中心の初期 idealization モデル。billboard まわりの方針は後続の
 > `docs/plans/2026-03-12-fps-view-hybrid-renderer-design.md`
-> で置き換えた。
+> で置き換えた。lighting の方針は
+> `docs/plans/2026-03-13-fps-view-lighting-design.md`
+> を参照。
 
 ## Goal
 

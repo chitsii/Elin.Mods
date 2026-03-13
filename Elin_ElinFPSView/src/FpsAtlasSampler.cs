@@ -15,6 +15,8 @@ namespace Elin_ElinFPSView
         private AtlasData _floorSnowAtlas;
         private AtlasData _autoTileAtlas;
         private AtlasData _autoTileWaterAtlas;
+        private const float TerrainFloorInset = 0.12f;
+        private const int TerrainOpaqueSearchSteps = 6;
 
         public bool TrySampleBlock(FpsResolvedWallSurface surface, float u, float v, bool hitVertical, out Color32 color)
         {
@@ -57,7 +59,7 @@ namespace Elin_ElinFPSView
                 return false;
             }
 
-            Vector2 uv = MapFloorUv(Mathf.Repeat(worldX, 1f), Mathf.Repeat(worldZ, 1f));
+            Vector2 uv = MapFloorSurfaceUv(Mathf.Repeat(worldX, 1f), Mathf.Repeat(worldZ, 1f));
             return atlas.TrySample(tile, uv.x, uv.y, out color);
         }
 
@@ -79,8 +81,32 @@ namespace Elin_ElinFPSView
                 return false;
             }
 
-            Vector2 uv = MapFloorUv(Mathf.Repeat(worldX, 1f), Mathf.Repeat(worldZ, 1f));
+            Vector2 uv = MapFloorSurfaceUv(Mathf.Repeat(worldX, 1f), Mathf.Repeat(worldZ, 1f));
             return atlas.TrySample(surface.BaseTile, uv.x, uv.y, out color);
+        }
+
+        public bool TrySampleFloorSurface(FpsResolvedFloorSurface surface, float localU, float localV, out Color32 color)
+        {
+            color = default;
+            if (surface.Cell == null || surface.Floor == null || surface.Material == null)
+            {
+                return false;
+            }
+
+            AtlasData atlas = surface.UseSnowAtlas ? GetFloorSnowAtlas() : GetFloorAtlas();
+            if (surface.Floor == FLOOR.sourceIce)
+            {
+                atlas = GetFloorAtlas();
+            }
+            if (!atlas.IsReady)
+            {
+                return false;
+            }
+
+            Vector2 uv = MapFloorSurfaceUv(
+                InsetTerrainCoordinate(localU),
+                InsetTerrainCoordinate(localV));
+            return TrySampleTerrainAtlas(atlas, surface.BaseTile, uv.x, uv.y, out color);
         }
 
         public bool TrySampleSprite(Sprite sprite, float u, float v, out Color32 color)
@@ -330,17 +356,60 @@ namespace Elin_ElinFPSView
                 return false;
             }
 
-            Vector2 uv = MapFloorUv(Mathf.Repeat(worldX, 1f), Mathf.Repeat(worldZ, 1f));
+            Vector2 uv = MapFloorSurfaceUv(Mathf.Repeat(worldX, 1f), Mathf.Repeat(worldZ, 1f));
             return atlas.TrySample(tile, uv.x, uv.y, out color);
         }
 
-        private static Vector2 MapFloorUv(float u, float v)
+        public bool TrySampleAutoTileSurface(bool water, int tile, float localU, float localV, out Color32 color)
+        {
+            color = default;
+            AtlasData atlas = water ? GetAutoTileWaterAtlas() : GetAutoTileAtlas();
+            if (!atlas.IsReady)
+            {
+                return false;
+            }
+
+            Vector2 uv = MapFloorSurfaceUv(
+                InsetTerrainCoordinate(localU),
+                InsetTerrainCoordinate(localV));
+            return TrySampleTerrainAtlas(atlas, tile, uv.x, uv.y, out color);
+        }
+
+        private static bool TrySampleTerrainAtlas(AtlasData atlas, int tile, float u, float v, out Color32 color)
+        {
+            if (atlas.TrySample(tile, u, v, out color))
+            {
+                return true;
+            }
+
+            const float centerU = 0.5f;
+            const float centerV = 0.5f;
+            for (int step = 1; step <= TerrainOpaqueSearchSteps; step++)
+            {
+                float t = step / (float)(TerrainOpaqueSearchSteps + 1);
+                float sampleU = Mathf.Lerp(u, centerU, t);
+                float sampleV = Mathf.Lerp(v, centerV, t);
+                if (atlas.TrySample(tile, sampleU, sampleV, out color))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static Vector2 MapFloorSurfaceUv(float u, float v)
         {
             float diamondX = (u - v + 1f) * 0.5f;
-            float diamondY = (u + v) * 0.25f;
+            float diamondY = (u + v) * 0.5f;
             return new Vector2(
                 Mathf.Clamp01(diamondX),
-                1f - Mathf.Clamp01(diamondY));
+                Mathf.Clamp01(diamondY));
+        }
+
+        private static float InsetTerrainCoordinate(float value)
+        {
+            return Mathf.Lerp(TerrainFloorInset, 1f - TerrainFloorInset, Mathf.Clamp01(value));
         }
 
         private static Vector2 MapWallUv(float u, float v, bool hitVertical)

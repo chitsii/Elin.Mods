@@ -16,11 +16,17 @@ namespace Elin_ElinFPSView
         private readonly List<FpsResolvedUprightSprite> _uprightSprites = new List<FpsResolvedUprightSprite>(64);
         private readonly List<FpsResolvedGroundSprite> _groundSprites = new List<FpsResolvedGroundSprite>(64);
         private readonly List<FpsResolvedEffectSprite> _effectSprites = new List<FpsResolvedEffectSprite>(32);
+        private readonly TerrainVertex[] _terrainClipInput = new TerrainVertex[4];
+        private readonly TerrainVertex[] _terrainClipOutput = new TerrainVertex[4];
 
         private static readonly Color32 CeilingColor = new Color32(34, 40, 52, 255);
         private static readonly Color32 FloorFallbackColor = new Color32(60, 52, 40, 255);
         private static readonly Color32 WallLightColor = new Color32(174, 152, 124, 255);
         private static readonly Color32 WallDarkColor = new Color32(140, 120, 96, 255);
+        private const float NearPlaneDepth = 0.05f;
+        private const float TerrainCoverageEpsilon = 0.01f;
+        private const float PitchMin = -0.65f;
+        private const float PitchMax = 0.55f;
 
         public int Width => _width;
 
@@ -47,6 +53,7 @@ namespace Elin_ElinFPSView
                 Initialize(Math.Max(1, _width), Math.Max(1, _height));
             }
 
+            bool includePlayerSelf = viewState.CameraDistance > 0.2f;
             if (!TryGetViewState(viewState, out Vector2 origin, out Vector2 forward, out float pitchOffset, out float cameraGroundHeight, out int mapSize))
             {
                 FillBackground(_height * 0.5f);
@@ -62,6 +69,7 @@ namespace Elin_ElinFPSView
             float maxDistance = Mathf.Max(1f, Plugin.Settings.MaxDistance.Value);
             float eyeHeight = Mathf.Max(0.05f, Plugin.Settings.EyeHeight.Value);
             Vector2 plane = new Vector2(-forward.y, forward.x) * planeLength;
+            _idealizedWorld.PrepareFrame();
 
             for (int screenX = 0; screenX < _width; screenX++)
             {
@@ -94,11 +102,13 @@ namespace Elin_ElinFPSView
                     continue;
                 }
 
+                bool hasWallSurface = _idealizedWorld.TryResolveWall(hit.Cell, out FpsResolvedWallSurface wallSurface);
+
                 for (int y = drawStart; y <= drawEnd; y++)
                 {
                     float v = (y - drawStart) / (float)Mathf.Max(1, drawEnd - drawStart);
                     int index = y * _width + screenX;
-                    _pixels[index] = SampleWallColor(hit, v);
+                    _pixels[index] = SampleWallColor(hit, hasWallSurface, wallSurface, v);
                     _sceneDepthBuffer[index] = perpendicularDistance;
                 }
 
@@ -106,7 +116,7 @@ namespace Elin_ElinFPSView
             }
 
             RenderTerrainSurfaces(origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight, mapSize, maxDistance);
-            _idealizedWorld.GatherSprites(origin, maxDistance, _uprightSprites, _groundSprites, _effectSprites);
+            _idealizedWorld.GatherSprites(origin, maxDistance, includePlayerSelf, _uprightSprites, _groundSprites, _effectSprites);
             RenderGroundSprites(origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight);
             RenderUprightSprites(origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight);
             RenderEffectSprites(origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight);
@@ -179,13 +189,58 @@ namespace Elin_ElinFPSView
                 return false;
             }
 
-            origin = TryGetSmoothedOrigin();
+            Vector2 playerOrigin = TryGetSmoothedOrigin();
             forward = viewState.HasCustomYaw
                 ? new Vector2(Mathf.Cos(viewState.YawRadians), Mathf.Sin(viewState.YawRadians))
                 : DirToVector(EClass.pc.dir);
-            pitchOffset = Mathf.Clamp(viewState.PitchOffset, -0.35f, 0.35f);
-            cameraGroundHeight = FpsIdealizedWorld.GetSurfaceHeightAt(origin);
+            pitchOffset = Mathf.Clamp(viewState.PitchOffset, PitchMin, PitchMax);
+            origin = ResolveCameraOrigin(playerOrigin, forward, mapSize, Mathf.Max(0f, viewState.CameraDistance));
+            if (viewState.CameraDistance > 0.01f)
+            {
+                cameraGroundHeight = FpsIdealizedWorld.GetSurfaceHeightAt(playerOrigin) + viewState.CameraHeightOffset;
+            }
+            else
+            {
+                cameraGroundHeight = FpsIdealizedWorld.GetSurfaceHeightAt(origin) + viewState.CameraHeightOffset;
+            }
             return true;
+        }
+
+        private static Vector2 ResolveCameraOrigin(Vector2 playerOrigin, Vector2 forward, int mapSize, float cameraDistance)
+        {
+            if (cameraDistance <= 0.01f)
+            {
+                return playerOrigin;
+            }
+
+            Vector2 lastValid = playerOrigin;
+            int steps = Mathf.Max(1, Mathf.CeilToInt(cameraDistance / 0.1f));
+            for (int i = 1; i <= steps; i++)
+            {
+                float distance = cameraDistance * (i / (float)steps);
+                Vector2 candidate = playerOrigin - forward * distance;
+                if (!IsWalkableCameraPoint(candidate, mapSize))
+                {
+                    break;
+                }
+
+                lastValid = candidate;
+            }
+
+            return lastValid;
+        }
+
+        private static bool IsWalkableCameraPoint(Vector2 point, int mapSize)
+        {
+            int x = Mathf.FloorToInt(point.x);
+            int z = Mathf.FloorToInt(point.y);
+            if (x < 0 || z < 0 || x >= mapSize || z >= mapSize)
+            {
+                return false;
+            }
+
+            Cell cell = EClass._map.cells[x, z];
+            return cell != null && !IsSolidWall(cell);
         }
 
         private static Vector2 TryGetSmoothedOrigin()
@@ -406,21 +461,38 @@ namespace Elin_ElinFPSView
             float eyeHeight,
             float cameraGroundHeight)
         {
-            Vector3 corner0 = new Vector3(cellX, surfaceHeight, cellZ + 1f);
-            Vector3 corner1 = new Vector3(cellX + 1f, surfaceHeight, cellZ + 1f);
-            Vector3 corner2 = new Vector3(cellX + 1f, surfaceHeight, cellZ);
-            Vector3 corner3 = new Vector3(cellX, surfaceHeight, cellZ);
-
-            if (!TryProjectWorld(corner0, origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight, out ProjectedPoint p0)
-                || !TryProjectWorld(corner1, origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight, out ProjectedPoint p1)
-                || !TryProjectWorld(corner2, origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight, out ProjectedPoint p2)
-                || !TryProjectWorld(corner3, origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight, out ProjectedPoint p3))
-            {
-                return;
-            }
-
-            DrawTerrainTriangle(surface, p0, p1, p2, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(1f, 0f), 0.95f, false);
-            DrawTerrainTriangle(surface, p0, p2, p3, new Vector2(0f, 1f), new Vector2(1f, 0f), new Vector2(0f, 0f), 0.95f, false);
+            RenderTerrainTriangleClipped(
+                surface,
+                new Vector3(cellX, surfaceHeight, cellZ + 1f),
+                new Vector2(0f, 1f),
+                new Vector3(cellX + 1f, surfaceHeight, cellZ + 1f),
+                new Vector2(1f, 1f),
+                new Vector3(cellX + 1f, surfaceHeight, cellZ),
+                new Vector2(1f, 0f),
+                origin,
+                forward,
+                plane,
+                halfHeight,
+                eyeHeight,
+                cameraGroundHeight,
+                0.95f,
+                false);
+            RenderTerrainTriangleClipped(
+                surface,
+                new Vector3(cellX, surfaceHeight, cellZ + 1f),
+                new Vector2(0f, 1f),
+                new Vector3(cellX + 1f, surfaceHeight, cellZ),
+                new Vector2(1f, 0f),
+                new Vector3(cellX, surfaceHeight, cellZ),
+                new Vector2(0f, 0f),
+                origin,
+                forward,
+                plane,
+                halfHeight,
+                eyeHeight,
+                cameraGroundHeight,
+                0.95f,
+                false);
         }
 
         private void RenderTerrainRiser(
@@ -473,16 +545,94 @@ namespace Elin_ElinFPSView
                     return;
             }
 
-            if (!TryProjectWorld(corner0, origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight, out ProjectedPoint p0)
-                || !TryProjectWorld(corner1, origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight, out ProjectedPoint p1)
-                || !TryProjectWorld(corner2, origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight, out ProjectedPoint p2)
-                || !TryProjectWorld(corner3, origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight, out ProjectedPoint p3))
+            RenderTerrainTriangleClipped(
+                surface,
+                corner0,
+                new Vector2(0f, 1f),
+                corner1,
+                new Vector2(1f, 1f),
+                corner2,
+                new Vector2(1f, 0f),
+                origin,
+                forward,
+                plane,
+                halfHeight,
+                eyeHeight,
+                cameraGroundHeight,
+                shade,
+                true);
+            RenderTerrainTriangleClipped(
+                surface,
+                corner0,
+                new Vector2(0f, 1f),
+                corner2,
+                new Vector2(1f, 0f),
+                corner3,
+                new Vector2(0f, 0f),
+                origin,
+                forward,
+                plane,
+                halfHeight,
+                eyeHeight,
+                cameraGroundHeight,
+                shade,
+                true);
+        }
+
+        private void RenderTerrainTriangleClipped(
+            FpsResolvedFloorSurface surface,
+            Vector3 worldA,
+            Vector2 uvA,
+            Vector3 worldB,
+            Vector2 uvB,
+            Vector3 worldC,
+            Vector2 uvC,
+            Vector2 origin,
+            Vector2 forward,
+            Vector2 plane,
+            float halfHeight,
+            float eyeHeight,
+            float cameraGroundHeight,
+            float shade,
+            bool riser)
+        {
+            _terrainClipInput[0] = CreateTerrainVertex(worldA, uvA, origin, forward, plane);
+            _terrainClipInput[1] = CreateTerrainVertex(worldB, uvB, origin, forward, plane);
+            _terrainClipInput[2] = CreateTerrainVertex(worldC, uvC, origin, forward, plane);
+
+            int clippedCount = ClipTerrainTriangleToNearPlane(_terrainClipInput, 3, _terrainClipOutput);
+            if (clippedCount < 3)
             {
                 return;
             }
 
-            DrawTerrainTriangle(surface, p0, p1, p2, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(1f, 0f), shade, true);
-            DrawTerrainTriangle(surface, p0, p2, p3, new Vector2(0f, 1f), new Vector2(1f, 0f), new Vector2(0f, 0f), shade, true);
+            TerrainVertex first = _terrainClipOutput[0];
+            for (int i = 1; i < clippedCount - 1; i++)
+            {
+                if (!TryProjectTerrainVertex(first, halfHeight, eyeHeight, cameraGroundHeight, out ProjectedPoint p0)
+                    || !TryProjectTerrainVertex(_terrainClipOutput[i], halfHeight, eyeHeight, cameraGroundHeight, out ProjectedPoint p1)
+                    || !TryProjectTerrainVertex(_terrainClipOutput[i + 1], halfHeight, eyeHeight, cameraGroundHeight, out ProjectedPoint p2))
+                {
+                    continue;
+                }
+
+                FpsResolvedWallSurface riserSurface = default;
+                bool hasRiserSurface = riser && _idealizedWorld.TryResolveTerrainRiser(surface.Cell, out riserSurface);
+
+                DrawTerrainTriangle(
+                    surface,
+                    p0,
+                    p1,
+                    p2,
+                    first.Uv,
+                    _terrainClipOutput[i].Uv,
+                    _terrainClipOutput[i + 1].Uv,
+                    shade,
+                    riser,
+                    riser && IsVerticalTerrainEdge(worldA, worldB, worldC),
+                    hasRiserSurface,
+                    riserSurface);
+            }
         }
 
         private void RenderUprightSprites(
@@ -510,6 +660,7 @@ namespace Elin_ElinFPSView
                     sprite.ShadowSizeWorld,
                     sprite.MaterialColor,
                     sprite.HasMaterialTint,
+                    sprite.Light,
                     origin,
                     forward,
                     plane,
@@ -528,7 +679,10 @@ namespace Elin_ElinFPSView
             Vector2 uvB,
             Vector2 uvC,
             float shade,
-            bool riser)
+            bool riser,
+            bool riserHitVertical,
+            bool hasRiserSurface,
+            FpsResolvedWallSurface riserSurface)
         {
             int minX = Mathf.Max(0, Mathf.FloorToInt(Mathf.Min(a.ScreenX, Mathf.Min(b.ScreenX, c.ScreenX))));
             int maxX = Mathf.Min(_width - 1, Mathf.CeilToInt(Mathf.Max(a.ScreenX, Mathf.Max(b.ScreenX, c.ScreenX))));
@@ -540,6 +694,10 @@ namespace Elin_ElinFPSView
                 return;
             }
 
+            float invDepthA = 1f / Mathf.Max(0.0001f, a.Depth);
+            float invDepthB = 1f / Mathf.Max(0.0001f, b.Depth);
+            float invDepthC = 1f / Mathf.Max(0.0001f, c.Depth);
+
             for (int y = minY; y <= maxY; y++)
             {
                 float py = y + 0.5f;
@@ -549,7 +707,7 @@ namespace Elin_ElinFPSView
                     float w0 = EdgeFunction(b.ScreenX, b.ScreenY, c.ScreenX, c.ScreenY, px, py);
                     float w1 = EdgeFunction(c.ScreenX, c.ScreenY, a.ScreenX, a.ScreenY, px, py);
                     float w2 = EdgeFunction(a.ScreenX, a.ScreenY, b.ScreenX, b.ScreenY, px, py);
-                    if (!IsInsideTriangle(w0, w1, w2, area))
+                    if (!IsInsideTriangle(w0, w1, w2, area, TerrainCoverageEpsilon))
                     {
                         continue;
                     }
@@ -558,16 +716,22 @@ namespace Elin_ElinFPSView
                     w1 /= area;
                     w2 /= area;
 
-                    float depth = a.Depth * w0 + b.Depth * w1 + c.Depth * w2;
+                    float invDepth = w0 * invDepthA + w1 * invDepthB + w2 * invDepthC;
+                    if (invDepth <= 0.0001f)
+                    {
+                        continue;
+                    }
+
+                    float depth = 1f / invDepth;
                     int index = y * _width + x;
                     if (depth >= _sceneDepthBuffer[index])
                     {
                         continue;
                     }
 
-                    float u = uvA.x * w0 + uvB.x * w1 + uvC.x * w2;
-                    float v = uvA.y * w0 + uvB.y * w1 + uvC.y * w2;
-                    if (!TrySampleTerrainSurface(surface, u, v, riser, out Color32 color))
+                    float u = (uvA.x * w0 * invDepthA + uvB.x * w1 * invDepthB + uvC.x * w2 * invDepthC) / invDepth;
+                    float v = (uvA.y * w0 * invDepthA + uvB.y * w1 * invDepthB + uvC.y * w2 * invDepthC) / invDepth;
+                    if (!TrySampleTerrainSurface(surface, u, v, riser, riserHitVertical, hasRiserSurface, riserSurface, out Color32 color))
                     {
                         continue;
                     }
@@ -577,6 +741,84 @@ namespace Elin_ElinFPSView
                     _sceneDepthBuffer[index] = depth;
                 }
             }
+        }
+
+        private TerrainVertex CreateTerrainVertex(Vector3 world, Vector2 uv, Vector2 origin, Vector2 forward, Vector2 plane)
+        {
+            float invDet = 1f / (plane.x * forward.y - forward.x * plane.y);
+            Vector2 relative = new Vector2(world.x - origin.x, world.z - origin.y);
+            return new TerrainVertex
+            {
+                CameraX = invDet * (forward.y * relative.x - forward.x * relative.y),
+                Depth = invDet * (-plane.y * relative.x + plane.x * relative.y),
+                WorldY = world.y,
+                Uv = uv
+            };
+        }
+
+        private static TerrainVertex IntersectTerrainEdge(TerrainVertex from, TerrainVertex to, float clipDepth)
+        {
+            float denom = to.Depth - from.Depth;
+            float t = Mathf.Abs(denom) < 0.0001f ? 0f : (clipDepth - from.Depth) / denom;
+            t = Mathf.Clamp01(t);
+            return new TerrainVertex
+            {
+                CameraX = Mathf.Lerp(from.CameraX, to.CameraX, t),
+                Depth = clipDepth,
+                WorldY = Mathf.Lerp(from.WorldY, to.WorldY, t),
+                Uv = Vector2.Lerp(from.Uv, to.Uv, t)
+            };
+        }
+
+        private static int ClipTerrainTriangleToNearPlane(TerrainVertex[] input, int inputCount, TerrainVertex[] output)
+        {
+            int outputCount = 0;
+            TerrainVertex previous = input[inputCount - 1];
+            bool previousInside = previous.Depth >= NearPlaneDepth;
+
+            for (int i = 0; i < inputCount; i++)
+            {
+                TerrainVertex current = input[i];
+                bool currentInside = current.Depth >= NearPlaneDepth;
+
+                if (currentInside != previousInside)
+                {
+                    output[outputCount++] = IntersectTerrainEdge(previous, current, NearPlaneDepth);
+                }
+
+                if (currentInside)
+                {
+                    output[outputCount++] = current;
+                }
+
+                previous = current;
+                previousInside = currentInside;
+            }
+
+            return outputCount;
+        }
+
+        private bool TryProjectTerrainVertex(
+            TerrainVertex vertex,
+            float halfHeight,
+            float eyeHeight,
+            float cameraGroundHeight,
+            out ProjectedPoint projected)
+        {
+            projected = default;
+            if (vertex.Depth < NearPlaneDepth)
+            {
+                return false;
+            }
+
+            projected = new ProjectedPoint
+            {
+                ScreenX = (_width * 0.5f) * (1f + vertex.CameraX / vertex.Depth),
+                ScreenY = halfHeight + (_height * (eyeHeight + cameraGroundHeight - vertex.WorldY)) / vertex.Depth,
+                Depth = vertex.Depth,
+                RadialDistance = vertex.Depth
+            };
+            return true;
         }
 
         private void RenderEffectSprites(
@@ -604,6 +846,7 @@ namespace Elin_ElinFPSView
                     0f,
                     0,
                     false,
+                    sprite.Light,
                     origin,
                     forward,
                     plane,
@@ -626,6 +869,7 @@ namespace Elin_ElinFPSView
             float shadowSizeWorld,
             int materialColor,
             bool hasMaterialTint,
+            FpsResolvedLightSample light,
             Vector2 origin,
             Vector2 forward,
             Vector2 plane,
@@ -715,6 +959,7 @@ namespace Elin_ElinFPSView
                         continue;
                     }
 
+                    color = FpsLightApplicator.ApplySample(color, light);
                     int index = y * _width + stripe;
                     if (occlusionDepth >= _sceneDepthBuffer[index])
                     {
@@ -825,6 +1070,7 @@ namespace Elin_ElinFPSView
                         continue;
                     }
 
+                    color = FpsLightApplicator.ApplySample(color, sprite.Light);
                     _pixels[index] = AlphaBlend(_pixels[index], ApplyDistanceShading(color, depth, 1f));
                     _sceneDepthBuffer[index] = depth;
                 }
@@ -903,14 +1149,14 @@ namespace Elin_ElinFPSView
             return (px - ax) * (by - ay) - (py - ay) * (bx - ax);
         }
 
-        private static bool IsInsideTriangle(float w0, float w1, float w2, float area)
+        private static bool IsInsideTriangle(float w0, float w1, float w2, float area, float epsilon = 0f)
         {
             if (area < 0f)
             {
-                return w0 <= 0f && w1 <= 0f && w2 <= 0f;
+                return w0 <= epsilon && w1 <= epsilon && w2 <= epsilon;
             }
 
-            return w0 >= 0f && w1 >= 0f && w2 >= 0f;
+            return w0 >= -epsilon && w1 >= -epsilon && w2 >= -epsilon;
         }
 
         private static Vector2 DirToVector(int dir)
@@ -1033,16 +1279,21 @@ namespace Elin_ElinFPSView
             return cell != null && (cell.HasFullBlock || cell.HasWallOrFence);
         }
 
-        private Color32 SampleWallColor(RayHit hit, float v)
+        private Color32 SampleWallColor(RayHit hit, bool hasWallSurface, FpsResolvedWallSurface surface, float v)
         {
-            if (_idealizedWorld.TryResolveWall(hit.Cell, out FpsResolvedWallSurface surface)
-                && _atlasSampler.TrySampleBlock(surface, hit.TextureU, v, hit.HitVertical, out Color32 sampled))
+            if (hasWallSurface && _atlasSampler.TrySampleBlock(surface, hit.TextureU, v, hit.HitVertical, out Color32 sampled))
             {
                 sampled = FpsIdealizedWorld.ApplyMatTint(sampled, surface.MaterialColor);
+                sampled = FpsLightApplicator.ApplySample(sampled, surface.Light);
                 return ApplyDistanceShading(sampled, hit.Distance, hit.HitVertical ? 1f : 0.82f);
             }
 
             Color32 fallback = hit.HitVertical ? WallLightColor : WallDarkColor;
+            if (hasWallSurface)
+            {
+                fallback = FpsLightApplicator.ApplySample(fallback, surface.Light);
+            }
+
             return ApplyDistanceShading(fallback, hit.Distance, 1f);
         }
 
@@ -1092,14 +1343,57 @@ namespace Elin_ElinFPSView
                 }
             }
 
+            color = FpsLightApplicator.ApplySample(color, surface.Light);
+
             return true;
         }
 
-        private bool TrySampleTerrainSurface(FpsResolvedFloorSurface surface, float u, float v, bool riser, out Color32 color)
+        private bool TrySampleTerrainSurface(
+            FpsResolvedFloorSurface surface,
+            float u,
+            float v,
+            bool riser,
+            bool riserHitVertical,
+            bool hasRiserSurface,
+            FpsResolvedWallSurface riserSurface,
+            out Color32 color)
         {
             float sampleX = Mathf.Clamp01(u);
             float sampleZ = riser ? 1f - Mathf.Clamp01(v) : Mathf.Clamp01(v);
-            return TrySampleFloorComposite(surface, sampleX, sampleZ, out color);
+            if (riser && hasRiserSurface)
+            {
+                if (_atlasSampler.TrySampleBlock(riserSurface, sampleX, sampleZ, riserHitVertical, out Color32 blockColor))
+                {
+                    color = FpsIdealizedWorld.ApplyMatTint(blockColor, riserSurface.MaterialColor);
+                    color = FpsLightApplicator.ApplySample(color, riserSurface.Light);
+                    return true;
+                }
+            }
+
+            if (!_atlasSampler.TrySampleFloorSurface(surface, sampleX, sampleZ, out Color32 baseColor))
+            {
+                color = FloorFallbackColor;
+                return false;
+            }
+
+            color = FpsIdealizedWorld.ApplyMatTint(baseColor, surface.MaterialColor);
+            if (surface.AutoTileOverlay >= 0
+                && _atlasSampler.TrySampleAutoTileSurface(surface.UseWaterAutoTileAtlas, surface.AutoTileOverlay, sampleX, sampleZ, out Color32 overlayColor))
+            {
+                overlayColor = FpsIdealizedWorld.ApplyMatTint(overlayColor, surface.MaterialColor);
+                color = AlphaBlend(color, overlayColor);
+            }
+
+            color = FpsLightApplicator.ApplySample(color, surface.Light);
+
+            return true;
+        }
+
+        private static bool IsVerticalTerrainEdge(Vector3 worldA, Vector3 worldB, Vector3 worldC)
+        {
+            float dx = Mathf.Abs(worldA.x - worldB.x) + Mathf.Abs(worldB.x - worldC.x) + Mathf.Abs(worldC.x - worldA.x);
+            float dz = Mathf.Abs(worldA.z - worldB.z) + Mathf.Abs(worldB.z - worldC.z) + Mathf.Abs(worldC.z - worldA.z);
+            return dx < dz;
         }
 
         private static Color32 AlphaBlend(Color32 under, Color32 over)
@@ -1139,6 +1433,14 @@ namespace Elin_ElinFPSView
             North
         }
 
+        private struct TerrainVertex
+        {
+            public float CameraX;
+            public float Depth;
+            public float WorldY;
+            public Vector2 Uv;
+        }
+
     }
 
     internal struct FpsViewState
@@ -1147,11 +1449,15 @@ namespace Elin_ElinFPSView
         {
             HasCustomYaw = false,
             YawRadians = 0f,
-            PitchOffset = 0f
+            PitchOffset = 0f,
+            CameraDistance = 0f,
+            CameraHeightOffset = 0f
         };
 
         public bool HasCustomYaw;
         public float YawRadians;
         public float PitchOffset;
+        public float CameraDistance;
+        public float CameraHeightOffset;
     }
 }

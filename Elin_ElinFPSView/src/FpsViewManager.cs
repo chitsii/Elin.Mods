@@ -12,6 +12,14 @@ namespace Elin_ElinFPSView
         private float _nextRenderTime;
         private float _yawRadians;
         private float _pitchOffset;
+        private float _cameraDistance;
+
+        private const float CameraDistanceStep = 0.75f;
+        private const float CameraDistanceMin = 0f;
+        private const float CameraDistanceMax = 4.5f;
+        private const float ThirdPersonHeightOffset = 0.35f;
+        private const float PitchMin = -0.65f;
+        private const float PitchMax = 0.55f;
 
         public static bool IsFpsViewActive => _instance != null && _instance._overlay != null && _instance._overlay.IsVisible;
 
@@ -85,12 +93,15 @@ namespace Elin_ElinFPSView
                 }
 
                 UpdateMouseLook();
+                UpdateCameraDistance();
                 _nextRenderTime = Time.unscaledTime + (1f / 60f);
                 _overlay.Upload(_renderer.RenderFrame(new FpsViewState
                 {
                     HasCustomYaw = true,
                     YawRadians = _yawRadians,
-                    PitchOffset = _pitchOffset
+                    PitchOffset = _pitchOffset,
+                    CameraDistance = _cameraDistance,
+                    CameraHeightOffset = _cameraDistance > 0.01f ? ThirdPersonHeightOffset : 0f
                 }));
             }
             catch (Exception ex)
@@ -135,8 +146,22 @@ namespace Elin_ElinFPSView
             _yawRadians += Input.GetAxisRaw("Mouse X") * Plugin.Settings.LookSensitivity.Value;
             _pitchOffset = Mathf.Clamp(
                 _pitchOffset + Input.GetAxisRaw("Mouse Y") * Plugin.Settings.PitchSensitivity.Value,
-                -0.35f,
-                0.35f);
+                PitchMin,
+                PitchMax);
+        }
+
+        private void UpdateCameraDistance()
+        {
+            float scroll = Input.mouseScrollDelta.y;
+            if (Mathf.Abs(scroll) <= 0.001f)
+            {
+                return;
+            }
+
+            _cameraDistance = Mathf.Clamp(
+                _cameraDistance + Mathf.Sign(scroll) * CameraDistanceStep,
+                CameraDistanceMin,
+                CameraDistanceMax);
         }
 
         private static float DirToRadians(int dir)

@@ -9,8 +9,15 @@ namespace Elin_ElinFPSView
         private const float CharaBaseHeight = 1.05f;
         private const float InstalledBaseHeight = 0.9f;
         private const float TallObjectBaseHeight = 1.3f;
+        private readonly FpsLightingResolver _lightingResolver = new FpsLightingResolver();
         private static bool _loggedCellObjectSpriteFailure;
         private static bool _loggedCellEffectSpriteFailure;
+
+        public void PrepareFrame()
+        {
+            BaseTileMap tileMap = EClass.scene?.screenElin?.tileMap ?? EClass.screen?.tileMap;
+            _lightingResolver.CaptureFrame(tileMap, Plugin.Settings.EnableWorldLighting.Value);
+        }
 
         public static float GetCellSurfaceHeight(Cell cell)
         {
@@ -81,6 +88,8 @@ namespace Elin_ElinFPSView
                 return false;
             }
 
+            FpsResolvedCellLighting lighting = _lightingResolver.ResolveCellLighting(cell);
+
             if (cell.HasBridge)
             {
                 SourceFloor.Row floor = cell.sourceBridge;
@@ -112,7 +121,8 @@ namespace Elin_ElinFPSView
                         ? (26 + floor.autotile / 2) * 32 + floor.autotile % 2 * 16 + cell.autotileBridge
                         : -1,
                     UseSnowAtlas = useSnowAtlas,
-                    UseWaterAutoTileAtlas = floor.tileType.IsWater
+                    UseWaterAutoTileAtlas = floor.tileType.IsWater,
+                    Light = lighting.FloorLight
                 };
                 return true;
             }
@@ -160,7 +170,8 @@ namespace Elin_ElinFPSView
                     ? (26 + sourceFloor.autotile / 2) * 32 + sourceFloor.autotile % 2 * 16 + cell.autotile
                     : -1,
                 UseSnowAtlas = floorSnowAtlas,
-                UseWaterAutoTileAtlas = sourceFloor.tileType.IsWater
+                UseWaterAutoTileAtlas = sourceFloor.tileType.IsWater,
+                Light = lighting.FloorLight
             };
             return true;
         }
@@ -174,12 +185,64 @@ namespace Elin_ElinFPSView
             }
 
             int dir = cell.blockDir % cell.sourceBlock._tiles.Length;
+            FpsResolvedCellLighting lighting = _lightingResolver.ResolveCellLighting(cell);
             surface = new FpsResolvedWallSurface
             {
                 Cell = cell,
                 Tile = cell.sourceBlock.GetTile(cell.matBlock, dir),
                 MaterialColor = cell.sourceBlock.GetColorInt(cell.matBlock),
-                UseSnowAtlas = cell.IsSnowTile
+                UseSnowAtlas = cell.IsSnowTile,
+                Light = lighting.BlockLight
+            };
+            return true;
+        }
+
+        public bool TryResolveTerrainRiser(Cell cell, out FpsResolvedWallSurface surface)
+        {
+            surface = default;
+            if (cell == null)
+            {
+                return false;
+            }
+
+            SourceBlock.Row block = null;
+            int materialColor = 104025;
+            if (cell.HasBridge && cell.sourceBridge?._bridgeBlock != null)
+            {
+                block = cell.sourceBridge._bridgeBlock;
+                if (block.colorMod != 0 && cell.matBridge != null)
+                {
+                    materialColor = block.GetColorInt(cell.matBridge);
+                }
+            }
+            else if (cell.sourceBlock?.tileType?.IsFullBlock == true && cell.sourceBlock._tiles != null && cell.sourceBlock._tiles.Length > 0)
+            {
+                block = cell.sourceBlock;
+                materialColor = cell.sourceBlock.GetColorInt(cell.matBlock);
+            }
+            else if (cell.sourceFloor?._defBlock != null)
+            {
+                block = cell.sourceFloor._defBlock;
+                if (block.id != 1 && cell.sourceFloor.colorMod != 0 && cell.matFloor != null)
+                {
+                    materialColor = cell.sourceFloor.GetColorInt(cell.matFloor);
+                }
+            }
+
+            if (block == null || block._tiles == null || block._tiles.Length == 0)
+            {
+                return false;
+            }
+
+            int dir = Mathf.Abs(cell.blockDir) % block._tiles.Length;
+            FpsResolvedCellLighting lighting = _lightingResolver.ResolveCellLighting(cell);
+            surface = new FpsResolvedWallSurface
+            {
+                Cell = cell,
+                Tile = block._tiles[dir],
+                MaterialColor = materialColor,
+                UseSnowAtlas = cell.IsSnowTile,
+                Light = lighting.BlockLight
             };
             return true;
         }
@@ -187,6 +250,7 @@ namespace Elin_ElinFPSView
         public void GatherSprites(
             Vector2 origin,
             float maxDistance,
+            bool includePlayerSelf,
             List<FpsResolvedUprightSprite> uprightOutput,
             List<FpsResolvedGroundSprite> groundOutput,
             List<FpsResolvedEffectSprite> effectOutput)
@@ -209,23 +273,24 @@ namespace Elin_ElinFPSView
                     }
 
                     Cell cell = EClass._map.cells[x, z];
+                    FpsResolvedCellLighting lighting = _lightingResolver.ResolveCellLighting(cell);
                     CellDetail detail = cell.detail;
                     if (detail != null)
                     {
                         for (int i = 0; i < detail.things.Count; i++)
                         {
-                            TryAddCardSprite(detail.things[i], origin, maxDistance, uprightOutput, groundOutput);
+                            TryAddCardSprite(detail.things[i], origin, maxDistance, includePlayerSelf, lighting, uprightOutput, groundOutput);
                         }
 
                         for (int i = 0; i < detail.charas.Count; i++)
                         {
-                            TryAddCardSprite(detail.charas[i], origin, maxDistance, uprightOutput, groundOutput);
+                            TryAddCardSprite(detail.charas[i], origin, maxDistance, includePlayerSelf, lighting, uprightOutput, groundOutput);
                         }
                     }
 
                     try
                     {
-                        TryAddCellObjectSprite(cell, x, z, origin, maxDistance, uprightOutput, groundOutput);
+                        TryAddCellObjectSprite(cell, x, z, origin, maxDistance, lighting, uprightOutput, groundOutput);
                     }
                     catch (System.Exception ex)
                     {
@@ -238,7 +303,7 @@ namespace Elin_ElinFPSView
 
                     try
                     {
-                        TryAddEffectSprite(cell, x, z, origin, maxDistance, effectOutput);
+                        TryAddEffectSprite(cell, x, z, origin, maxDistance, lighting, effectOutput);
                     }
                     catch (System.Exception ex)
                     {
@@ -287,10 +352,17 @@ namespace Elin_ElinFPSView
             Card card,
             Vector2 origin,
             float maxDistance,
+            bool includePlayerSelf,
+            FpsResolvedCellLighting lighting,
             List<FpsResolvedUprightSprite> uprightOutput,
             List<FpsResolvedGroundSprite> groundOutput)
         {
-            if (card == null || card == EClass.pc || !card.ExistsOnMap || card.isHidden || card.isRoofItem)
+            if (card == null || !card.ExistsOnMap || card.isHidden || card.isRoofItem)
+            {
+                return;
+            }
+
+            if (card == EClass.pc && !includePlayerSelf)
             {
                 return;
             }
@@ -298,11 +370,11 @@ namespace Elin_ElinFPSView
             BillboardKind kind = ResolveBillboardKind(card);
             if (kind == BillboardKind.LooseItem)
             {
-                TryAddGroundSprite(card, origin, maxDistance, groundOutput);
+                TryAddGroundSprite(card, origin, maxDistance, lighting, groundOutput);
                 return;
             }
 
-            TryAddUprightSprite(card, origin, maxDistance, kind, uprightOutput);
+            TryAddUprightSprite(card, origin, maxDistance, kind, lighting, uprightOutput);
         }
 
         private static void TryAddUprightSprite(
@@ -310,6 +382,7 @@ namespace Elin_ElinFPSView
             Vector2 origin,
             float maxDistance,
             BillboardKind kind,
+            FpsResolvedCellLighting lighting,
             List<FpsResolvedUprightSprite> output)
         {
             Vector2 position = GetCardTileCenter(card);
@@ -319,7 +392,7 @@ namespace Elin_ElinFPSView
                 return;
             }
 
-            Sprite sprite = card.GetSprite();
+            Sprite sprite = ResolveCardSprite(card);
             if (sprite == null)
             {
                 return;
@@ -338,6 +411,7 @@ namespace Elin_ElinFPSView
 
             float groundHeightWorld = GetCellSurfaceHeight(card.pos.cell) + ResolveBillboardElevation(card, kind);
             position = ApplyScatterOffset(position, card, kind);
+            FpsResolvedLightSample lightSample = ResolveUprightCardLight(kind, lighting);
 
             output.Add(new FpsResolvedUprightSprite
             {
@@ -352,7 +426,8 @@ namespace Elin_ElinFPSView
                 PivotY = pivotY,
                 ShadowSizeWorld = Mathf.Max(0.12f, spriteWidth * 0.25f),
                 CastsShadow = true,
-                FacingRule = BillboardFacingRule.CameraFacing
+                FacingRule = BillboardFacingRule.CameraFacing,
+                Light = lightSample
             });
         }
 
@@ -360,6 +435,7 @@ namespace Elin_ElinFPSView
             Card card,
             Vector2 origin,
             float maxDistance,
+            FpsResolvedCellLighting lighting,
             List<FpsResolvedGroundSprite> output)
         {
             Vector2 position = GetCardTileCenter(card);
@@ -369,7 +445,7 @@ namespace Elin_ElinFPSView
                 return;
             }
 
-            Sprite sprite = card.GetSprite();
+            Sprite sprite = ResolveCardSprite(card);
             if (sprite == null)
             {
                 return;
@@ -390,7 +466,8 @@ namespace Elin_ElinFPSView
                 Distance = distance,
                 SizeWorld = new Vector2(width, depth),
                 MaterialColor = 0,
-                HasMaterialTint = false
+                HasMaterialTint = false,
+                Light = lighting.FloorLight
             });
         }
 
@@ -400,6 +477,7 @@ namespace Elin_ElinFPSView
             int cellZ,
             Vector2 origin,
             float maxDistance,
+            FpsResolvedCellLighting lighting,
             List<FpsResolvedUprightSprite> uprightOutput,
             List<FpsResolvedGroundSprite> groundOutput)
         {
@@ -450,7 +528,8 @@ namespace Elin_ElinFPSView
                     CastsShadow = sourceObj.pref.shadow > 1 && !cell.ignoreObjShadow,
                     FacingRule = BillboardFacingRule.CameraFacing,
                     MaterialColor = materialColor,
-                    HasMaterialTint = true
+                    HasMaterialTint = true,
+                    Light = lighting.BlockLight
                 });
             }
             else
@@ -465,7 +544,8 @@ namespace Elin_ElinFPSView
                     Distance = distance,
                     SizeWorld = groundSize,
                     MaterialColor = materialColor,
-                    HasMaterialTint = true
+                    HasMaterialTint = true,
+                    Light = lighting.FloorLight
                 });
             }
         }
@@ -488,6 +568,16 @@ namespace Elin_ElinFPSView
             }
 
             return BillboardKind.LooseItem;
+        }
+
+        private static Sprite ResolveCardSprite(Card card)
+        {
+            if (card?.renderer?.actor?.sr?.sprite != null)
+            {
+                return card.renderer.actor.sr.sprite;
+            }
+
+            return card?.GetSprite();
         }
 
         private static float ResolveBaseHeight(Card card, BillboardKind kind)
@@ -611,6 +701,19 @@ namespace Elin_ElinFPSView
             return Mathf.Clamp(elevation, 0f, 0.6f);
         }
 
+        private static FpsResolvedLightSample ResolveUprightCardLight(BillboardKind kind, FpsResolvedCellLighting lighting)
+        {
+            switch (kind)
+            {
+                case BillboardKind.InstalledObject:
+                case BillboardKind.TallObject:
+                    return lighting.BlockLight;
+                case BillboardKind.Chara:
+                default:
+                    return lighting.ApproxBlockLight;
+            }
+        }
+
         private static RenderData ResolveCellObjectRenderData(Cell cell)
         {
             if (cell?.sourceObj == null)
@@ -695,7 +798,7 @@ namespace Elin_ElinFPSView
 
             if (sourceObj.HasGrowth && cell?.growth != null)
             {
-                return cell.growth.IsTree || renderData.multiSize;
+                return true;
             }
 
             if (renderData.multiSize || renderData is RenderDataObjV || sourceObj.pref.shadow > 1 || sourceObj.pref.height > 0.05f)
@@ -718,6 +821,18 @@ namespace Elin_ElinFPSView
             float scaleY = Mathf.Max(0.1f, renderData.imageScale.y);
             float width = renderData.size.x * scaleX;
             float height = renderData.size.y * scaleY;
+
+            if (sourceObj?.HasGrowth == true)
+            {
+                if (renderData.multiSize)
+                {
+                    height *= 2f;
+                }
+
+                return new Vector2(
+                    Mathf.Max(0.05f, width),
+                    Mathf.Max(0.05f, height));
+            }
 
             if (renderData.pass?.pmesh != null)
             {
@@ -786,6 +901,7 @@ namespace Elin_ElinFPSView
             int cellZ,
             Vector2 origin,
             float maxDistance,
+            FpsResolvedCellLighting lighting,
             List<FpsResolvedEffectSprite> output)
         {
             if (cell?.effect == null || cell.effect.IsLiquid)
@@ -840,7 +956,8 @@ namespace Elin_ElinFPSView
                 PivotX = 0.5f,
                 PivotY = 0.05f,
                 RenderData = renderData,
-                Tile = tile
+                Tile = tile,
+                Light = lighting.ApproxBlockLight
             });
         }
     }
@@ -855,6 +972,7 @@ namespace Elin_ElinFPSView
         public int AutoTileOverlay;
         public bool UseSnowAtlas;
         public bool UseWaterAutoTileAtlas;
+        public FpsResolvedLightSample Light;
     }
 
     internal struct FpsResolvedWallSurface
@@ -863,6 +981,7 @@ namespace Elin_ElinFPSView
         public int Tile;
         public int MaterialColor;
         public bool UseSnowAtlas;
+        public FpsResolvedLightSample Light;
     }
 
     internal struct FpsResolvedUprightSprite
@@ -881,6 +1000,7 @@ namespace Elin_ElinFPSView
         public BillboardFacingRule FacingRule;
         public int MaterialColor;
         public bool HasMaterialTint;
+        public FpsResolvedLightSample Light;
     }
 
     internal struct FpsResolvedGroundSprite
@@ -893,6 +1013,7 @@ namespace Elin_ElinFPSView
         public Vector2 SizeWorld;
         public int MaterialColor;
         public bool HasMaterialTint;
+        public FpsResolvedLightSample Light;
     }
 
     internal struct FpsResolvedEffectSprite
@@ -905,6 +1026,7 @@ namespace Elin_ElinFPSView
         public float HeightWorld;
         public float PivotX;
         public float PivotY;
+        public FpsResolvedLightSample Light;
     }
 
     internal enum BillboardKind

@@ -862,7 +862,7 @@ namespace Elin_ElinFPSView
 
                 _propertyBlock.Clear();
                 bool usesBakedTint;
-                if (!TryApplySpriteTexture(sprite.Sprite, sprite.RenderData, sprite.Tile, sprite.MaterialColor, sprite.HasMaterialTint, sprite.Light, _propertyBlock, out usesBakedTint))
+                if (!TryApplySpriteTexture(sprite.Sprite, sprite.RenderData, sprite.Tile, sprite.MaterialColor, sprite.HasMaterialTint, sprite.UseSelectiveMaterialTint, sprite.Light, _propertyBlock, out usesBakedTint))
                 {
                     quad.SetActive(false);
                     continue;
@@ -907,6 +907,7 @@ namespace Elin_ElinFPSView
                     FacingRule = BillboardFacingRule.CameraFacing,
                     MaterialColor = 0,
                     HasMaterialTint = false,
+                    UseSelectiveMaterialTint = false,
                     Light = effect.Light
                 });
             }
@@ -950,7 +951,7 @@ namespace Elin_ElinFPSView
 
             _propertyBlock.Clear();
             bool usesBakedTint;
-            if (!TryApplySpriteTexture(sprite.Sprite, sprite.RenderData, sprite.Tile, sprite.MaterialColor, sprite.HasMaterialTint, sprite.Light, _propertyBlock, out usesBakedTint))
+            if (!TryApplySpriteTexture(sprite.Sprite, sprite.RenderData, sprite.Tile, sprite.MaterialColor, sprite.HasMaterialTint, sprite.UseSelectiveMaterialTint, sprite.Light, _propertyBlock, out usesBakedTint))
             {
                 quad.SetActive(false);
                 return;
@@ -993,6 +994,7 @@ namespace Elin_ElinFPSView
             int tile,
             int materialColor,
             bool hasMaterialTint,
+            bool useSelectiveMaterialTint,
             FpsResolvedLightSample light,
             MaterialPropertyBlock block,
             out bool usesBakedTint)
@@ -1005,7 +1007,17 @@ namespace Elin_ElinFPSView
             }
             else if (renderData != null)
             {
-                _spriteTextureCache.TryGetTexture(renderData, tile, out texture);
+                if (hasMaterialTint)
+                {
+                    usesBakedTint = useSelectiveMaterialTint
+                        ? _spriteTextureCache.TryGetSelectiveTintRenderTileTexture(renderData, tile, false, materialColor, light, out texture)
+                        : _spriteTextureCache.TryGetTintedRenderTileTexture(renderData, tile, false, materialColor, light, out texture);
+                }
+
+                if (texture == null)
+                {
+                    _spriteTextureCache.TryGetTexture(renderData, tile, out texture);
+                }
             }
 
             if (texture == null)

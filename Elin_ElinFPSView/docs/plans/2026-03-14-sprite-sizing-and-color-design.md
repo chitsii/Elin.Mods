@@ -94,6 +94,7 @@ world billboard の縦横 size を決める truth と混同しない。
 - sprite / render tile とも raw atlas color を優先する
 - `colorMod` / `useAltColor` は明示的に必要な asset だけ opt-in で使う
 - 木・草・植物など、元画像の色が見た目の主体であるものには無条件 tint を掛けない
+- ただし growth 系 `RenderData` object は Elin 本体でも `matColor` 経路に乗るため、tint 自体は切らず、raw texture 全体への一様乗算ではなく selective tint で近似する
 
 lighting の最終明るさモデルは別問題として切り分ける。
 

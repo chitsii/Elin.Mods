@@ -518,7 +518,8 @@ namespace Elin_ElinFPSView
             }
 
             int materialColor = ResolveCellObjectMaterialColor(cell, sourceObj);
-            bool hasMaterialTint = !sourceObj.HasGrowth && (sourceObj.colorMod != 0 || sourceObj.useAltColor);
+            bool hasMaterialTint = sourceObj.colorMod != 0 || sourceObj.useAltColor;
+            bool useSelectiveMaterialTint = sourceObj.HasGrowth && hasMaterialTint;
             if (IsUprightCellObject(cell, sourceObj, renderData))
             {
                 Vector2 worldSize = ResolveCellObjectUprightWorldSize(sourceObj, renderData);
@@ -542,6 +543,7 @@ namespace Elin_ElinFPSView
                     FacingRule = BillboardFacingRule.CameraFacing,
                     MaterialColor = hasMaterialTint ? materialColor : 0,
                     HasMaterialTint = hasMaterialTint,
+                    UseSelectiveMaterialTint = useSelectiveMaterialTint,
                     Light = lighting.BlockLight,
                     DiagnosticCategory = sourceObj.HasGrowth ? "tree" : "furniture",
                     DiagnosticLabel = sourceObj.alias ?? sourceObj.id.ToString(),
@@ -563,6 +565,7 @@ namespace Elin_ElinFPSView
                     SizeWorld = groundSize,
                     MaterialColor = hasMaterialTint ? materialColor : 0,
                     HasMaterialTint = hasMaterialTint,
+                    UseSelectiveMaterialTint = useSelectiveMaterialTint,
                     Light = lighting.FloorLight,
                     DiagnosticCategory = sourceObj.HasGrowth ? "tree" : "furniture",
                     DiagnosticLabel = sourceObj.alias ?? sourceObj.id.ToString(),
@@ -1086,6 +1089,7 @@ namespace Elin_ElinFPSView
         public BillboardFacingRule FacingRule;
         public int MaterialColor;
         public bool HasMaterialTint;
+        public bool UseSelectiveMaterialTint;
         public FpsResolvedLightSample Light;
         public string DiagnosticCategory;
         public string DiagnosticLabel;
@@ -1104,6 +1108,7 @@ namespace Elin_ElinFPSView
         public Vector2 SizeWorld;
         public int MaterialColor;
         public bool HasMaterialTint;
+        public bool UseSelectiveMaterialTint;
         public FpsResolvedLightSample Light;
         public string DiagnosticCategory;
         public string DiagnosticLabel;

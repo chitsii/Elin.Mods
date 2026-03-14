@@ -248,6 +248,83 @@ namespace Elin_ElinFPSView
             return true;
         }
 
+        public bool TryGetSelectiveTintRenderTileTexture(RenderData renderData, int tile, bool flipX, int materialColor, FpsResolvedLightSample light, out Texture texture)
+        {
+            texture = null;
+            if (renderData?.pass == null)
+            {
+                return false;
+            }
+
+            long cacheKey = (((long)renderData.pass.GetInstanceID()) << 32)
+                ^ (uint)tile
+                ^ (flipX ? (1L << 62) : 0L)
+                ^ (renderData.multiSize ? (1L << 63) : 0L)
+                ^ ((long)materialColor << 5)
+                ^ ((long)light.PackedLight << 17)
+                ^ (1L << 61);
+            if (_tintedRenderTileCache.TryGetValue(cacheKey, out Texture2D cached) && cached != null)
+            {
+                texture = cached;
+                return true;
+            }
+
+            if (!TryResolveRenderDataTextureDimensions(renderData, out int width, out int height))
+            {
+                return false;
+            }
+
+            Color32[] bakedPixels = new Color32[width * height];
+            bool hasOpaque = false;
+
+            for (int y = 0; y < height; y++)
+            {
+                float v = 1f - (y + 0.5f) / height;
+                for (int x = 0; x < width; x++)
+                {
+                    float u = (x + 0.5f) / width;
+                    if (flipX)
+                    {
+                        u = 1f - u;
+                    }
+
+                    Color32 color = _atlasSampler.TrySampleRenderTile(renderData, tile, u, v, out Color32 sampled)
+                        ? sampled
+                        : new Color32(0, 0, 0, 0);
+                    if (color.a > 8)
+                    {
+                        if (ShouldApplySelectiveMatTint(color))
+                        {
+                            color = FpsIdealizedWorld.ApplyMatTint(color, materialColor);
+                        }
+
+                        color = FpsLightApplicator.ApplySample(color, light);
+                        hasOpaque = true;
+                    }
+
+                    bakedPixels[y * width + x] = color;
+                }
+            }
+
+            if (!hasOpaque)
+            {
+                return false;
+            }
+
+            Texture2D texture2D = new Texture2D(width, height, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp,
+                name = $"FpsGpuSelectiveTintRenderTile_{cacheKey}"
+            };
+            texture2D.SetPixels32(bakedPixels);
+            texture2D.Apply(false, false);
+
+            _tintedRenderTileCache[cacheKey] = texture2D;
+            texture = texture2D;
+            return true;
+        }
+
         public bool TryGetWallTexture(FpsResolvedWallSurface surface, bool hitVertical, bool flipX, out Texture texture)
         {
             return TryGetBlockFaceTexture(surface, hitVertical ? FpsAtlasSampler.BlockFaceKind.Right : FpsAtlasSampler.BlockFaceKind.Left, flipX, out texture);
@@ -341,6 +418,21 @@ namespace Elin_ElinFPSView
             if (renderData.multiSize)
             {
                 height *= 2;
+            }
+
+            return true;
+        }
+
+        private static bool ShouldApplySelectiveMatTint(Color32 color)
+        {
+            int max = Mathf.Max(color.r, Mathf.Max(color.g, color.b));
+            int min = Mathf.Min(color.r, Mathf.Min(color.g, color.b));
+            int range = max - min;
+            int luminance = (color.r + color.g + color.b) / 3;
+
+            if (range > 8 || luminance < 48)
+            {
+                return false;
             }
 
             return true;

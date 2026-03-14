@@ -12,23 +12,40 @@ namespace Elin_ElinFPSView
         private const float GpuEyeHeightScale = 1.0f;
         private static readonly Color ClearColor = new Color32(34, 40, 52, 255);
         private static Mesh _terrainPlaneMesh;
+        private static Mesh _uprightPlaneMesh;
 
         private readonly FpsIdealizedWorld _idealizedWorld = new FpsIdealizedWorld();
         private readonly FpsGpuFloorAtlasBaker _floorAtlasBaker = new FpsGpuFloorAtlasBaker();
+        private readonly FpsGpuSpriteTextureCache _spriteTextureCache = new FpsGpuSpriteTextureCache();
+        private readonly FpsAtlasSampler _atlasSampler = new FpsAtlasSampler();
         private readonly MaterialPropertyBlock _propertyBlock = new MaterialPropertyBlock();
+        private readonly List<FpsResolvedUprightSprite> _uprightSprites = new List<FpsResolvedUprightSprite>(256);
+        private readonly List<FpsResolvedGroundSprite> _groundSprites = new List<FpsResolvedGroundSprite>(256);
+        private readonly List<FpsResolvedEffectSprite> _effectSprites = new List<FpsResolvedEffectSprite>(64);
         private readonly List<GameObject> _terrainQuads = new List<GameObject>(256);
         private readonly List<MeshRenderer> _terrainRenderers = new List<MeshRenderer>(256);
         private readonly List<MeshFilter> _terrainFilters = new List<MeshFilter>(256);
         private readonly List<GameObject> _terrainOverlayQuads = new List<GameObject>(256);
         private readonly List<MeshRenderer> _terrainOverlayRenderers = new List<MeshRenderer>(256);
         private readonly List<MeshFilter> _terrainOverlayFilters = new List<MeshFilter>(256);
+        private readonly List<GameObject> _wallQuads = new List<GameObject>(256);
+        private readonly List<MeshRenderer> _wallRenderers = new List<MeshRenderer>(256);
+        private readonly List<GameObject> _uprightQuads = new List<GameObject>(256);
+        private readonly List<MeshRenderer> _uprightRenderers = new List<MeshRenderer>(256);
+        private readonly List<GameObject> _groundQuads = new List<GameObject>(256);
+        private readonly List<MeshRenderer> _groundRenderers = new List<MeshRenderer>(256);
         private GameObject _root;
         private GameObject _terrainRoot;
         private GameObject _terrainOverlayRoot;
+        private GameObject _wallRoot;
+        private GameObject _uprightRoot;
+        private GameObject _groundRoot;
         private Camera _camera;
         private RenderTexture _renderTexture;
         private Material _terrainMaterial;
         private Material _terrainOverlayMaterial;
+        private Material _wallMaterial;
+        private Material _spriteMaterial;
         private int _width;
         private int _height;
         private bool _loggedDebugFrame;
@@ -56,6 +73,7 @@ namespace Elin_ElinFPSView
             _idealizedWorld.PrepareFrame();
             UpdateCamera(pose);
             UpdateTerrainPreview(pose);
+            UpdateSpritePreview(pose, viewState.CameraDistance > 0.2f);
 
             _root.SetActive(true);
             _camera.Render();
@@ -70,6 +88,9 @@ namespace Elin_ElinFPSView
                 _root = null;
                 _terrainRoot = null;
                 _terrainOverlayRoot = null;
+                _wallRoot = null;
+                _uprightRoot = null;
+                _groundRoot = null;
             }
 
             if (_camera != null)
@@ -90,6 +111,18 @@ namespace Elin_ElinFPSView
                 _terrainOverlayMaterial = null;
             }
 
+            if (_spriteMaterial != null)
+            {
+                UnityEngine.Object.Destroy(_spriteMaterial);
+                _spriteMaterial = null;
+            }
+
+            if (_wallMaterial != null)
+            {
+                UnityEngine.Object.Destroy(_wallMaterial);
+                _wallMaterial = null;
+            }
+
             if (_renderTexture != null)
             {
                 _renderTexture.Release();
@@ -97,10 +130,17 @@ namespace Elin_ElinFPSView
                 _renderTexture = null;
             }
 
+            _spriteTextureCache.Dispose();
             _terrainQuads.Clear();
             _terrainRenderers.Clear();
             _terrainOverlayQuads.Clear();
             _terrainOverlayRenderers.Clear();
+            _wallQuads.Clear();
+            _wallRenderers.Clear();
+            _uprightQuads.Clear();
+            _uprightRenderers.Clear();
+            _groundQuads.Clear();
+            _groundRenderers.Clear();
         }
 
         private void CreateRenderTexture()
@@ -151,6 +191,18 @@ namespace Elin_ElinFPSView
             _terrainOverlayRoot.transform.SetParent(_root.transform, false);
             SetLayerRecursively(_terrainOverlayRoot, RenderLayer);
 
+            _wallRoot = new GameObject("Walls");
+            _wallRoot.transform.SetParent(_root.transform, false);
+            SetLayerRecursively(_wallRoot, RenderLayer);
+
+            _groundRoot = new GameObject("GroundSprites");
+            _groundRoot.transform.SetParent(_root.transform, false);
+            SetLayerRecursively(_groundRoot, RenderLayer);
+
+            _uprightRoot = new GameObject("UprightSprites");
+            _uprightRoot.transform.SetParent(_root.transform, false);
+            SetLayerRecursively(_uprightRoot, RenderLayer);
+
             Shader terrainShader = Shader.Find("Sprites/Default");
             if (terrainShader == null)
             {
@@ -195,6 +247,40 @@ namespace Elin_ElinFPSView
                 }
             }
 
+            _spriteMaterial = terrainShader != null
+                ? new Material(terrainShader) { hideFlags = HideFlags.HideAndDontSave }
+                : null;
+            if (_spriteMaterial != null)
+            {
+                _spriteMaterial.mainTexture = Texture2D.whiteTexture;
+                if (_spriteMaterial.HasProperty("_Color"))
+                {
+                    _spriteMaterial.SetColor("_Color", Color.white);
+                }
+
+                if (_spriteMaterial.HasProperty("_Cull"))
+                {
+                    _spriteMaterial.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
+                }
+            }
+
+            _wallMaterial = terrainShader != null
+                ? new Material(terrainShader) { hideFlags = HideFlags.HideAndDontSave }
+                : null;
+            if (_wallMaterial != null)
+            {
+                _wallMaterial.mainTexture = Texture2D.whiteTexture;
+                if (_wallMaterial.HasProperty("_Color"))
+                {
+                    _wallMaterial.SetColor("_Color", Color.white);
+                }
+
+                if (_wallMaterial.HasProperty("_Cull"))
+                {
+                    _wallMaterial.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Back);
+                }
+            }
+
             _root.SetActive(false);
         }
 
@@ -231,12 +317,16 @@ namespace Elin_ElinFPSView
             int maxZ = Mathf.Min(EClass._map.Size - 1, Mathf.FloorToInt(pose.PlayerOrigin.y) + radius);
 
             int activeIndex = 0;
+            int activeWallIndex = 0;
             for (int z = minZ; z <= maxZ; z++)
             {
                 for (int x = minX; x <= maxX; x++)
                 {
                     Cell cell = EClass._map.cells[x, z];
                     bool hasSurface = _idealizedWorld.TryResolveFloor(cell, cell?.index ?? -1, out FpsResolvedFloorSurface surface);
+                    bool isFullBlock = cell != null && cell.HasFullBlock;
+                    FpsResolvedWallSurface blockTopSurface = default;
+                    bool hasBlockSurface = isFullBlock && _idealizedWorld.TryResolveWall(cell, out blockTopSurface);
 
                     EnsureTerrainPool(activeIndex + 1);
                     GameObject quad = _terrainQuads[activeIndex];
@@ -244,13 +334,20 @@ namespace Elin_ElinFPSView
                     quad.SetActive(true);
                     _terrainOverlayQuads[activeIndex].SetActive(false);
 
-                    float surfaceHeight = FpsIdealizedWorld.GetCellSurfaceHeight(cell) + RenderHeightOffset;
+                    float surfaceHeight = isFullBlock
+                        ? FpsIdealizedWorld.GetCellSurfaceHeight(cell) + 1f + RenderHeightOffset
+                        : FpsIdealizedWorld.GetCellSurfaceHeight(cell) + RenderHeightOffset;
                     quad.transform.localPosition = new Vector3(x + 0.5f, surfaceHeight, z + 0.5f);
                     quad.transform.localRotation = Quaternion.identity;
                     quad.transform.localScale = Vector3.one;
 
                     _propertyBlock.Clear();
-                    if (hasSurface)
+                    if (hasBlockSurface)
+                    {
+                        ApplyBlockTopTexture(_terrainFilters[activeIndex], blockTopSurface);
+                        _propertyBlock.SetColor("_Color", ResolveSpriteTint(blockTopSurface.MaterialColor, true, blockTopSurface.Light));
+                    }
+                    else if (hasSurface)
                     {
                         ApplyTerrainTexture(_terrainFilters[activeIndex], surface);
                         _propertyBlock.SetColor("_Color", ResolvePreviewTint(surface));
@@ -261,6 +358,16 @@ namespace Elin_ElinFPSView
                         _propertyBlock.SetColor("_Color", new Color32(200, 80, 200, 255));
                     }
                     renderer.SetPropertyBlock(_propertyBlock);
+
+                    if (!IsSolidWall(cell))
+                    {
+                        activeWallIndex = AddTerrainRisers(activeWallIndex, x, z, cell, EClass._map.Size);
+                    }
+
+                    if (IsSolidWall(cell) && _idealizedWorld.TryResolveWall(cell, out FpsResolvedWallSurface wallSurface))
+                    {
+                        activeWallIndex = AddWallQuads(activeWallIndex, x, z, wallSurface);
+                    }
                     activeIndex++;
                 }
             }
@@ -271,7 +378,390 @@ namespace Elin_ElinFPSView
                 _terrainOverlayQuads[i].SetActive(false);
             }
 
+            for (int i = activeWallIndex; i < _wallQuads.Count; i++)
+            {
+                _wallQuads[i].SetActive(false);
+            }
+
             LogDebugFrame(activeIndex, pose);
+        }
+
+        private int AddWallQuads(int activeWallIndex, int cellX, int cellZ, FpsResolvedWallSurface surface)
+        {
+            if (surface.Cell == null)
+            {
+                return activeWallIndex;
+            }
+
+            float bottom = FpsIdealizedWorld.GetCellSurfaceHeight(surface.Cell);
+            float top = bottom + 1f;
+
+            if (surface.Cell.HasWallOrFence && !surface.Cell.HasFullBlock)
+            {
+                return AddWallFencePanels(activeWallIndex, cellX, cellZ, bottom, top, surface);
+            }
+
+            return AddFullBlockCornerQuads(activeWallIndex, cellX, cellZ, bottom, top, surface);
+        }
+
+        private int AddFullBlockCornerQuads(int activeWallIndex, int cellX, int cellZ, float bottom, float top, FpsResolvedWallSurface surface)
+        {
+            if (_camera == null)
+            {
+                return activeWallIndex;
+            }
+
+            Vector3 cameraPosition = _camera.transform.position;
+            float centerX = cellX + 0.5f;
+            float centerZ = cellZ + 0.5f;
+
+            bool cameraWest = cameraPosition.x < centerX;
+            bool cameraNorth = cameraPosition.z < centerZ;
+            int xDir = cameraWest ? 0 : 2;
+            int zDir = cameraNorth ? 3 : 1;
+
+            if (ShouldRenderBlockFace(surface.Cell, xDir, top))
+            {
+                ResolveBlockFaceSelection(surface.Cell, xDir, out FpsAtlasSampler.BlockFaceKind xFaceKind, out bool xFlip);
+                activeWallIndex = AddBlockFaceQuad(
+                    activeWallIndex,
+                    cellX,
+                    cellZ,
+                    bottom,
+                    top,
+                    xDir,
+                    surface,
+                    xFaceKind,
+                    flipX: xFlip);
+            }
+
+            if (ShouldRenderBlockFace(surface.Cell, zDir, top))
+            {
+                ResolveBlockFaceSelection(surface.Cell, zDir, out FpsAtlasSampler.BlockFaceKind zFaceKind, out bool zFlip);
+                activeWallIndex = AddBlockFaceQuad(
+                    activeWallIndex,
+                    cellX,
+                    cellZ,
+                    bottom,
+                    top,
+                    zDir,
+                    surface,
+                    zFaceKind,
+                    flipX: zFlip);
+            }
+
+            return activeWallIndex;
+        }
+
+        private int AddWallFencePanels(int activeWallIndex, int cellX, int cellZ, float bottom, float top, FpsResolvedWallSurface surface)
+        {
+            RenderData renderData = surface.Cell?.sourceBlock?.renderData;
+            int[] tiles = surface.Cell?.sourceBlock?._tiles;
+            if (renderData == null || tiles == null || tiles.Length == 0)
+            {
+                return activeWallIndex;
+            }
+
+            int baseTile = Mathf.Abs(tiles[0]);
+            int wallDir = surface.Cell.blockDir;
+            if (wallDir == 0 || wallDir == 2)
+            {
+                activeWallIndex = AddWallPanelQuad(activeWallIndex, cellX, cellZ, bottom, top, 0, renderData, baseTile, false, surface);
+            }
+
+            if (wallDir == 1 || wallDir == 2)
+            {
+                activeWallIndex = AddWallPanelQuad(activeWallIndex, cellX, cellZ, bottom, top, 1, renderData, baseTile, true, surface);
+            }
+
+            return activeWallIndex;
+        }
+
+        private int AddDirectionalWallQuad(int activeWallIndex, int cellX, int cellZ, float bottom, float top, int dir, FpsResolvedWallSurface surface)
+        {
+            ResolveDirectionalQuadTransform(cellX, cellZ, bottom, top, dir, out Vector3 center, out Quaternion rotation, out bool hitVertical, out bool flipX);
+
+            return AddWallQuad(activeWallIndex, center, rotation, surface, hitVertical, flipX);
+        }
+
+        private int AddBlockFaceQuad(
+            int activeWallIndex,
+            int cellX,
+            int cellZ,
+            float bottom,
+            float top,
+            int dir,
+            FpsResolvedWallSurface surface,
+            FpsAtlasSampler.BlockFaceKind faceKind,
+            bool flipX)
+        {
+            EnsureWallPool(activeWallIndex + 1);
+            ResolveDirectionalQuadTransform(cellX, cellZ, bottom, top, dir, out Vector3 center, out Quaternion rotation, out _, out _);
+
+            GameObject quad = _wallQuads[activeWallIndex];
+            MeshRenderer renderer = _wallRenderers[activeWallIndex];
+            quad.SetActive(true);
+            quad.transform.localPosition = center;
+            quad.transform.localRotation = rotation;
+            quad.transform.localScale = new Vector3(1f, top - bottom, 1f);
+
+            Texture texture = _spriteTextureCache.TryGetBlockFaceTexture(surface, faceKind, flipX, out Texture wallTexture)
+                ? wallTexture
+                : Texture2D.whiteTexture;
+            _propertyBlock.Clear();
+            _propertyBlock.SetTexture("_MainTex", texture);
+            _propertyBlock.SetColor("_Color", ResolveSpriteTint(surface.MaterialColor, true, surface.Light));
+            renderer.SetPropertyBlock(_propertyBlock);
+            return activeWallIndex + 1;
+        }
+
+        private int AddWallPanelQuad(int activeWallIndex, int cellX, int cellZ, float bottom, float top, int dir, RenderData renderData, int tile, bool flipX, FpsResolvedWallSurface surface)
+        {
+            EnsureWallPool(activeWallIndex + 1);
+            ResolveDirectionalQuadTransform(cellX, cellZ, bottom, top, dir, out Vector3 center, out Quaternion rotation, out _, out _);
+
+            GameObject quad = _wallQuads[activeWallIndex];
+            MeshRenderer renderer = _wallRenderers[activeWallIndex];
+            quad.SetActive(true);
+            quad.transform.localPosition = center;
+            quad.transform.localRotation = rotation;
+            quad.transform.localScale = new Vector3(1f, top - bottom, 1f);
+
+            Texture texture = _spriteTextureCache.TryGetTexture(renderData, tile, flipX, out Texture panelTexture)
+                ? panelTexture
+                : Texture2D.whiteTexture;
+            _propertyBlock.Clear();
+            _propertyBlock.SetTexture("_MainTex", texture);
+            _propertyBlock.SetColor("_Color", ResolveSpriteTint(surface.MaterialColor, true, surface.Light));
+            renderer.SetPropertyBlock(_propertyBlock);
+            return activeWallIndex + 1;
+        }
+
+        private int AddWallQuad(int activeWallIndex, Vector3 center, Quaternion rotation, FpsResolvedWallSurface surface, bool hitVertical, bool flipX)
+        {
+            EnsureWallPool(activeWallIndex + 1);
+            GameObject quad = _wallQuads[activeWallIndex];
+            MeshRenderer renderer = _wallRenderers[activeWallIndex];
+            quad.SetActive(true);
+            quad.transform.localPosition = center;
+            quad.transform.localRotation = rotation;
+            quad.transform.localScale = new Vector3(1f, 1f, 1f);
+
+            Texture texture = _spriteTextureCache.TryGetBlockFaceTexture(
+                    surface,
+                    hitVertical ? FpsAtlasSampler.BlockFaceKind.Left : FpsAtlasSampler.BlockFaceKind.Right,
+                    flipX,
+                    out Texture wallTexture)
+                ? wallTexture
+                : Texture2D.whiteTexture;
+            _propertyBlock.Clear();
+            _propertyBlock.SetTexture("_MainTex", texture);
+            _propertyBlock.SetColor("_Color", ResolveSpriteTint(surface.MaterialColor, true, surface.Light));
+            renderer.SetPropertyBlock(_propertyBlock);
+            return activeWallIndex + 1;
+        }
+
+        private void UpdateSpritePreview(GpuViewPose pose, bool includePlayerSelf)
+        {
+            float maxDistance = Mathf.Max(1f, Plugin.Settings.MaxDistance.Value);
+            _idealizedWorld.GatherSprites(pose.PlayerOrigin, maxDistance, includePlayerSelf, _uprightSprites, _groundSprites, _effectSprites);
+            _uprightSprites.Sort((a, b) => b.Distance.CompareTo(a.Distance));
+            _groundSprites.Sort((a, b) => b.Distance.CompareTo(a.Distance));
+            _effectSprites.Sort((a, b) => b.Distance.CompareTo(a.Distance));
+
+            EnsureGroundPool(_groundSprites.Count);
+            EnsureUprightPool(_uprightSprites.Count + _effectSprites.Count);
+            UpdateGroundSprites();
+            UpdateUprightSprites();
+        }
+
+        private void UpdateGroundSprites()
+        {
+            for (int i = 0; i < _groundSprites.Count; i++)
+            {
+                FpsResolvedGroundSprite sprite = _groundSprites[i];
+                GameObject quad = _groundQuads[i];
+                MeshRenderer renderer = _groundRenderers[i];
+                quad.SetActive(true);
+                quad.transform.localPosition = sprite.CenterWorld;
+                quad.transform.localRotation = Quaternion.identity;
+                quad.transform.localScale = new Vector3(sprite.SizeWorld.x, 1f, sprite.SizeWorld.y);
+
+                _propertyBlock.Clear();
+                if (!TryApplySpriteTexture(sprite.Sprite, sprite.RenderData, sprite.Tile, _propertyBlock))
+                {
+                    quad.SetActive(false);
+                    continue;
+                }
+
+                _propertyBlock.SetColor("_Color", ResolveSpriteTint(sprite.MaterialColor, sprite.HasMaterialTint, sprite.Light));
+                renderer.SetPropertyBlock(_propertyBlock);
+            }
+
+            for (int i = _groundSprites.Count; i < _groundQuads.Count; i++)
+            {
+                _groundQuads[i].SetActive(false);
+            }
+        }
+
+        private void UpdateUprightSprites()
+        {
+            int index = 0;
+            for (int i = 0; i < _uprightSprites.Count; i++, index++)
+            {
+                ApplyUprightSprite(index, _uprightSprites[i]);
+            }
+
+            for (int i = 0; i < _effectSprites.Count; i++, index++)
+            {
+                FpsResolvedEffectSprite effect = _effectSprites[i];
+                ApplyUprightSprite(index, new FpsResolvedUprightSprite
+                {
+                    AnchorWorld = effect.AnchorWorld,
+                    Sprite = null,
+                    RenderData = effect.RenderData,
+                    Tile = effect.Tile,
+                    Distance = effect.Distance,
+                    WidthWorld = effect.WidthWorld,
+                    HeightWorld = effect.HeightWorld,
+                    PivotX = effect.PivotX,
+                    PivotY = effect.PivotY,
+                    ShadowSizeWorld = 0f,
+                    CastsShadow = false,
+                    FacingRule = BillboardFacingRule.CameraFacing,
+                    MaterialColor = 0,
+                    HasMaterialTint = false,
+                    Light = effect.Light
+                });
+            }
+
+            for (int i = index; i < _uprightQuads.Count; i++)
+            {
+                _uprightQuads[i].SetActive(false);
+            }
+        }
+
+        private void ApplyUprightSprite(int index, FpsResolvedUprightSprite sprite)
+        {
+            GameObject quad = _uprightQuads[index];
+            MeshRenderer renderer = _uprightRenderers[index];
+            if (!IsVisibleToCamera(sprite.AnchorWorld))
+            {
+                quad.SetActive(false);
+                return;
+            }
+
+            quad.SetActive(true);
+
+            Vector3 toCamera = _camera.transform.position - sprite.AnchorWorld;
+            toCamera.y = 0f;
+            if (toCamera.sqrMagnitude < 0.0001f)
+            {
+                toCamera = _camera.transform.forward;
+                toCamera.y = 0f;
+            }
+
+            Quaternion rotation = toCamera.sqrMagnitude > 0.0001f
+                ? Quaternion.LookRotation(toCamera.normalized, Vector3.up)
+                : Quaternion.identity;
+            float effectivePivotY = ResolveEffectivePivotY(sprite);
+            Vector3 center = sprite.AnchorWorld
+                + rotation * Vector3.right * ((0.5f - sprite.PivotX) * sprite.WidthWorld)
+                + Vector3.up * ((0.5f - effectivePivotY) * sprite.HeightWorld);
+            quad.transform.localPosition = center;
+            quad.transform.localRotation = rotation;
+            quad.transform.localScale = new Vector3(sprite.WidthWorld, sprite.HeightWorld, 1f);
+
+            _propertyBlock.Clear();
+            if (!TryApplySpriteTexture(sprite.Sprite, sprite.RenderData, sprite.Tile, _propertyBlock))
+            {
+                quad.SetActive(false);
+                return;
+            }
+
+            _propertyBlock.SetColor("_Color", ResolveSpriteTint(sprite.MaterialColor, sprite.HasMaterialTint, sprite.Light));
+            renderer.SetPropertyBlock(_propertyBlock);
+        }
+
+        private float ResolveEffectivePivotY(FpsResolvedUprightSprite sprite)
+        {
+            float pivotY = sprite.PivotY;
+            FpsAtlasSampler.SpriteMetrics metrics;
+            float minV;
+            float maxV;
+            if (sprite.Sprite != null && _atlasSampler.TryGetSpriteMetrics(sprite.Sprite, out metrics))
+            {
+                minV = metrics.BottomV;
+                maxV = metrics.TopV;
+            }
+            else if (sprite.Sprite == null && sprite.RenderData != null && _atlasSampler.TryGetRenderTileMetrics(sprite.RenderData, sprite.Tile, out metrics))
+            {
+                minV = metrics.BottomV;
+                maxV = metrics.TopV;
+            }
+            else
+            {
+                return pivotY;
+            }
+
+            float visibleHeight = Mathf.Max(0.001f, maxV - minV);
+            float effectivePivotY = Mathf.Clamp01((pivotY - minV) / visibleHeight);
+            return effectivePivotY < 0.001f ? 0f : effectivePivotY;
+        }
+
+        private bool TryApplySpriteTexture(Sprite sprite, RenderData renderData, int tile, MaterialPropertyBlock block)
+        {
+            Texture texture = null;
+            if (sprite != null)
+            {
+                _spriteTextureCache.TryGetTexture(sprite, out texture);
+            }
+            else if (renderData != null)
+            {
+                _spriteTextureCache.TryGetTexture(renderData, tile, out texture);
+            }
+
+            if (texture == null)
+            {
+                return false;
+            }
+
+            block.SetTexture("_MainTex", texture);
+            return true;
+        }
+
+        private bool IsVisibleToCamera(Vector3 position)
+        {
+            if (_camera == null)
+            {
+                return false;
+            }
+
+            Vector3 delta = position - _camera.transform.position;
+            float distance = delta.magnitude;
+            if (distance <= 0.05f)
+            {
+                return true;
+            }
+
+            Vector3 dir = delta / distance;
+            float dot = Vector3.Dot(_camera.transform.forward, dir);
+            if (dot <= -0.15f)
+            {
+                return false;
+            }
+
+            Vector3 viewport = _camera.WorldToViewportPoint(position);
+            return viewport.z > 0f && viewport.x >= -0.2f && viewport.x <= 1.2f && viewport.y >= -0.2f && viewport.y <= 1.2f;
+        }
+
+        private static Color ResolveSpriteTint(int materialColor, bool hasMaterialTint, FpsResolvedLightSample light)
+        {
+            Color32 baseColor = hasMaterialTint
+                ? FpsIdealizedWorld.ApplyMatTint(new Color32(255, 255, 255, 255), materialColor)
+                : new Color32(255, 255, 255, 255);
+            Color32 lit = FpsLightApplicator.ApplySample(baseColor, light);
+            return new Color32(lit.r, lit.g, lit.b, 255);
         }
 
         private Color ResolvePreviewTint(FpsResolvedFloorSurface surface)
@@ -362,6 +852,75 @@ namespace Elin_ElinFPSView
             }
         }
 
+        private void EnsureWallPool(int count)
+        {
+            while (_wallQuads.Count < count)
+            {
+                GameObject quad = new GameObject($"GpuWallQuad_{_wallQuads.Count}");
+                quad.hideFlags = HideFlags.HideAndDontSave;
+                quad.transform.SetParent(_wallRoot.transform, false);
+                SetLayerRecursively(quad, RenderLayer);
+
+                MeshFilter filter = quad.AddComponent<MeshFilter>();
+                filter.sharedMesh = GetUprightPlaneMesh();
+
+                MeshRenderer renderer = quad.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = _wallMaterial;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+
+                _wallQuads.Add(quad);
+                _wallRenderers.Add(renderer);
+                quad.SetActive(false);
+            }
+        }
+
+        private void EnsureUprightPool(int count)
+        {
+            while (_uprightQuads.Count < count)
+            {
+                GameObject quad = new GameObject($"GpuUprightQuad_{_uprightQuads.Count}");
+                quad.hideFlags = HideFlags.HideAndDontSave;
+                quad.transform.SetParent(_uprightRoot.transform, false);
+                SetLayerRecursively(quad, RenderLayer);
+
+                MeshFilter filter = quad.AddComponent<MeshFilter>();
+                filter.sharedMesh = GetUprightPlaneMesh();
+
+                MeshRenderer renderer = quad.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = _spriteMaterial;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+
+                _uprightQuads.Add(quad);
+                _uprightRenderers.Add(renderer);
+                quad.SetActive(false);
+            }
+        }
+
+        private void EnsureGroundPool(int count)
+        {
+            while (_groundQuads.Count < count)
+            {
+                GameObject quad = new GameObject($"GpuGroundQuad_{_groundQuads.Count}");
+                quad.hideFlags = HideFlags.HideAndDontSave;
+                quad.transform.SetParent(_groundRoot.transform, false);
+                SetLayerRecursively(quad, RenderLayer);
+
+                MeshFilter filter = quad.AddComponent<MeshFilter>();
+                filter.sharedMesh = GetTerrainPlaneMesh();
+
+                MeshRenderer renderer = quad.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = _spriteMaterial;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+
+                _groundQuads.Add(quad);
+                _groundRenderers.Add(renderer);
+                quad.SetActive(false);
+            }
+        }
+
         private static Mesh GetTerrainPlaneMesh()
         {
             if (_terrainPlaneMesh != null)
@@ -404,6 +963,48 @@ namespace Elin_ElinFPSView
             return _terrainPlaneMesh;
         }
 
+        private static Mesh GetUprightPlaneMesh()
+        {
+            if (_uprightPlaneMesh != null)
+            {
+                return _uprightPlaneMesh;
+            }
+
+            Mesh mesh = new Mesh
+            {
+                name = "FpsGpuUprightPlane"
+            };
+            mesh.vertices = new[]
+            {
+                new Vector3(-0.5f, -0.5f, 0f),
+                new Vector3(0.5f, -0.5f, 0f),
+                new Vector3(-0.5f, 0.5f, 0f),
+                new Vector3(0.5f, 0.5f, 0f)
+            };
+            mesh.normals = new[]
+            {
+                Vector3.forward,
+                Vector3.forward,
+                Vector3.forward,
+                Vector3.forward
+            };
+            mesh.uv = new[]
+            {
+                new Vector2(0f, 0f),
+                new Vector2(1f, 0f),
+                new Vector2(0f, 1f),
+                new Vector2(1f, 1f)
+            };
+            mesh.triangles = new[]
+            {
+                0, 2, 1,
+                2, 3, 1
+            };
+            mesh.RecalculateBounds();
+            _uprightPlaneMesh = mesh;
+            return _uprightPlaneMesh;
+        }
+
         private void LogDebugFrame(int activeTerrainQuads, GpuViewPose pose)
         {
             if (_loggedDebugFrame || Plugin.Log == null)
@@ -442,6 +1043,204 @@ namespace Elin_ElinFPSView
             return MaxPreviewRadius * 2 + 1;
         }
 
+        private static bool IsSolidWall(Cell cell)
+        {
+            return cell != null && (cell.HasFullBlock || cell.HasWallOrFence);
+        }
+
+        private int AddTerrainRisers(int activeWallIndex, int cellX, int cellZ, Cell cell, int mapSize)
+        {
+            float cellHeight = FpsIdealizedWorld.GetCellSurfaceHeight(cell);
+            if (cellX + 1 < mapSize)
+            {
+                Cell neighbor = EClass._map.cells[cellX + 1, cellZ];
+                if (neighbor != null && !IsSolidWall(neighbor))
+                {
+                    float neighborHeight = FpsIdealizedWorld.GetCellSurfaceHeight(neighbor);
+                    if (cellHeight > neighborHeight + 0.02f && _idealizedWorld.TryResolveTerrainRiser(cell, out FpsResolvedWallSurface riserSurface))
+                    {
+                        activeWallIndex = AddTerrainRiserQuad(activeWallIndex, cellX, cellZ, TerrainEdge.East, cellHeight, neighborHeight, riserSurface);
+                    }
+                }
+            }
+
+            if (cellZ + 1 < mapSize)
+            {
+                Cell neighbor = EClass._map.cells[cellX, cellZ + 1];
+                if (neighbor != null && !IsSolidWall(neighbor))
+                {
+                    float neighborHeight = FpsIdealizedWorld.GetCellSurfaceHeight(neighbor);
+                    if (cellHeight > neighborHeight + 0.02f && _idealizedWorld.TryResolveTerrainRiser(cell, out FpsResolvedWallSurface riserSurface))
+                    {
+                        activeWallIndex = AddTerrainRiserQuad(activeWallIndex, cellX, cellZ, TerrainEdge.South, cellHeight, neighborHeight, riserSurface);
+                    }
+                }
+            }
+
+            return activeWallIndex;
+        }
+
+        private int AddTerrainRiserQuad(int activeWallIndex, int cellX, int cellZ, TerrainEdge edge, float topHeight, float bottomHeight, FpsResolvedWallSurface surface)
+        {
+            float height = topHeight - bottomHeight;
+            if (height <= 0.01f)
+            {
+                return activeWallIndex;
+            }
+
+            int dir;
+            switch (edge)
+            {
+                case TerrainEdge.East:
+                    dir = 2;
+                    break;
+                case TerrainEdge.South:
+                    dir = 1;
+                    break;
+                case TerrainEdge.West:
+                    dir = 0;
+                    break;
+                default:
+                    dir = 3;
+                    break;
+            }
+
+            EnsureWallPool(activeWallIndex + 1);
+            ResolveDirectionalQuadTransform(cellX, cellZ, bottomHeight, topHeight, dir, out Vector3 center, out Quaternion rotation, out bool hitVertical, out bool flipX);
+
+            GameObject quad = _wallQuads[activeWallIndex];
+            MeshRenderer renderer = _wallRenderers[activeWallIndex];
+            quad.SetActive(true);
+            quad.transform.localPosition = center;
+            quad.transform.localRotation = rotation;
+            quad.transform.localScale = new Vector3(1f, height, 1f);
+
+            ResolveBlockFaceSelection(surface.Cell, dir, out FpsAtlasSampler.BlockFaceKind faceKind, out bool faceFlipX);
+            Texture texture = null;
+            texture = _spriteTextureCache.TryGetBlockFaceTexture(
+                    surface,
+                    faceKind,
+                    faceFlipX,
+                    out Texture wallTexture)
+                ? wallTexture
+                : Texture2D.whiteTexture;
+            _propertyBlock.Clear();
+            _propertyBlock.SetTexture("_MainTex", texture);
+            _propertyBlock.SetColor("_Color", ResolveSpriteTint(surface.MaterialColor, true, surface.Light));
+            renderer.SetPropertyBlock(_propertyBlock);
+            return activeWallIndex + 1;
+        }
+
+        private void ApplyBlockTopTexture(MeshFilter filter, FpsResolvedWallSurface surface)
+        {
+            if (filter == null)
+            {
+                return;
+            }
+
+            filter.sharedMesh = GetTerrainPlaneMesh();
+            Texture texture = _spriteTextureCache.TryGetBlockFaceTexture(surface, FpsAtlasSampler.BlockFaceKind.Top, false, out Texture topTexture)
+                ? topTexture
+                : Texture2D.whiteTexture;
+            _propertyBlock.SetTexture("_MainTex", texture);
+        }
+
+        private static bool ShouldRenderBlockFace(Cell cell, int dir, float top)
+        {
+            Cell neighbor = GetNeighbor(cell, dir);
+            if (neighbor == null)
+            {
+                return true;
+            }
+
+            if (!(neighbor.HasFullBlock || neighbor.HasWallOrFence))
+            {
+                return true;
+            }
+
+            float neighborTop = FpsIdealizedWorld.GetCellSurfaceHeight(neighbor) + (neighbor.HasFullBlock ? 1f : 0f);
+            return neighborTop + 0.01f < top;
+        }
+
+        private static void ResolveDirectionalQuadTransform(int cellX, int cellZ, float bottom, float top, int dir, out Vector3 center, out Quaternion rotation, out bool hitVertical, out bool flipX)
+        {
+            float midY = (bottom + top) * 0.5f;
+            const float edgeEpsilon = 0.001f;
+            switch (NormalizeDir(dir))
+            {
+                case 0:
+                    center = new Vector3(cellX - edgeEpsilon, midY, cellZ + 0.5f);
+                    rotation = Quaternion.Euler(0f, -90f, 0f);
+                    hitVertical = true;
+                    flipX = true;
+                    break;
+                case 1:
+                    center = new Vector3(cellX + 0.5f, midY, cellZ + 1f + edgeEpsilon);
+                    rotation = Quaternion.identity;
+                    hitVertical = false;
+                    flipX = false;
+                    break;
+                case 2:
+                    center = new Vector3(cellX + 1f + edgeEpsilon, midY, cellZ + 0.5f);
+                    rotation = Quaternion.Euler(0f, 90f, 0f);
+                    hitVertical = true;
+                    flipX = false;
+                    break;
+                default:
+                    center = new Vector3(cellX + 0.5f, midY, cellZ - edgeEpsilon);
+                    rotation = Quaternion.Euler(0f, 180f, 0f);
+                    hitVertical = false;
+                    flipX = true;
+                    break;
+            }
+        }
+
+        private static void ResolveBlockFaceSelection(Cell cell, int worldDir, out FpsAtlasSampler.BlockFaceKind faceKind, out bool flipX)
+        {
+            int blockDir = cell == null ? 0 : NormalizeDir(cell.blockDir);
+            int relativeDir = NormalizeDir(worldDir - blockDir);
+            switch (relativeDir)
+            {
+                case 0:
+                    faceKind = FpsAtlasSampler.BlockFaceKind.Left;
+                    flipX = false;
+                    break;
+                case 1:
+                    faceKind = FpsAtlasSampler.BlockFaceKind.Right;
+                    flipX = false;
+                    break;
+                case 2:
+                    faceKind = FpsAtlasSampler.BlockFaceKind.Left;
+                    flipX = true;
+                    break;
+                default:
+                    faceKind = FpsAtlasSampler.BlockFaceKind.Right;
+                    flipX = true;
+                    break;
+            }
+        }
+
+        private static Cell GetNeighbor(Cell cell, int dir)
+        {
+            switch (NormalizeDir(dir))
+            {
+                case 0:
+                    return cell.Front;
+                case 1:
+                    return cell.Right;
+                case 2:
+                    return cell.Back;
+                default:
+                    return cell.Left;
+            }
+        }
+
+        private static int NormalizeDir(int dir)
+        {
+            int normalized = dir % 4;
+            return normalized < 0 ? normalized + 4 : normalized;
+        }
+
         private static void SetLayerRecursively(GameObject obj, int layer)
         {
             obj.layer = layer;
@@ -459,7 +1258,7 @@ namespace Elin_ElinFPSView
                 return false;
             }
 
-            Vector2 playerOrigin = new Vector2(EClass.pc.pos.x + 0.5f, EClass.pc.pos.z + 0.5f);
+            Vector2 playerOrigin = TryGetSmoothedOrigin();
             Vector2 forward = viewState.HasCustomYaw
                 ? new Vector2(Mathf.Cos(viewState.YawRadians), Mathf.Sin(viewState.YawRadians))
                 : DirToVector(EClass.pc.dir);
@@ -478,6 +1277,35 @@ namespace Elin_ElinFPSView
                 CameraGroundHeight = cameraGroundHeight
             };
             return true;
+        }
+
+        private static Vector2 TryGetSmoothedOrigin()
+        {
+            if (EClass.pc?.renderer == null || EClass.screen == null || EClass.screen.tileMap == null || EClass._zone.IsRegion)
+            {
+                return new Vector2(EClass.pc.pos.x + 0.5f, EClass.pc.pos.z + 0.5f);
+            }
+
+            float alignX = EClass.screen.tileAlign.x;
+            float alignY = EClass.screen.tileAlign.y;
+            if (Mathf.Abs(alignX) < 0.0001f || Mathf.Abs(alignY) < 0.0001f)
+            {
+                return new Vector2(EClass.pc.pos.x + 0.5f, EClass.pc.pos.z + 0.5f);
+            }
+
+            byte height = EClass.pc.pos.cell.bridgeHeight == 0 ? EClass.pc.pos.cell.height : EClass.pc.pos.cell.bridgeHeight;
+            float renderX = EClass.pc.renderer.position.x;
+            float renderY = EClass.pc.renderer.position.y - height * EClass.screen.tileMap._heightMod.y;
+            float sum = renderX / alignX;
+            float diff = renderY / alignY;
+            float x = (sum - diff) * 0.5f;
+            float z = (sum + diff) * 0.5f;
+            if (float.IsNaN(x) || float.IsNaN(z) || float.IsInfinity(x) || float.IsInfinity(z))
+            {
+                return new Vector2(EClass.pc.pos.x + 0.5f, EClass.pc.pos.z + 0.5f);
+            }
+
+            return new Vector2(x + 0.5f, z + 0.5f);
         }
 
         private static Vector2 ResolveCameraOrigin(Vector2 playerOrigin, Vector2 forward, int mapSize, float cameraDistance)
@@ -541,6 +1369,14 @@ namespace Elin_ElinFPSView
             public Vector2 Forward;
             public float PitchOffset;
             public float CameraGroundHeight;
+        }
+
+        private enum TerrainEdge
+        {
+            East,
+            South,
+            West,
+            North
         }
     }
 }

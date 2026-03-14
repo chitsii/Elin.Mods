@@ -20,6 +20,11 @@ namespace Elin_ElinFPSView
 
         public bool TrySampleBlock(FpsResolvedWallSurface surface, float u, float v, bool hitVertical, out Color32 color)
         {
+            return TrySampleBlockFace(surface, u, v, hitVertical ? BlockFaceKind.Right : BlockFaceKind.Left, out color);
+        }
+
+        public bool TrySampleBlockFace(FpsResolvedWallSurface surface, float u, float v, BlockFaceKind face, out Color32 color)
+        {
             color = default;
             if (surface.Cell == null)
             {
@@ -32,7 +37,7 @@ namespace Elin_ElinFPSView
                 return false;
             }
 
-            Vector2 uv = MapWallUv(u, v, hitVertical);
+            Vector2 uv = MapBlockFaceUv(u, v, face);
             return atlas.TrySample(surface.Tile, uv.x, uv.y, out color);
         }
 
@@ -427,26 +432,37 @@ namespace Elin_ElinFPSView
             return Mathf.Lerp(TerrainFloorInset, 1f - TerrainFloorInset, Mathf.Clamp01(value));
         }
 
-        private static Vector2 MapWallUv(float u, float v, bool hitVertical)
+        private static Vector2 MapBlockFaceUv(float u, float v, BlockFaceKind face)
         {
+            if (face == BlockFaceKind.Top)
+            {
+                Vector2 faceTopLeft = new Vector2(0.50f, 0.00f);
+                Vector2 faceTopRight = new Vector2(1.00f, 0.25f);
+                Vector2 faceBottomLeft = new Vector2(0.00f, 0.25f);
+                Vector2 faceBottomRight = new Vector2(0.50f, 0.50f);
+                Vector2 faceTop = Vector2.Lerp(faceTopLeft, faceTopRight, Mathf.Clamp01(u));
+                Vector2 faceBottom = Vector2.Lerp(faceBottomLeft, faceBottomRight, Mathf.Clamp01(u));
+                return Vector2.Lerp(faceTop, faceBottom, Mathf.Clamp01(v));
+            }
+
             Vector2 topLeft;
             Vector2 topRight;
             Vector2 bottomLeft;
             Vector2 bottomRight;
 
-            if (hitVertical)
+            if (face == BlockFaceKind.Right)
             {
-                topLeft = new Vector2(0.50f, 0.25f);
-                topRight = new Vector2(1.00f, 0.50f);
-                bottomLeft = new Vector2(0.50f, 0.98f);
+                topLeft = new Vector2(0.50f, 0.50f);
+                topRight = new Vector2(1.00f, 0.25f);
+                bottomLeft = new Vector2(0.50f, 1.00f);
                 bottomRight = new Vector2(1.00f, 0.75f);
             }
             else
             {
-                topLeft = new Vector2(0.00f, 0.50f);
-                topRight = new Vector2(0.50f, 0.25f);
+                topLeft = new Vector2(0.00f, 0.25f);
+                topRight = new Vector2(0.50f, 0.50f);
                 bottomLeft = new Vector2(0.00f, 0.75f);
-                bottomRight = new Vector2(0.50f, 0.98f);
+                bottomRight = new Vector2(0.50f, 1.00f);
             }
 
             Vector2 top = Vector2.Lerp(topLeft, topRight, Mathf.Clamp01(u));
@@ -714,6 +730,13 @@ namespace Elin_ElinFPSView
             public float BottomV;
             public float TopV;
             public bool HasOpaquePixels;
+        }
+
+        public enum BlockFaceKind
+        {
+            Top,
+            Left,
+            Right
         }
     }
 }

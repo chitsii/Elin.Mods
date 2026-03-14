@@ -5,10 +5,11 @@ namespace Elin_ElinFPSView
 {
     internal sealed class FpsIdealizedWorld
     {
-        private const float LooseItemBaseHeight = 0.28f;
+        private const float LooseItemBaseHeight = 0.18f;
         private const float CharaBaseHeight = 1.05f;
         private const float InstalledBaseHeight = 0.9f;
         private const float TallObjectBaseHeight = 1.3f;
+        private readonly FpsAtlasSampler _atlasSampler = new FpsAtlasSampler();
         private readonly FpsLightingResolver _lightingResolver = new FpsLightingResolver();
         private static bool _loggedCellObjectSpriteFailure;
         private static bool _loggedCellEffectSpriteFailure;
@@ -184,12 +185,18 @@ namespace Elin_ElinFPSView
                 return false;
             }
 
-            int dir = cell.blockDir % cell.sourceBlock._tiles.Length;
             FpsResolvedCellLighting lighting = _lightingResolver.ResolveCellLighting(cell);
+            int dirIndex = Mathf.Abs(cell.blockDir) % cell.sourceBlock._tiles.Length;
+            int tile = cell.sourceBlock.tileType.IsFullBlock
+                ? Mathf.Abs(cell.sourceBlock._tiles[dirIndex])
+                : cell.sourceBlock.tileType.IsWallOrFence
+                ? cell.sourceBlock._tiles[0]
+                : cell.sourceBlock.GetTile(cell.matBlock, cell.blockDir % cell.sourceBlock._tiles.Length);
             surface = new FpsResolvedWallSurface
             {
                 Cell = cell,
-                Tile = cell.sourceBlock.GetTile(cell.matBlock, dir),
+                Tile = tile,
+                RenderData = cell.sourceBlock.renderData,
                 MaterialColor = cell.sourceBlock.GetColorInt(cell.matBlock),
                 UseSnowAtlas = cell.IsSnowTile,
                 Light = lighting.BlockLight
@@ -234,12 +241,13 @@ namespace Elin_ElinFPSView
                 return false;
             }
 
-            int dir = Mathf.Abs(cell.blockDir) % block._tiles.Length;
             FpsResolvedCellLighting lighting = _lightingResolver.ResolveCellLighting(cell);
+            int dirIndex = Mathf.Abs(cell.blockDir) % block._tiles.Length;
             surface = new FpsResolvedWallSurface
             {
                 Cell = cell,
-                Tile = block._tiles[dir],
+                Tile = Mathf.Abs(block._tiles[dirIndex]),
+                RenderData = block.renderData,
                 MaterialColor = materialColor,
                 UseSnowAtlas = cell.IsSnowTile,
                 Light = lighting.BlockLight
@@ -348,7 +356,7 @@ namespace Elin_ElinFPSView
                 color.a);
         }
 
-        private static void TryAddCardSprite(
+        private void TryAddCardSprite(
             Card card,
             Vector2 origin,
             float maxDistance,
@@ -377,7 +385,7 @@ namespace Elin_ElinFPSView
             TryAddUprightSprite(card, origin, maxDistance, kind, lighting, uprightOutput);
         }
 
-        private static void TryAddUprightSprite(
+        private void TryAddUprightSprite(
             Card card,
             Vector2 origin,
             float maxDistance,
@@ -402,6 +410,11 @@ namespace Elin_ElinFPSView
             float aspect = Mathf.Max(0.2f, sprite.rect.width) / Mathf.Max(1f, sprite.rect.height);
             float spriteHeight = ResolveBaseHeight(card, kind);
             float spriteWidth = Mathf.Clamp(spriteHeight * aspect, 0.2f, 1.8f);
+            Vector2 visibleSize = kind == BillboardKind.Chara
+                ? new Vector2(spriteWidth, spriteHeight)
+                : ApplyVisibleSpriteScale(sprite, new Vector2(spriteWidth, spriteHeight));
+            spriteWidth = visibleSize.x;
+            spriteHeight = visibleSize.y;
             float pivotX = 0.5f;
             float pivotY = ResolvePivotY(kind);
             if (renderData != null)
@@ -431,7 +444,7 @@ namespace Elin_ElinFPSView
             });
         }
 
-        private static void TryAddGroundSprite(
+        private void TryAddGroundSprite(
             Card card,
             Vector2 origin,
             float maxDistance,
@@ -471,7 +484,7 @@ namespace Elin_ElinFPSView
             });
         }
 
-        private static void TryAddCellObjectSprite(
+        private void TryAddCellObjectSprite(
             Cell cell,
             int cellX,
             int cellZ,
@@ -509,6 +522,7 @@ namespace Elin_ElinFPSView
             if (IsUprightCellObject(cell, sourceObj, renderData))
             {
                 Vector2 worldSize = ResolveCellObjectUprightWorldSize(sourceObj, renderData);
+                worldSize = ApplyVisibleRenderTileScale(renderData, tile, worldSize);
                 float elevation = ResolveCellObjectElevation(cell, sourceObj);
                 float pivotX = 0.5f;
                 float pivotY = 0f;
@@ -654,7 +668,8 @@ namespace Elin_ElinFPSView
                 return 0f;
             }
 
-            float elevation = Mathf.Clamp(card.altitude, 0, 4) * 0.06f;
+            float elevation = ResolveSupportHeight(card);
+            elevation += Mathf.Clamp(card.altitude, 0, 4) * 0.06f;
             if (card is Thing thing && !card.ignoreStackHeight)
             {
                 elevation += Mathf.Clamp(thing.stackOrder, 0, 6) * 0.025f;
@@ -670,7 +685,7 @@ namespace Elin_ElinFPSView
                 return 0f;
             }
 
-            float elevation = 0f;
+            float elevation = ResolveSupportHeight(card);
             BaseTileMap tileMap = EClass.screen?.tileMap;
             if (tileMap != null)
             {
@@ -834,17 +849,7 @@ namespace Elin_ElinFPSView
                     Mathf.Max(0.05f, height));
             }
 
-            if (renderData.pass?.pmesh != null)
-            {
-                ProceduralMesh pmesh = renderData.pass.pmesh;
-                width = pmesh.size.x * scaleX;
-                height = Mathf.Abs(pmesh.size.y - pmesh.offset.y) * scaleY;
-                if (renderData.multiSize)
-                {
-                    height += pmesh.size.y * scaleY;
-                }
-            }
-            else if (renderData.multiSize)
+            if (renderData.multiSize)
             {
                 height *= 2f;
             }
@@ -893,6 +898,97 @@ namespace Elin_ElinFPSView
             }
 
             return elevation;
+        }
+
+        private Vector2 ApplyVisibleSpriteScale(Sprite sprite, Vector2 baseSize)
+        {
+            if (sprite == null || !_atlasSampler.TryGetSpriteMetrics(sprite, out FpsAtlasSampler.SpriteMetrics metrics) || !metrics.HasOpaquePixels)
+            {
+                return baseSize;
+            }
+
+            float visibleWidth = Mathf.Clamp(metrics.MaxU - metrics.MinU, 0.2f, 1f);
+            float visibleHeight = Mathf.Clamp(metrics.TopV - metrics.BottomV, 0.2f, 1f);
+            return new Vector2(
+                Mathf.Max(0.08f, baseSize.x * visibleWidth),
+                Mathf.Max(0.08f, baseSize.y * visibleHeight));
+        }
+
+        private Vector2 ApplyVisibleRenderTileScale(RenderData renderData, int tile, Vector2 baseSize)
+        {
+            if (renderData == null || !_atlasSampler.TryGetRenderTileMetrics(renderData, tile, out FpsAtlasSampler.SpriteMetrics metrics) || !metrics.HasOpaquePixels)
+            {
+                return baseSize;
+            }
+
+            float visibleWidth = Mathf.Clamp(metrics.MaxU - metrics.MinU, 0.15f, 1f);
+            float visibleHeight = Mathf.Clamp(metrics.TopV - metrics.BottomV, 0.15f, 1f);
+            return new Vector2(
+                Mathf.Max(0.06f, baseSize.x * visibleWidth),
+                Mathf.Max(0.06f, baseSize.y * visibleHeight));
+        }
+
+        private static float ResolveSupportHeight(Card card)
+        {
+            if (!(card is Thing target) || target.ignoreStackHeight || target.pos?.cell?.detail == null)
+            {
+                return 0f;
+            }
+
+            CellDetail detail = target.pos.cell.detail;
+            float supportHeight = 0f;
+            float lastStackHeight = 0f;
+            Card lastInstalled = null;
+            for (int i = 0; i < detail.things.Count; i++)
+            {
+                Thing thing = detail.things[i];
+                if (thing == target)
+                {
+                    break;
+                }
+
+                if (!thing.IsInstalled)
+                {
+                    continue;
+                }
+
+                TileType tileType = thing.TileType;
+                if (!tileType.CanStack)
+                {
+                    continue;
+                }
+
+                SourcePref pref = thing.Pref;
+                float stackHeight = tileType.UseMountHeight
+                    ? 0f
+                    : ((pref == null || Mathf.Abs(pref.height) <= 0.0001f) ? 0.1f : pref.height);
+
+                if (thing.ignoreStackHeight)
+                {
+                    supportHeight -= lastStackHeight;
+                }
+
+                supportHeight += stackHeight;
+                if (!tileType.UseMountHeight && thing.altitude != 0)
+                {
+                    stackHeight += Mathf.Clamp(thing.altitude, 0, 6) * 0.06f;
+                }
+
+                if (thing.trait.IgnoreLastStackHeight && (lastInstalled == null || !lastInstalled.trait.IgnoreLastStackHeight))
+                {
+                    supportHeight -= lastStackHeight;
+                }
+
+                lastStackHeight = stackHeight;
+                lastInstalled = thing;
+            }
+
+            if (target.ignoreStackHeight)
+            {
+                supportHeight -= lastStackHeight;
+            }
+
+            return Mathf.Clamp(supportHeight, 0f, 1.25f);
         }
 
         private static void TryAddEffectSprite(
@@ -979,6 +1075,7 @@ namespace Elin_ElinFPSView
     {
         public Cell Cell;
         public int Tile;
+        public RenderData RenderData;
         public int MaterialColor;
         public bool UseSnowAtlas;
         public FpsResolvedLightSample Light;

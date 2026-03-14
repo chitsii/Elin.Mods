@@ -167,7 +167,7 @@ namespace Elin_ElinFPSView
 
         private void UpdateMouseLook()
         {
-            _yawRadians += Input.GetAxisRaw("Mouse X") * Plugin.Settings.LookSensitivity.Value;
+            _yawRadians -= Input.GetAxisRaw("Mouse X") * Plugin.Settings.LookSensitivity.Value;
             _pitchOffset = Mathf.Clamp(
                 _pitchOffset + Input.GetAxisRaw("Mouse Y") * Plugin.Settings.PitchSensitivity.Value,
                 PitchMin,

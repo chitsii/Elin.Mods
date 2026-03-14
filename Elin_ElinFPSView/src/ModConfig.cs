@@ -24,9 +24,13 @@ namespace Elin_ElinFPSView
 
         public ConfigEntry<float> MaxDistance { get; private set; }
 
+        public ConfigEntry<float> TerrainDistanceMultiplier { get; private set; }
+
         public ConfigEntry<bool> EnableDistanceShading { get; private set; }
 
         public ConfigEntry<bool> EnableWorldLighting { get; private set; }
+
+        public ConfigEntry<bool> EnableDistanceFog { get; private set; }
 
         public ConfigEntry<float> LookSensitivity { get; private set; }
 
@@ -47,8 +51,10 @@ namespace Elin_ElinFPSView
                 FieldOfViewDegrees = configFile.Bind("Rendering", "FieldOfViewDegrees", 75f, "Horizontal field of view."),
                 EyeHeight = configFile.Bind("Rendering", "EyeHeight", 0.5f, "Camera eye height within the current tile."),
                 MaxDistance = configFile.Bind("Rendering", "MaxDistance", 20f, "Maximum raycast distance in tiles."),
+                TerrainDistanceMultiplier = configFile.Bind("Rendering", "TerrainDistanceMultiplier", 1.35f, "Terrain, wall, and riser draw distance multiplier relative to MaxDistance."),
                 EnableDistanceShading = configFile.Bind("Rendering", "EnableDistanceShading", true, "Darken distant walls."),
                 EnableWorldLighting = configFile.Bind("Rendering", "EnableWorldLighting", true, "Apply Elin cell lighting, fire light, and shadow colors."),
+                EnableDistanceFog = configFile.Bind("Rendering", "EnableDistanceFog", true, "Fade distant terrain and sprites toward the camera background color."),
                 LookSensitivity = configFile.Bind("Input", "LookSensitivity", 0.025f, "Horizontal mouse-look sensitivity in radians per mouse delta."),
                 PitchSensitivity = configFile.Bind("Input", "PitchSensitivity", 0.015f, "Vertical mouse-look sensitivity in normalized screen offset per mouse delta."),
                 EnableGpuDiagnostics = configFile.Bind("Debug", "EnableGpuDiagnostics", true, "Log GPU wall/block/riser diagnostics to Player.log."),

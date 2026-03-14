@@ -6,6 +6,13 @@ namespace Elin_ElinFPSView
     internal sealed class FpsIdealizedWorld
     {
         private const float SpritePixelsPerTile = 64f;
+        private const float LargeObjectDistanceMultiplier = 1.0f;
+        private const float GameplayDistanceMultiplier = 1.0f;
+        private const float ItemDistanceMultiplier = 0.85f;
+        private const float EffectDistanceMultiplier = 0.9f;
+        private const float LargeObjectConeDot = 0.17364818f; // ~160 degrees
+        private const float SmallObjectConeDot = 0.259f; // ~150 degrees
+        private const float GameplayConeDot = 0.0f; // ~180 degrees, frustum still applies
         private const float LooseItemBaseHeight = 0.18f;
         private const float CharaBaseHeight = 1.05f;
         private const float InstalledBaseHeight = 0.9f;
@@ -375,8 +382,13 @@ namespace Elin_ElinFPSView
                 return;
             }
 
+            if (EClass.pc != null && card != EClass.pc && !EClass.pc.CanSee(card))
+            {
+                return;
+            }
+
             BillboardKind kind = ResolveBillboardKind(card);
-            TryAddUprightSprite(card, origin, maxDistance, kind, lighting, uprightOutput);
+            TryAddUprightSprite(card, origin, ResolveCardVisibilityDistance(kind, maxDistance), kind, lighting, uprightOutput);
         }
 
         private void TryAddUprightSprite(
@@ -429,6 +441,8 @@ namespace Elin_ElinFPSView
                 ShadowSizeWorld = Mathf.Max(0.12f, spriteWidth * 0.25f),
                 CastsShadow = true,
                 FacingRule = BillboardFacingRule.CameraFacing,
+                VisibilityDistance = ResolveCardVisibilityDistance(kind, maxDistance),
+                VisibilityConeDot = ResolveCardVisibilityConeDot(kind),
                 Light = lightSample,
                     DiagnosticCategory = kind == BillboardKind.Chara ? "npc" : "item",
                     DiagnosticLabel = card.id.ToString(),
@@ -498,6 +512,11 @@ namespace Elin_ElinFPSView
                 return;
             }
 
+            if (!cell.isSeen)
+            {
+                return;
+            }
+
             SourceObj.Row sourceObj = cell.sourceObj;
             RenderData renderData = ResolveCellObjectRenderData(cell);
             if (sourceObj == null || renderData == null || renderData.SkipOnMap)
@@ -507,7 +526,9 @@ namespace Elin_ElinFPSView
 
             Vector2 position = new Vector2(cellX + 0.5f, cellZ + 0.5f);
             float distance = Vector2.Distance(position, origin);
-            if (distance <= 0.1f || distance > maxDistance + 1f)
+            bool uprightObject = IsUprightCellObject(cell, sourceObj, renderData);
+            float visibilityDistance = ResolveCellObjectVisibilityDistance(sourceObj, renderData, uprightObject, maxDistance);
+            if (distance <= 0.1f || distance > visibilityDistance + 1f)
             {
                 return;
             }
@@ -520,7 +541,7 @@ namespace Elin_ElinFPSView
             int materialColor = ResolveCellObjectMaterialColor(cell, sourceObj);
             bool hasMaterialTint = sourceObj.colorMod != 0 || sourceObj.useAltColor;
             bool useSelectiveMaterialTint = sourceObj.HasGrowth && hasMaterialTint;
-            if (IsUprightCellObject(cell, sourceObj, renderData))
+            if (uprightObject)
             {
                 Vector2 worldSize = ResolveCellObjectUprightWorldSize(sourceObj, renderData);
                 float elevation = ResolveCellObjectElevation(cell, sourceObj);
@@ -541,6 +562,8 @@ namespace Elin_ElinFPSView
                     ShadowSizeWorld = Mathf.Max(0.16f, worldSize.x * 0.25f),
                     CastsShadow = sourceObj.pref.shadow > 1 && !cell.ignoreObjShadow,
                     FacingRule = BillboardFacingRule.CameraFacing,
+                    VisibilityDistance = visibilityDistance,
+                    VisibilityConeDot = ResolveCellObjectVisibilityConeDot(sourceObj, renderData, true),
                     MaterialColor = hasMaterialTint ? materialColor : 0,
                     HasMaterialTint = hasMaterialTint,
                     UseSelectiveMaterialTint = useSelectiveMaterialTint,
@@ -563,6 +586,8 @@ namespace Elin_ElinFPSView
                     Tile = tile,
                     Distance = distance,
                     SizeWorld = groundSize,
+                    VisibilityDistance = visibilityDistance,
+                    VisibilityConeDot = ResolveCellObjectVisibilityConeDot(sourceObj, renderData, false),
                     MaterialColor = hasMaterialTint ? materialColor : 0,
                     HasMaterialTint = hasMaterialTint,
                     UseSelectiveMaterialTint = useSelectiveMaterialTint,
@@ -997,6 +1022,11 @@ namespace Elin_ElinFPSView
                 return;
             }
 
+            if (!cell.isSeen)
+            {
+                return;
+            }
+
             RenderData renderData = cell.effect.IsFire
                 ? EClass.screen?.tileMap?.rendererEffect
                 : cell.sourceEffect?.renderData;
@@ -1006,8 +1036,9 @@ namespace Elin_ElinFPSView
             }
 
             Vector2 position = new Vector2(cellX + 0.5f, cellZ + 0.5f);
+            float visibilityDistance = maxDistance * EffectDistanceMultiplier;
             float distance = Vector2.Distance(position, origin);
-            if (distance <= 0.1f || distance > maxDistance + 1f)
+            if (distance <= 0.1f || distance > visibilityDistance + 1f)
             {
                 return;
             }
@@ -1043,10 +1074,55 @@ namespace Elin_ElinFPSView
                 HeightWorld = Mathf.Max(0.6f, renderData.size.y * Mathf.Max(0.1f, renderData.imageScale.y)),
                 PivotX = 0.5f,
                 PivotY = 0.05f,
+                VisibilityDistance = visibilityDistance,
+                VisibilityConeDot = GameplayConeDot,
                 RenderData = renderData,
                 Tile = tile,
                 Light = lighting.ApproxBlockLight
             });
+        }
+
+        private static float ResolveCardVisibilityDistance(BillboardKind kind, float maxDistance)
+        {
+            switch (kind)
+            {
+                case BillboardKind.Chara:
+                    return maxDistance * GameplayDistanceMultiplier;
+                case BillboardKind.InstalledObject:
+                case BillboardKind.TallObject:
+                    return maxDistance * LargeObjectDistanceMultiplier;
+                default:
+                    return maxDistance * ItemDistanceMultiplier;
+            }
+        }
+
+        private static float ResolveCardVisibilityConeDot(BillboardKind kind)
+        {
+            switch (kind)
+            {
+                case BillboardKind.Chara:
+                    return GameplayConeDot;
+                case BillboardKind.InstalledObject:
+                case BillboardKind.TallObject:
+                    return LargeObjectConeDot;
+                default:
+                    return SmallObjectConeDot;
+            }
+        }
+
+        private static float ResolveCellObjectVisibilityDistance(SourceObj.Row sourceObj, RenderData renderData, bool upright, float maxDistance)
+        {
+            if (upright)
+            {
+                return maxDistance * LargeObjectDistanceMultiplier;
+            }
+
+            return maxDistance * GameplayDistanceMultiplier;
+        }
+
+        private static float ResolveCellObjectVisibilityConeDot(SourceObj.Row sourceObj, RenderData renderData, bool upright)
+        {
+            return upright ? LargeObjectConeDot : SmallObjectConeDot;
         }
     }
 
@@ -1087,6 +1163,8 @@ namespace Elin_ElinFPSView
         public float ShadowSizeWorld;
         public bool CastsShadow;
         public BillboardFacingRule FacingRule;
+        public float VisibilityDistance;
+        public float VisibilityConeDot;
         public int MaterialColor;
         public bool HasMaterialTint;
         public bool UseSelectiveMaterialTint;
@@ -1106,6 +1184,8 @@ namespace Elin_ElinFPSView
         public int Tile;
         public float Distance;
         public Vector2 SizeWorld;
+        public float VisibilityDistance;
+        public float VisibilityConeDot;
         public int MaterialColor;
         public bool HasMaterialTint;
         public bool UseSelectiveMaterialTint;
@@ -1127,6 +1207,8 @@ namespace Elin_ElinFPSView
         public float HeightWorld;
         public float PivotX;
         public float PivotY;
+        public float VisibilityDistance;
+        public float VisibilityConeDot;
         public FpsResolvedLightSample Light;
     }
 

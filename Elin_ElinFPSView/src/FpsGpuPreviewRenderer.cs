@@ -8,9 +8,9 @@ namespace Elin_ElinFPSView
     {
         private const int RenderLayer = 29;
         private const float RenderHeightOffset = 0.01f;
-        private const int MaxPreviewRadius = 8;
+        private const int MaxPreviewRadius = 32;
         private const float GpuEyeHeightScale = 1.0f;
-        private static readonly Color ClearColor = new Color32(34, 40, 52, 255);
+        private static readonly Color DefaultClearColor = new Color32(34, 40, 52, 255);
         private static Mesh _terrainPlaneMesh;
         private static Mesh _uprightPlaneMesh;
 
@@ -60,6 +60,7 @@ namespace Elin_ElinFPSView
         private GpuDiagnosticCounters _diagnostics;
         private readonly List<string> _diagnosticSamples = new List<string>(24);
         private readonly List<string> _spriteDiagnosticSamples = new List<string>(16);
+        private readonly List<string> _fogDiagnosticSamples = new List<string>(12);
 
         public Texture OutputTexture => _renderTexture;
 
@@ -68,6 +69,7 @@ namespace Elin_ElinFPSView
             _diagnosticFramesRemaining = 3;
             _diagnostics = default;
             _spriteDiagnosticSamples.Clear();
+            _fogDiagnosticSamples.Clear();
         }
 
         public void Initialize(int width, int height)
@@ -201,7 +203,7 @@ namespace Elin_ElinFPSView
             _camera = cameraGo.AddComponent<Camera>();
             _camera.enabled = false;
             _camera.clearFlags = CameraClearFlags.SolidColor;
-            _camera.backgroundColor = ClearColor;
+            _camera.backgroundColor = DefaultClearColor;
             _camera.nearClipPlane = 0.03f;
             _camera.farClipPlane = Mathf.Max(32f, Plugin.Settings.MaxDistance.Value + 12f);
             _camera.cullingMask = 1 << RenderLayer;
@@ -319,6 +321,7 @@ namespace Elin_ElinFPSView
                 pose.CameraOrigin.x,
                 pose.CameraGroundHeight + eyeHeight,
                 pose.CameraOrigin.y);
+            _camera.backgroundColor = ResolveClearColor();
             Vector3 lookDirection = new Vector3(
                 pose.Forward.x,
                 Mathf.Sin(pose.PitchOffset * Mathf.PI * 0.5f),
@@ -607,7 +610,8 @@ namespace Elin_ElinFPSView
 
         private void UpdateTerrainPreview(GpuViewPose pose)
         {
-            int radius = Mathf.Min(Mathf.CeilToInt(Mathf.Max(1f, Plugin.Settings.MaxDistance.Value)), MaxPreviewRadius);
+            float terrainMaxDistance = Mathf.Max(1f, Plugin.Settings.MaxDistance.Value * Plugin.Settings.TerrainDistanceMultiplier.Value);
+            int radius = Mathf.Min(Mathf.CeilToInt(terrainMaxDistance), MaxPreviewRadius);
             int minX = Mathf.Max(0, Mathf.FloorToInt(pose.PlayerOrigin.x) - radius);
             int maxX = Mathf.Min(EClass._map.Size - 1, Mathf.FloorToInt(pose.PlayerOrigin.x) + radius);
             int minZ = Mathf.Max(0, Mathf.FloorToInt(pose.PlayerOrigin.y) - radius);
@@ -620,52 +624,73 @@ namespace Elin_ElinFPSView
                 for (int x = minX; x <= maxX; x++)
                 {
                     Cell cell = EClass._map.cells[x, z];
+                    Vector3 cellCenter = new Vector3(x + 0.5f, FpsIdealizedWorld.GetCellSurfaceHeight(cell), z + 0.5f);
+                    bool terrainVisible = IsTerrainVisibleToCamera(cellCenter, pose, terrainMaxDistance, 0f, 0.35f);
+                    bool structureVisible = IsTerrainVisibleToCamera(cellCenter, pose, terrainMaxDistance + 0.75f, 0f, 0.5f);
+                    if (!terrainVisible && !structureVisible)
+                    {
+                        continue;
+                    }
+
                     bool hasSurface = _idealizedWorld.TryResolveFloor(cell, cell?.index ?? -1, out FpsResolvedFloorSurface surface);
                     bool isFullBlock = cell != null && cell.HasFullBlock;
                     FpsResolvedWallSurface blockTopSurface = default;
                     bool hasBlockSurface = isFullBlock && _idealizedWorld.TryResolveWall(cell, out blockTopSurface);
 
-                    EnsureTerrainPool(activeIndex + 1);
-                    GameObject quad = _terrainQuads[activeIndex];
-                    MeshRenderer renderer = _terrainRenderers[activeIndex];
-                    quad.SetActive(true);
-                    _terrainOverlayQuads[activeIndex].SetActive(false);
-
-                    float surfaceHeight = isFullBlock
-                        ? FpsIdealizedWorld.GetCellSurfaceHeight(cell) + 1f + RenderHeightOffset
-                        : FpsIdealizedWorld.GetCellSurfaceHeight(cell) + RenderHeightOffset;
-                    quad.transform.localPosition = new Vector3(x + 0.5f, surfaceHeight, z + 0.5f);
-                    quad.transform.localRotation = Quaternion.identity;
-                    quad.transform.localScale = Vector3.one;
-
-                    _propertyBlock.Clear();
-                    if (hasBlockSurface)
+                    if (terrainVisible)
                     {
-                        ApplyBlockTopTexture(_terrainFilters[activeIndex], blockTopSurface);
-                        _propertyBlock.SetColor("_Color", ResolveSpriteTint(blockTopSurface.MaterialColor, true, blockTopSurface.Light));
-                    }
-                    else if (hasSurface)
-                    {
-                        ApplyTerrainTexture(_terrainFilters[activeIndex], surface);
-                        _propertyBlock.SetColor("_Color", ResolvePreviewTint(surface));
-                    }
-                    else
-                    {
-                        _propertyBlock.SetTexture("_MainTex", Texture2D.whiteTexture);
-                        _propertyBlock.SetColor("_Color", new Color32(200, 80, 200, 255));
-                    }
-                    renderer.SetPropertyBlock(_propertyBlock);
+                        EnsureTerrainPool(activeIndex + 1);
+                        GameObject quad = _terrainQuads[activeIndex];
+                        MeshRenderer renderer = _terrainRenderers[activeIndex];
+                        quad.SetActive(true);
+                        _terrainOverlayQuads[activeIndex].SetActive(false);
 
-                    if (!IsSolidWall(cell))
+                        float surfaceHeight = isFullBlock
+                            ? FpsIdealizedWorld.GetCellSurfaceHeight(cell) + 1f + RenderHeightOffset
+                            : FpsIdealizedWorld.GetCellSurfaceHeight(cell) + RenderHeightOffset;
+                        quad.transform.localPosition = new Vector3(x + 0.5f, surfaceHeight, z + 0.5f);
+                        quad.transform.localRotation = Quaternion.identity;
+                        quad.transform.localScale = Vector3.one;
+
+                        _propertyBlock.Clear();
+                        if (hasBlockSurface)
+                        {
+                            ApplyBlockTopTexture(_terrainFilters[activeIndex], blockTopSurface);
+                            _propertyBlock.SetColor("_Color", ApplyAtmosphericFog(
+                                ResolveSpriteTint(blockTopSurface.MaterialColor, true, blockTopSurface.Light),
+                                quad.transform.position,
+                                terrainMaxDistance,
+                                0.18f,
+                                "terrain-block"));
+                        }
+                        else if (hasSurface)
+                        {
+                            ApplyTerrainTexture(_terrainFilters[activeIndex], surface);
+                            _propertyBlock.SetColor("_Color", ApplyAtmosphericFog(
+                                ResolvePreviewTint(surface),
+                                quad.transform.position,
+                                terrainMaxDistance,
+                                0.18f,
+                                "terrain-floor"));
+                        }
+                        else
+                        {
+                            _propertyBlock.SetTexture("_MainTex", Texture2D.whiteTexture);
+                            _propertyBlock.SetColor("_Color", new Color32(200, 80, 200, 255));
+                        }
+                        renderer.SetPropertyBlock(_propertyBlock);
+                        activeIndex++;
+                    }
+
+                    if (structureVisible && !IsSolidWall(cell))
                     {
                         activeWallIndex = AddTerrainRisers(activeWallIndex, x, z, cell, EClass._map.Size);
                     }
 
-                    if (IsSolidWall(cell) && _idealizedWorld.TryResolveWall(cell, out FpsResolvedWallSurface wallSurface))
+                    if (structureVisible && IsSolidWall(cell) && _idealizedWorld.TryResolveWall(cell, out FpsResolvedWallSurface wallSurface))
                     {
                         activeWallIndex = AddWallQuads(activeWallIndex, x, z, wallSurface);
                     }
-                    activeIndex++;
                 }
             }
 
@@ -855,6 +880,12 @@ namespace Elin_ElinFPSView
                 FpsResolvedGroundSprite sprite = _groundSprites[i];
                 GameObject quad = _groundQuads[i];
                 MeshRenderer renderer = _groundRenderers[i];
+                if (!IsVisibleToCamera(sprite.CenterWorld, sprite.VisibilityDistance, sprite.VisibilityConeDot))
+                {
+                    quad.SetActive(false);
+                    continue;
+                }
+
                 quad.SetActive(true);
                 quad.transform.localPosition = sprite.CenterWorld;
                 quad.transform.localRotation = Quaternion.identity;
@@ -869,8 +900,8 @@ namespace Elin_ElinFPSView
                 }
 
                 _propertyBlock.SetColor("_Color", usesBakedTint
-                    ? Color.white
-                    : ResolveSpriteDisplayColor(sprite, sprite.MaterialColor, sprite.HasMaterialTint, sprite.Light));
+                    ? ApplyAtmosphericFog(Color.white, sprite.CenterWorld, Plugin.Settings.MaxDistance.Value, 0.12f, "ground-baked")
+                    : ApplyAtmosphericFog(ResolveSpriteDisplayColor(sprite, sprite.MaterialColor, sprite.HasMaterialTint, sprite.Light), sprite.CenterWorld, Plugin.Settings.MaxDistance.Value, 0.12f, "ground"));
                 renderer.SetPropertyBlock(_propertyBlock);
             }
 
@@ -905,6 +936,8 @@ namespace Elin_ElinFPSView
                     ShadowSizeWorld = 0f,
                     CastsShadow = false,
                     FacingRule = BillboardFacingRule.CameraFacing,
+                    VisibilityDistance = effect.VisibilityDistance,
+                    VisibilityConeDot = effect.VisibilityConeDot,
                     MaterialColor = 0,
                     HasMaterialTint = false,
                     UseSelectiveMaterialTint = false,
@@ -922,7 +955,7 @@ namespace Elin_ElinFPSView
         {
             GameObject quad = _uprightQuads[index];
             MeshRenderer renderer = _uprightRenderers[index];
-            if (!IsVisibleToCamera(sprite.AnchorWorld))
+            if (!IsVisibleToCamera(sprite.AnchorWorld, sprite.VisibilityDistance, sprite.VisibilityConeDot))
             {
                 quad.SetActive(false);
                 return;
@@ -958,8 +991,8 @@ namespace Elin_ElinFPSView
             }
 
             _propertyBlock.SetColor("_Color", usesBakedTint
-                ? Color.white
-                : ResolveSpriteDisplayColor(sprite, sprite.MaterialColor, sprite.HasMaterialTint, sprite.Light));
+                ? ApplyAtmosphericFog(Color.white, center, Plugin.Settings.MaxDistance.Value, 0.12f, "upright-baked")
+                : ApplyAtmosphericFog(ResolveSpriteDisplayColor(sprite, sprite.MaterialColor, sprite.HasMaterialTint, sprite.Light), center, Plugin.Settings.MaxDistance.Value, 0.12f, "upright"));
             renderer.SetPropertyBlock(_propertyBlock);
         }
 
@@ -1029,7 +1062,7 @@ namespace Elin_ElinFPSView
             return true;
         }
 
-        private bool IsVisibleToCamera(Vector3 position)
+        private bool IsVisibleToCamera(Vector3 position, float maxDistance, float minConeDot)
         {
             if (_camera == null)
             {
@@ -1038,20 +1071,69 @@ namespace Elin_ElinFPSView
 
             Vector3 delta = position - _camera.transform.position;
             float distance = delta.magnitude;
+            if (distance > maxDistance)
+            {
+                return false;
+            }
+
             if (distance <= 0.05f)
             {
                 return true;
             }
 
-            Vector3 dir = delta / distance;
-            float dot = Vector3.Dot(_camera.transform.forward, dir);
-            if (dot <= -0.15f)
+            Vector3 horizontalDelta = delta;
+            horizontalDelta.y = 0f;
+            float horizontalDistance = horizontalDelta.magnitude;
+            if (horizontalDistance > 0.05f)
             {
-                return false;
+                Vector3 horizontalDir = horizontalDelta / horizontalDistance;
+                Vector3 horizontalForward = _camera.transform.forward;
+                horizontalForward.y = 0f;
+                if (horizontalForward.sqrMagnitude > 0.0001f)
+                {
+                    horizontalForward.Normalize();
+                    float dot = Vector3.Dot(horizontalForward, horizontalDir);
+                    if (dot < minConeDot)
+                    {
+                        return false;
+                    }
+                }
             }
 
             Vector3 viewport = _camera.WorldToViewportPoint(position);
             return viewport.z > 0f && viewport.x >= -0.2f && viewport.x <= 1.2f && viewport.y >= -0.2f && viewport.y <= 1.2f;
+        }
+
+        private bool IsTerrainVisibleToCamera(Vector3 position, GpuViewPose pose, float maxDistance, float distancePadding, float viewportPadding)
+        {
+            if (_camera == null)
+            {
+                return false;
+            }
+
+            Vector3 delta = position - _camera.transform.position;
+            delta.y = 0f;
+            float distance = delta.magnitude;
+            if (distance > maxDistance + distancePadding)
+            {
+                return false;
+            }
+
+            if (distance > 0.05f)
+            {
+                Vector2 dir = new Vector2(delta.x, delta.z) / distance;
+                if (Vector2.Dot(pose.Forward, dir) < 0.17364818f)
+                {
+                    return false;
+                }
+            }
+
+            Vector3 viewport = _camera.WorldToViewportPoint(position);
+            return viewport.z > 0f
+                && viewport.x >= -viewportPadding
+                && viewport.x <= 1f + viewportPadding
+                && viewport.y >= -viewportPadding
+                && viewport.y <= 1f + viewportPadding;
         }
 
         private static Color ResolveSpriteTint(int materialColor, bool hasMaterialTint, FpsResolvedLightSample light)
@@ -1119,6 +1201,152 @@ namespace Elin_ElinFPSView
             }
         }
 
+        private Color ApplyAtmosphericFog(Color baseColor, Vector3 worldPosition, float maxDistance, float startRatio, string category)
+        {
+            if (Plugin.Settings.EnableDistanceFog.Value != true || _camera == null || maxDistance <= 0.01f)
+            {
+                return ApplySceneTone(baseColor);
+            }
+
+            Vector3 cameraSpace = _camera.transform.InverseTransformPoint(worldPosition);
+            float depth = cameraSpace.z;
+            if (depth <= 0f)
+            {
+                return baseColor;
+            }
+
+            bool terrainLike = category.StartsWith("terrain", StringComparison.Ordinal);
+            bool spriteLike = category.StartsWith("ground", StringComparison.Ordinal) || category.StartsWith("upright", StringComparison.Ordinal);
+            float effectiveStartRatio = terrainLike ? Mathf.Min(startRatio, 0.12f) : spriteLike ? Mathf.Min(startRatio, 0.08f) : startRatio;
+            float effectiveEndRatio = terrainLike ? 0.28f : spriteLike ? 0.24f : 0.26f;
+            float fogStart = Mathf.Max(0.1f, maxDistance * startRatio);
+            fogStart = Mathf.Min(fogStart, maxDistance * effectiveStartRatio);
+            if (depth <= fogStart)
+            {
+                return baseColor;
+            }
+
+            float fogEnd = Mathf.Max(fogStart + 0.1f, maxDistance * effectiveEndRatio);
+            float fogFactor = Mathf.InverseLerp(fogStart, fogEnd, depth);
+            fogFactor = Mathf.SmoothStep(0f, 1f, fogFactor);
+            fogFactor = Mathf.Clamp01(fogFactor * 1.65f);
+            Color desaturated = Desaturate(baseColor, fogFactor * 0.7f);
+            Color fogColor = ResolveFogColor();
+            fogColor.a = desaturated.a;
+            Color result = Color.Lerp(desaturated, fogColor, fogFactor);
+            result = ApplySceneTone(result);
+            MaybeRecordFogDiagnostic(category, depth, fogStart, fogEnd, fogFactor, baseColor, result);
+            return result;
+        }
+
+        private float ResolveSceneTimeRatio()
+        {
+            if (EMono.scene != null)
+            {
+                return EMono.scene.timeRatio;
+            }
+
+            return 0f;
+        }
+
+        private Color ResolveClearColor()
+        {
+            SceneProfile profile = EMono.scene?.profile;
+            SceneColorProfile color = profile?.color;
+            if (color == null)
+            {
+                return DefaultClearColor;
+            }
+
+            float timeRatio = ResolveSceneTimeRatio();
+            Color sky = color.sky.Evaluate(timeRatio);
+            Color skyBg = color.skyBG.Evaluate(timeRatio);
+            Color clear = Color.Lerp(skyBg, sky, 0.35f);
+            return ApplySceneTone(clear, includeNightBrightness: false);
+        }
+
+        private void MaybeRecordFogDiagnostic(string category, float depth, float fogStart, float fogEnd, float fogFactor, Color baseColor, Color result)
+        {
+            if (!IsGpuDiagnosticsEnabled() || _diagnosticFramesRemaining <= 0 || _fogDiagnosticSamples.Count >= 12)
+            {
+                return;
+            }
+
+            _fogDiagnosticSamples.Add(
+                $"GPU fog sample[{_fogDiagnosticSamples.Count}]: kind={category} depth={depth:F3} start={fogStart:F3} end={fogEnd:F3} factor={fogFactor:F3} base=({baseColor.r:F3},{baseColor.g:F3},{baseColor.b:F3}) result=({result.r:F3},{result.g:F3},{result.b:F3})");
+        }
+
+        private Color ResolveFogColor()
+        {
+            SceneProfile profile = EMono.scene?.profile;
+            SceneColorProfile color = profile?.color;
+            if (color == null)
+            {
+                Color background = _camera != null ? _camera.backgroundColor : DefaultClearColor;
+                Color haze = Color.Lerp(background, Color.white, 0.38f);
+                return Color.Lerp(haze, new Color(0.76f, 0.82f, 0.88f, 1f), 0.24f);
+            }
+
+            float timeRatio = ResolveSceneTimeRatio();
+            Color fog = color.fog.Evaluate(timeRatio);
+            Color skyBg = color.skyBG.Evaluate(timeRatio);
+            Color hazeColor = Color.Lerp(fog, skyBg, 0.5f);
+            return ApplySceneTone(hazeColor, includeNightBrightness: false);
+        }
+
+        private Color ApplySceneTone(Color color)
+        {
+            return ApplySceneTone(color, includeNightBrightness: true);
+        }
+
+        private Color ApplySceneTone(Color color, bool includeNightBrightness)
+        {
+            Color result = color;
+
+            if (EMono.scene?.camSupport?.beautify != null)
+            {
+                Color tint = EMono.scene.camSupport.beautify.tintColor;
+                if (tint.a > 0.001f)
+                {
+                    Color tinted = new Color(result.r * tint.r, result.g * tint.g, result.b * tint.b, result.a);
+                    result = Color.Lerp(result, tinted, Mathf.Clamp01(tint.a * 0.35f));
+                }
+            }
+
+            SceneProfile profile = EMono.scene?.profile;
+            SceneColorProfile colorProfile = profile?.color;
+            SceneLightProfile lightProfile = profile?.light;
+            if (colorProfile != null && lightProfile != null)
+            {
+                float timeRatio = ResolveSceneTimeRatio();
+                float nightRate = lightProfile.nightRatioCurve.Evaluate(timeRatio);
+                Color sky = colorProfile.sky.Evaluate(timeRatio);
+                Color fog = colorProfile.fog.Evaluate(timeRatio);
+                Color ambientTone = Color.Lerp(sky, fog, 0.45f);
+                Color modulated = new Color(result.r * ambientTone.r, result.g * ambientTone.g, result.b * ambientTone.b, result.a);
+                result = Color.Lerp(result, modulated, Mathf.Clamp01(nightRate * 0.18f));
+            }
+
+            if (includeNightBrightness && EMono.scene?.camSupport?.grading != null)
+            {
+                float nightBrightness = EMono.scene.camSupport.grading.nightBrightness;
+                if (!Mathf.Approximately(nightBrightness, 0f))
+                {
+                    result.r = Mathf.Clamp01(result.r + nightBrightness);
+                    result.g = Mathf.Clamp01(result.g + nightBrightness);
+                    result.b = Mathf.Clamp01(result.b + nightBrightness);
+                }
+            }
+
+            return result;
+        }
+
+        private static Color Desaturate(Color color, float amount)
+        {
+            float gray = color.grayscale;
+            return Color.Lerp(color, new Color(gray, gray, gray, color.a), Mathf.Clamp01(amount));
+        }
+
         private Color ResolvePreviewTint(FpsResolvedFloorSurface surface)
         {
             Color32 baseColor;
@@ -1168,6 +1396,7 @@ namespace Elin_ElinFPSView
             _diagnostics = default;
             _diagnosticSamples.Clear();
             _spriteDiagnosticSamples.Clear();
+            _fogDiagnosticSamples.Clear();
         }
 
         private void RecordWallDiagnostic(string kind, int cellX, int cellZ, int dir, bool textureResolved, FpsResolvedWallSurface surface, FpsGpuFaceQuad face, MeshRenderer renderer, bool doubleSided)
@@ -1283,6 +1512,11 @@ namespace Elin_ElinFPSView
             for (int i = 0; i < _spriteDiagnosticSamples.Count; i++)
             {
                 Plugin.Log.LogInfo($"GPU sprite sample[{i}]: {_spriteDiagnosticSamples[i]}");
+            }
+
+            for (int i = 0; i < _fogDiagnosticSamples.Count; i++)
+            {
+                Plugin.Log.LogInfo(_fogDiagnosticSamples[i]);
             }
         }
 

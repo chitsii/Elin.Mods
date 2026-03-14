@@ -77,6 +77,7 @@ namespace Elin_ElinFPSView
                     {
                         SyncViewToPlayer();
                         CaptureCursor();
+                        _gpuPreviewRenderer?.ResetDiagnostics();
                     }
                     else
                     {

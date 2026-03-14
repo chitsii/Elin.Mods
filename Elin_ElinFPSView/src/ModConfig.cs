@@ -32,6 +32,10 @@ namespace Elin_ElinFPSView
 
         public ConfigEntry<float> PitchSensitivity { get; private set; }
 
+        public ConfigEntry<bool> EnableGpuDiagnostics { get; private set; }
+
+        public ConfigEntry<bool> GpuDebugSolidFaces { get; private set; }
+
         public static ModConfig Bind(ConfigFile configFile)
         {
             ModConfig settings = new ModConfig
@@ -46,7 +50,9 @@ namespace Elin_ElinFPSView
                 EnableDistanceShading = configFile.Bind("Rendering", "EnableDistanceShading", true, "Darken distant walls."),
                 EnableWorldLighting = configFile.Bind("Rendering", "EnableWorldLighting", true, "Apply Elin cell lighting, fire light, and shadow colors."),
                 LookSensitivity = configFile.Bind("Input", "LookSensitivity", 0.025f, "Horizontal mouse-look sensitivity in radians per mouse delta."),
-                PitchSensitivity = configFile.Bind("Input", "PitchSensitivity", 0.015f, "Vertical mouse-look sensitivity in normalized screen offset per mouse delta.")
+                PitchSensitivity = configFile.Bind("Input", "PitchSensitivity", 0.015f, "Vertical mouse-look sensitivity in normalized screen offset per mouse delta."),
+                EnableGpuDiagnostics = configFile.Bind("Debug", "EnableGpuDiagnostics", true, "Log GPU wall/block/riser diagnostics to Player.log."),
+                GpuDebugSolidFaces = configFile.Bind("Debug", "GpuDebugSolidFaces", false, "Render GPU wall/block/riser faces with solid colors instead of textures.")
             };
 
             UpgradeLegacyRenderResolution(configFile, settings);

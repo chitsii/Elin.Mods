@@ -59,6 +59,7 @@ namespace Elin_ElinFPSView
         private int _diagnosticFramesRemaining = 3;
         private GpuDiagnosticCounters _diagnostics;
         private readonly List<string> _diagnosticSamples = new List<string>(24);
+        private readonly List<string> _spriteDiagnosticSamples = new List<string>(16);
 
         public Texture OutputTexture => _renderTexture;
 
@@ -66,6 +67,7 @@ namespace Elin_ElinFPSView
         {
             _diagnosticFramesRemaining = 3;
             _diagnostics = default;
+            _spriteDiagnosticSamples.Clear();
         }
 
         public void Initialize(int width, int height)
@@ -529,6 +531,8 @@ namespace Elin_ElinFPSView
             LogSkippedPassMaterial("passBlock", tileMap.passBlock);
             LogSkippedPassMaterial("passObj", tileMap.passObj);
             LogSkippedPassMaterial("passChara", tileMap.passChara);
+            LogPassMaterialDetails("passObj", tileMap.passObj);
+            LogPassMaterialDetails("passChara", tileMap.passChara);
             _loggedSkippedPassMaterials = true;
         }
 
@@ -542,6 +546,63 @@ namespace Elin_ElinFPSView
             Plugin.Log.LogInfo(
                 $"Skipping runtime GPU material clone for {label}: shader={pass.mat?.shader?.name ?? "null"} " +
                 $"setTile={pass.setTile} setColor={pass.setColor} setMatColor={pass.setMatColor}");
+        }
+
+        private static void LogPassMaterialDetails(string label, MeshPass pass)
+        {
+            if (Plugin.Log == null || pass?.mat == null)
+            {
+                return;
+            }
+
+            Material mat = pass.mat;
+            Shader shader = mat.shader;
+            string keywords = (mat.shaderKeywords == null || mat.shaderKeywords.Length == 0)
+                ? "none"
+                : string.Join(",", mat.shaderKeywords);
+
+            Plugin.Log.LogInfo(
+                $"GPU pass material [{label}]: shader={shader?.name ?? "null"} queue={mat.renderQueue} " +
+                $"setTile={pass.setTile} setColor={pass.setColor} setMatColor={pass.setMatColor} " +
+                $"keywords={keywords} " +
+                $"_MainTex={DescribeTexture(mat, "_MainTex")} " +
+                $"_MaskTex={DescribeTexture(mat, "_MaskTex")} " +
+                $"_Color={DescribeColor(mat, "_Color")} " +
+                $"_Mat={DescribeColor(mat, "_Mat")} " +
+                $"_Cutoff={DescribeFloat(mat, "_Cutoff")} " +
+                $"_MatColorProp={DescribeFloat(mat, "_MatColor")}");
+        }
+
+        private static string DescribeTexture(Material mat, string propertyName)
+        {
+            if (!mat.HasProperty(propertyName))
+            {
+                return "missing";
+            }
+
+            Texture texture = mat.GetTexture(propertyName);
+            return texture == null ? "null" : $"{texture.name}({texture.width}x{texture.height})";
+        }
+
+        private static string DescribeColor(Material mat, string propertyName)
+        {
+            if (!mat.HasProperty(propertyName))
+            {
+                return "missing";
+            }
+
+            Color color = mat.GetColor(propertyName);
+            return $"({color.r:F3},{color.g:F3},{color.b:F3},{color.a:F3})";
+        }
+
+        private static string DescribeFloat(Material mat, string propertyName)
+        {
+            if (!mat.HasProperty(propertyName))
+            {
+                return "missing";
+            }
+
+            return mat.GetFloat(propertyName).ToString("F3");
         }
 
         private void UpdateTerrainPreview(GpuViewPose pose)
@@ -779,6 +840,7 @@ namespace Elin_ElinFPSView
             _uprightSprites.Sort((a, b) => b.Distance.CompareTo(a.Distance));
             _groundSprites.Sort((a, b) => b.Distance.CompareTo(a.Distance));
             _effectSprites.Sort((a, b) => b.Distance.CompareTo(a.Distance));
+            RecordSpriteDiagnostics();
 
             EnsureGroundPool(_groundSprites.Count);
             EnsureUprightPool(_uprightSprites.Count + _effectSprites.Count);
@@ -799,13 +861,16 @@ namespace Elin_ElinFPSView
                 quad.transform.localScale = new Vector3(sprite.SizeWorld.x, 1f, sprite.SizeWorld.y);
 
                 _propertyBlock.Clear();
-                if (!TryApplySpriteTexture(sprite.Sprite, sprite.RenderData, sprite.Tile, _propertyBlock))
+                bool usesBakedTint;
+                if (!TryApplySpriteTexture(sprite.Sprite, sprite.RenderData, sprite.Tile, sprite.MaterialColor, sprite.HasMaterialTint, sprite.Light, _propertyBlock, out usesBakedTint))
                 {
                     quad.SetActive(false);
                     continue;
                 }
 
-                _propertyBlock.SetColor("_Color", ResolveSpriteTint(sprite.MaterialColor, sprite.HasMaterialTint, sprite.Light));
+                _propertyBlock.SetColor("_Color", usesBakedTint
+                    ? Color.white
+                    : ResolveSpriteDisplayColor(sprite, sprite.MaterialColor, sprite.HasMaterialTint, sprite.Light));
                 renderer.SetPropertyBlock(_propertyBlock);
             }
 
@@ -884,13 +949,16 @@ namespace Elin_ElinFPSView
             quad.transform.localScale = new Vector3(sprite.WidthWorld, sprite.HeightWorld, 1f);
 
             _propertyBlock.Clear();
-            if (!TryApplySpriteTexture(sprite.Sprite, sprite.RenderData, sprite.Tile, _propertyBlock))
+            bool usesBakedTint;
+            if (!TryApplySpriteTexture(sprite.Sprite, sprite.RenderData, sprite.Tile, sprite.MaterialColor, sprite.HasMaterialTint, sprite.Light, _propertyBlock, out usesBakedTint))
             {
                 quad.SetActive(false);
                 return;
             }
 
-            _propertyBlock.SetColor("_Color", ResolveSpriteTint(sprite.MaterialColor, sprite.HasMaterialTint, sprite.Light));
+            _propertyBlock.SetColor("_Color", usesBakedTint
+                ? Color.white
+                : ResolveSpriteDisplayColor(sprite, sprite.MaterialColor, sprite.HasMaterialTint, sprite.Light));
             renderer.SetPropertyBlock(_propertyBlock);
         }
 
@@ -915,13 +983,21 @@ namespace Elin_ElinFPSView
                 return pivotY;
             }
 
-            float visibleHeight = Mathf.Max(0.001f, maxV - minV);
-            float effectivePivotY = Mathf.Clamp01((pivotY - minV) / visibleHeight);
-            return effectivePivotY < 0.001f ? 0f : effectivePivotY;
+            // Keep authored image size, but always ground upright sprites on the visible opaque bottom.
+            return minV;
         }
 
-        private bool TryApplySpriteTexture(Sprite sprite, RenderData renderData, int tile, MaterialPropertyBlock block)
+        private bool TryApplySpriteTexture(
+            Sprite sprite,
+            RenderData renderData,
+            int tile,
+            int materialColor,
+            bool hasMaterialTint,
+            FpsResolvedLightSample light,
+            MaterialPropertyBlock block,
+            out bool usesBakedTint)
         {
+            usesBakedTint = false;
             Texture texture = null;
             if (sprite != null)
             {
@@ -973,6 +1049,32 @@ namespace Elin_ElinFPSView
                 : new Color32(255, 255, 255, 255);
             Color32 lit = FpsLightApplicator.ApplySample(baseColor, light);
             return new Color32(lit.r, lit.g, lit.b, 255);
+        }
+
+        private static Color ResolveSpriteDisplayColor(FpsResolvedUprightSprite sprite, int materialColor, bool hasMaterialTint, FpsResolvedLightSample light)
+        {
+            if (sprite.Sprite == null && sprite.RenderData != null)
+            {
+                Color32 baseColor = hasMaterialTint
+                    ? FpsIdealizedWorld.ApplyMatTint(new Color32(255, 255, 255, 255), materialColor)
+                    : new Color32(255, 255, 255, 255);
+                return new Color32(baseColor.r, baseColor.g, baseColor.b, 255);
+            }
+
+            return ResolveSpriteTint(materialColor, hasMaterialTint, light);
+        }
+
+        private static Color ResolveSpriteDisplayColor(FpsResolvedGroundSprite sprite, int materialColor, bool hasMaterialTint, FpsResolvedLightSample light)
+        {
+            if (sprite.Sprite == null && sprite.RenderData != null)
+            {
+                Color32 baseColor = hasMaterialTint
+                    ? FpsIdealizedWorld.ApplyMatTint(new Color32(255, 255, 255, 255), materialColor)
+                    : new Color32(255, 255, 255, 255);
+                return new Color32(baseColor.r, baseColor.g, baseColor.b, 255);
+            }
+
+            return ResolveSpriteTint(materialColor, hasMaterialTint, light);
         }
 
         private static Color ResolveDebugFaceColor(int dir)
@@ -1053,6 +1155,7 @@ namespace Elin_ElinFPSView
 
             _diagnostics = default;
             _diagnosticSamples.Clear();
+            _spriteDiagnosticSamples.Clear();
         }
 
         private void RecordWallDiagnostic(string kind, int cellX, int cellZ, int dir, bool textureResolved, FpsResolvedWallSurface surface, FpsGpuFaceQuad face, MeshRenderer renderer, bool doubleSided)
@@ -1164,6 +1267,75 @@ namespace Elin_ElinFPSView
             {
                 Plugin.Log.LogInfo($"GPU wall sample[{i}]: {_diagnosticSamples[i]}");
             }
+
+            for (int i = 0; i < _spriteDiagnosticSamples.Count; i++)
+            {
+                Plugin.Log.LogInfo($"GPU sprite sample[{i}]: {_spriteDiagnosticSamples[i]}");
+            }
+        }
+
+        private void RecordSpriteDiagnostics()
+        {
+            if (!IsGpuDiagnosticsEnabled())
+            {
+                return;
+            }
+
+            HashSet<string> seenCategories = new HashSet<string>(StringComparer.Ordinal);
+            for (int i = 0; i < _uprightSprites.Count; i++)
+            {
+                FpsResolvedUprightSprite sprite = _uprightSprites[i];
+                if (TryRecordSpriteDiagnostic(
+                    sprite.DiagnosticCategory,
+                    sprite.DiagnosticLabel,
+                    sprite.SourcePixelSize,
+                    sprite.RenderDataSize,
+                    sprite.ImageScale,
+                    new Vector2(sprite.WidthWorld, sprite.HeightWorld),
+                    sprite.AnchorWorld.y,
+                    seenCategories) && seenCategories.Count >= 4)
+                {
+                    return;
+                }
+            }
+
+            for (int i = 0; i < _groundSprites.Count; i++)
+            {
+                FpsResolvedGroundSprite sprite = _groundSprites[i];
+                if (TryRecordSpriteDiagnostic(
+                    sprite.DiagnosticCategory,
+                    sprite.DiagnosticLabel,
+                    sprite.SourcePixelSize,
+                    sprite.RenderDataSize,
+                    sprite.ImageScale,
+                    sprite.SizeWorld,
+                    sprite.CenterWorld.y,
+                    seenCategories) && seenCategories.Count >= 4)
+                {
+                    return;
+                }
+            }
+        }
+
+        private bool TryRecordSpriteDiagnostic(
+            string category,
+            string label,
+            Vector2 sourcePixelSize,
+            Vector2 renderDataSize,
+            Vector2 imageScale,
+            Vector2 worldSize,
+            float anchorY,
+            HashSet<string> seenCategories)
+        {
+            if (string.IsNullOrEmpty(category) || seenCategories.Contains(category))
+            {
+                return false;
+            }
+
+            seenCategories.Add(category);
+            _spriteDiagnosticSamples.Add(
+                $"category={category} label={label} sourcePx={sourcePixelSize:F1} renderSize={renderDataSize:F3} imageScale={imageScale:F3} worldSize={worldSize:F3} anchorY={anchorY:F3}");
+            return true;
         }
 
         private static bool IsGpuDiagnosticsEnabled()

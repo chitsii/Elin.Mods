@@ -128,8 +128,11 @@ namespace Elin_ElinFPSView
                 return true;
             }
 
-            int width = 64;
-            int height = renderData.multiSize ? 128 : 64;
+            if (!TryResolveRenderDataTextureDimensions(renderData, out int width, out int height))
+            {
+                return false;
+            }
+
             Color32[] pixels = new Color32[width * height];
             bool hasOpaque = false;
             for (int y = 0; y < height; y++)
@@ -193,8 +196,11 @@ namespace Elin_ElinFPSView
                 return true;
             }
 
-            int width = 64;
-            int height = renderData.multiSize ? 128 : 64;
+            if (!TryResolveRenderDataTextureDimensions(renderData, out int width, out int height))
+            {
+                return false;
+            }
+
             Color32[] bakedPixels = new Color32[width * height];
             bool hasOpaque = false;
 
@@ -315,6 +321,28 @@ namespace Elin_ElinFPSView
             _wallTileCache[cacheKey] = texture2D;
             MaybeDumpBlockDebugTexture(cacheKey, texture2D, surface, face, flipX, opaqueCount / (float)(size * size));
             texture = texture2D;
+            return true;
+        }
+
+        private static bool TryResolveRenderDataTextureDimensions(RenderData renderData, out int width, out int height)
+        {
+            width = 0;
+            height = 0;
+
+            Texture texture = renderData?.pass?.mat?.GetTexture("_MainTex");
+            ProceduralMesh pmesh = renderData?.pass?.pmesh;
+            if (texture == null || pmesh == null || pmesh.tiling.x <= 0f || pmesh.tiling.y <= 0f)
+            {
+                return false;
+            }
+
+            width = Mathf.Max(1, Mathf.RoundToInt(texture.width / pmesh.tiling.x));
+            height = Mathf.Max(1, Mathf.RoundToInt(texture.height / pmesh.tiling.y));
+            if (renderData.multiSize)
+            {
+                height *= 2;
+            }
+
             return true;
         }
 

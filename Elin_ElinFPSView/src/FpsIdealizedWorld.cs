@@ -5,11 +5,11 @@ namespace Elin_ElinFPSView
 {
     internal sealed class FpsIdealizedWorld
     {
+        private const float SpritePixelsPerTile = 64f;
         private const float LooseItemBaseHeight = 0.18f;
         private const float CharaBaseHeight = 1.05f;
         private const float InstalledBaseHeight = 0.9f;
         private const float TallObjectBaseHeight = 1.3f;
-        private readonly FpsAtlasSampler _atlasSampler = new FpsAtlasSampler();
         private readonly FpsLightingResolver _lightingResolver = new FpsLightingResolver();
         private static bool _loggedCellObjectSpriteFailure;
         private static bool _loggedCellEffectSpriteFailure;
@@ -376,12 +376,6 @@ namespace Elin_ElinFPSView
             }
 
             BillboardKind kind = ResolveBillboardKind(card);
-            if (kind == BillboardKind.LooseItem)
-            {
-                TryAddGroundSprite(card, origin, maxDistance, lighting, groundOutput);
-                return;
-            }
-
             TryAddUprightSprite(card, origin, maxDistance, kind, lighting, uprightOutput);
         }
 
@@ -407,14 +401,9 @@ namespace Elin_ElinFPSView
             }
 
             RenderData renderData = card.renderer?.data ?? card.sourceRenderCard?.renderData;
-            float aspect = Mathf.Max(0.2f, sprite.rect.width) / Mathf.Max(1f, sprite.rect.height);
-            float spriteHeight = ResolveBaseHeight(card, kind);
-            float spriteWidth = Mathf.Clamp(spriteHeight * aspect, 0.2f, 1.8f);
-            Vector2 visibleSize = kind == BillboardKind.Chara
-                ? new Vector2(spriteWidth, spriteHeight)
-                : ApplyVisibleSpriteScale(sprite, new Vector2(spriteWidth, spriteHeight));
-            spriteWidth = visibleSize.x;
-            spriteHeight = visibleSize.y;
+            Vector2 spriteSize = ResolveCardSpriteWorldSize(sprite, renderData, kind);
+            float spriteWidth = spriteSize.x;
+            float spriteHeight = spriteSize.y;
             float pivotX = 0.5f;
             float pivotY = ResolvePivotY(kind);
             if (renderData != null)
@@ -440,8 +429,13 @@ namespace Elin_ElinFPSView
                 ShadowSizeWorld = Mathf.Max(0.12f, spriteWidth * 0.25f),
                 CastsShadow = true,
                 FacingRule = BillboardFacingRule.CameraFacing,
-                Light = lightSample
-            });
+                Light = lightSample,
+                    DiagnosticCategory = kind == BillboardKind.Chara ? "npc" : "item",
+                    DiagnosticLabel = card.id.ToString(),
+                    SourcePixelSize = new Vector2(sprite.textureRect.width, sprite.textureRect.height),
+                    RenderDataSize = renderData != null ? renderData.size : Vector2.zero,
+                    ImageScale = renderData != null ? renderData.imageScale : Vector2.one
+                });
         }
 
         private void TryAddGroundSprite(
@@ -480,7 +474,12 @@ namespace Elin_ElinFPSView
                 SizeWorld = new Vector2(width, depth),
                 MaterialColor = 0,
                 HasMaterialTint = false,
-                Light = lighting.FloorLight
+                Light = lighting.FloorLight,
+                DiagnosticCategory = "item",
+                DiagnosticLabel = card.id.ToString(),
+                SourcePixelSize = new Vector2(sprite.rect.width, sprite.rect.height),
+                RenderDataSize = Vector2.zero,
+                ImageScale = Vector2.one
             });
         }
 
@@ -519,10 +518,10 @@ namespace Elin_ElinFPSView
             }
 
             int materialColor = ResolveCellObjectMaterialColor(cell, sourceObj);
+            bool hasMaterialTint = !sourceObj.HasGrowth && (sourceObj.colorMod != 0 || sourceObj.useAltColor);
             if (IsUprightCellObject(cell, sourceObj, renderData))
             {
                 Vector2 worldSize = ResolveCellObjectUprightWorldSize(sourceObj, renderData);
-                worldSize = ApplyVisibleRenderTileScale(renderData, tile, worldSize);
                 float elevation = ResolveCellObjectElevation(cell, sourceObj);
                 float pivotX = 0.5f;
                 float pivotY = 0f;
@@ -541,9 +540,14 @@ namespace Elin_ElinFPSView
                     ShadowSizeWorld = Mathf.Max(0.16f, worldSize.x * 0.25f),
                     CastsShadow = sourceObj.pref.shadow > 1 && !cell.ignoreObjShadow,
                     FacingRule = BillboardFacingRule.CameraFacing,
-                    MaterialColor = materialColor,
-                    HasMaterialTint = true,
-                    Light = lighting.BlockLight
+                    MaterialColor = hasMaterialTint ? materialColor : 0,
+                    HasMaterialTint = hasMaterialTint,
+                    Light = lighting.BlockLight,
+                    DiagnosticCategory = sourceObj.HasGrowth ? "tree" : "furniture",
+                    DiagnosticLabel = sourceObj.alias ?? sourceObj.id.ToString(),
+                    SourcePixelSize = ResolveRenderDataSourcePixelSize(renderData),
+                    RenderDataSize = renderData.size,
+                    ImageScale = renderData.imageScale
                 });
             }
             else
@@ -557,9 +561,14 @@ namespace Elin_ElinFPSView
                     Tile = tile,
                     Distance = distance,
                     SizeWorld = groundSize,
-                    MaterialColor = materialColor,
-                    HasMaterialTint = true,
-                    Light = lighting.FloorLight
+                    MaterialColor = hasMaterialTint ? materialColor : 0,
+                    HasMaterialTint = hasMaterialTint,
+                    Light = lighting.FloorLight,
+                    DiagnosticCategory = sourceObj.HasGrowth ? "tree" : "furniture",
+                    DiagnosticLabel = sourceObj.alias ?? sourceObj.id.ToString(),
+                    SourcePixelSize = ResolveRenderDataSourcePixelSize(renderData),
+                    RenderDataSize = renderData.size,
+                    ImageScale = renderData.imageScale
                 });
             }
         }
@@ -607,6 +616,23 @@ namespace Elin_ElinFPSView
                 default:
                     return LooseItemBaseHeight;
             }
+        }
+
+        private static Vector2 ResolveCardSpriteWorldSize(Sprite sprite, RenderData renderData, BillboardKind kind)
+        {
+            if (sprite == null)
+            {
+                float fallbackHeight = ResolveBaseHeight(null, kind);
+                return new Vector2(fallbackHeight, fallbackHeight);
+            }
+
+            float scaleX = renderData != null ? Mathf.Max(0.1f, renderData.imageScale.x) : 1f;
+            float scaleY = renderData != null ? Mathf.Max(0.1f, renderData.imageScale.y) : 1f;
+            float width = sprite.textureRect.width * scaleX / SpritePixelsPerTile;
+            float height = sprite.textureRect.height * scaleY / SpritePixelsPerTile;
+            return new Vector2(
+                Mathf.Max(0.02f, width),
+                Mathf.Max(0.02f, height));
         }
 
         private static float ResolvePivotY(BillboardKind kind)
@@ -832,57 +858,48 @@ namespace Elin_ElinFPSView
 
         private static Vector2 ResolveCellObjectUprightWorldSize(SourceObj.Row sourceObj, RenderData renderData)
         {
-            float scaleX = Mathf.Max(0.1f, renderData.imageScale.x);
-            float scaleY = Mathf.Max(0.1f, renderData.imageScale.y);
-            float width = renderData.size.x * scaleX;
-            float height = renderData.size.y * scaleY;
+            return ResolveRenderDataWorldSize(renderData);
+        }
 
-            if (sourceObj?.HasGrowth == true)
+        private static Vector2 ResolveCellObjectGroundWorldSize(RenderData renderData)
+        {
+            return ResolveRenderDataWorldSize(renderData);
+        }
+
+        private static Vector2 ResolveRenderDataWorldSize(RenderData renderData)
+        {
+            if (renderData == null)
             {
-                if (renderData.multiSize)
-                {
-                    height *= 2f;
-                }
-
-                return new Vector2(
-                    Mathf.Max(0.05f, width),
-                    Mathf.Max(0.05f, height));
+                return Vector2.one;
             }
 
+            Vector2 sourcePixelSize = ResolveRenderDataSourcePixelSize(renderData);
+            float scaleX = Mathf.Max(0.1f, renderData.imageScale.x);
+            float scaleY = Mathf.Max(0.1f, renderData.imageScale.y);
+            return new Vector2(
+                Mathf.Max(0.02f, sourcePixelSize.x * scaleX / SpritePixelsPerTile),
+                Mathf.Max(0.02f, sourcePixelSize.y * scaleY / SpritePixelsPerTile));
+        }
+
+        private static Vector2 ResolveRenderDataSourcePixelSize(RenderData renderData)
+        {
+            Texture texture = renderData?.pass?.mat?.GetTexture("_MainTex");
+            ProceduralMesh pmesh = renderData?.pass?.pmesh;
+            if (texture == null || pmesh == null || pmesh.tiling.x <= 0f || pmesh.tiling.y <= 0f)
+            {
+                return Vector2.zero;
+            }
+
+            float width = texture.width / pmesh.tiling.x;
+            float height = texture.height / pmesh.tiling.y;
             if (renderData.multiSize)
             {
                 height *= 2f;
             }
 
-            return new Vector2(
-                Mathf.Max(0.12f, width),
-                Mathf.Max(0.12f, height));
+            return new Vector2(width, height);
         }
 
-        private static Vector2 ResolveCellObjectGroundWorldSize(RenderData renderData)
-        {
-            float scaleX = Mathf.Max(0.1f, renderData.imageScale.x);
-            float width = Mathf.Max(0.12f, renderData.size.x * scaleX);
-            float depth = width;
-            if (renderData.pass?.pmesh != null)
-            {
-                ProceduralMesh pmesh = renderData.pass.pmesh;
-                if (pmesh.top)
-                {
-                    width = pmesh.size.x * scaleX;
-                    depth = Mathf.Max(0.12f, pmesh.size.z);
-                }
-                else
-                {
-                    width = Mathf.Max(0.12f, pmesh.size.x * scaleX);
-                    depth = width;
-                }
-            }
-
-            return new Vector2(
-                Mathf.Max(0.12f, width),
-                Mathf.Max(0.12f, depth));
-        }
 
         private static float ResolveCellObjectElevation(Cell cell, SourceObj.Row sourceObj)
         {
@@ -898,34 +915,6 @@ namespace Elin_ElinFPSView
             }
 
             return elevation;
-        }
-
-        private Vector2 ApplyVisibleSpriteScale(Sprite sprite, Vector2 baseSize)
-        {
-            if (sprite == null || !_atlasSampler.TryGetSpriteMetrics(sprite, out FpsAtlasSampler.SpriteMetrics metrics) || !metrics.HasOpaquePixels)
-            {
-                return baseSize;
-            }
-
-            float visibleWidth = Mathf.Clamp(metrics.MaxU - metrics.MinU, 0.2f, 1f);
-            float visibleHeight = Mathf.Clamp(metrics.TopV - metrics.BottomV, 0.2f, 1f);
-            return new Vector2(
-                Mathf.Max(0.08f, baseSize.x * visibleWidth),
-                Mathf.Max(0.08f, baseSize.y * visibleHeight));
-        }
-
-        private Vector2 ApplyVisibleRenderTileScale(RenderData renderData, int tile, Vector2 baseSize)
-        {
-            if (renderData == null || !_atlasSampler.TryGetRenderTileMetrics(renderData, tile, out FpsAtlasSampler.SpriteMetrics metrics) || !metrics.HasOpaquePixels)
-            {
-                return baseSize;
-            }
-
-            float visibleWidth = Mathf.Clamp(metrics.MaxU - metrics.MinU, 0.15f, 1f);
-            float visibleHeight = Mathf.Clamp(metrics.TopV - metrics.BottomV, 0.15f, 1f);
-            return new Vector2(
-                Mathf.Max(0.06f, baseSize.x * visibleWidth),
-                Mathf.Max(0.06f, baseSize.y * visibleHeight));
         }
 
         private static float ResolveSupportHeight(Card card)
@@ -1098,6 +1087,11 @@ namespace Elin_ElinFPSView
         public int MaterialColor;
         public bool HasMaterialTint;
         public FpsResolvedLightSample Light;
+        public string DiagnosticCategory;
+        public string DiagnosticLabel;
+        public Vector2 SourcePixelSize;
+        public Vector2 RenderDataSize;
+        public Vector2 ImageScale;
     }
 
     internal struct FpsResolvedGroundSprite
@@ -1111,6 +1105,11 @@ namespace Elin_ElinFPSView
         public int MaterialColor;
         public bool HasMaterialTint;
         public FpsResolvedLightSample Light;
+        public string DiagnosticCategory;
+        public string DiagnosticLabel;
+        public Vector2 SourcePixelSize;
+        public Vector2 RenderDataSize;
+        public Vector2 ImageScale;
     }
 
     internal struct FpsResolvedEffectSprite

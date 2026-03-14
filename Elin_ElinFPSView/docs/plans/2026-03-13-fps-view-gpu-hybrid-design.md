@@ -444,3 +444,7 @@ Success:
 4. chunked top/riser mesh を先に移植する
 
 terrain が最も重いため、最初の実装対象も terrain にする。
+
+## Related Design Notes
+
+- sprite / object の大きさと raw color の truth は [2026-03-14-sprite-sizing-and-color-design.md](C:/Users/tishi/programming/elin_modding/Elin.Mods/Elin_ElinFPSView/docs/plans/2026-03-14-sprite-sizing-and-color-design.md) を参照。

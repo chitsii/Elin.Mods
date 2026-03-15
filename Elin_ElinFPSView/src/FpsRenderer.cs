@@ -13,6 +13,7 @@ namespace Elin_ElinFPSView
         private int _height;
         private readonly FpsAtlasSampler _atlasSampler = new FpsAtlasSampler();
         private readonly FpsIdealizedWorld _idealizedWorld = new FpsIdealizedWorld();
+        private readonly List<FpsResolvedWallMountedSprite> _wallMountedSprites = new List<FpsResolvedWallMountedSprite>(32);
         private readonly List<FpsResolvedUprightSprite> _uprightSprites = new List<FpsResolvedUprightSprite>(64);
         private readonly List<FpsResolvedGroundSprite> _groundSprites = new List<FpsResolvedGroundSprite>(64);
         private readonly List<FpsResolvedEffectSprite> _effectSprites = new List<FpsResolvedEffectSprite>(32);
@@ -116,7 +117,7 @@ namespace Elin_ElinFPSView
             }
 
             RenderTerrainSurfaces(origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight, mapSize, maxDistance);
-            _idealizedWorld.GatherSprites(origin, maxDistance, includePlayerSelf, _uprightSprites, _groundSprites, _effectSprites);
+            _idealizedWorld.GatherSprites(origin, maxDistance, includePlayerSelf, _wallMountedSprites, _uprightSprites, _groundSprites, _effectSprites);
             RenderGroundSprites(origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight);
             RenderUprightSprites(origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight);
             RenderEffectSprites(origin, forward, plane, halfHeight, eyeHeight, cameraGroundHeight);

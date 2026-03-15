@@ -11,7 +11,9 @@ namespace Elin_ElinFPSView
         private readonly Dictionary<long, Texture2D> _renderTileCache = new Dictionary<long, Texture2D>();
         private readonly Dictionary<long, Texture2D> _tintedRenderTileCache = new Dictionary<long, Texture2D>();
         private readonly Dictionary<long, Texture2D> _wallTileCache = new Dictionary<long, Texture2D>();
+        private readonly Dictionary<long, Texture2D> _wallMountedCache = new Dictionary<long, Texture2D>();
         private readonly HashSet<long> _dumpedDebugTextures = new HashSet<long>();
+        private readonly HashSet<long> _dumpedWallMountedDebugSheets = new HashSet<long>();
         private readonly FpsAtlasSampler _atlasSampler = new FpsAtlasSampler();
         private const float MinimumBlockFaceOpaqueRatio = 0.08f;
 
@@ -49,11 +51,239 @@ namespace Elin_ElinFPSView
                 }
             }
 
+            foreach (Texture2D texture in _wallMountedCache.Values)
+            {
+                if (texture != null)
+                {
+                    UnityEngine.Object.Destroy(texture);
+                }
+            }
+
             _spriteCache.Clear();
             _renderTileCache.Clear();
             _tintedRenderTileCache.Clear();
             _wallTileCache.Clear();
+            _wallMountedCache.Clear();
             _dumpedDebugTextures.Clear();
+            _dumpedWallMountedDebugSheets.Clear();
+        }
+
+        public bool TryGetWallMountedTexture(RenderData renderData, int tile, bool flipX, bool trimTransparent, int materialColor, bool hasMaterialTint, bool useSelectiveMaterialTint, FpsResolvedLightSample light, out Texture texture)
+        {
+            texture = null;
+            if (renderData?.pass == null)
+            {
+                return false;
+            }
+
+            long cacheKey = (((long)renderData.pass.GetInstanceID()) << 32)
+                ^ (uint)tile
+                ^ (flipX ? (1L << 62) : 0L)
+                ^ (trimTransparent ? (1L << 61) : 0L)
+                ^ ((long)materialColor << 5)
+                ^ ((long)light.PackedLight << 17)
+                ^ (useSelectiveMaterialTint ? (1L << 60) : 0L)
+                ^ (hasMaterialTint ? (1L << 59) : 0L);
+            if (_wallMountedCache.TryGetValue(cacheKey, out Texture2D cached) && cached != null)
+            {
+                texture = cached;
+                return true;
+            }
+
+            if (!TryResolveRenderDataTextureDimensions(renderData, out int width, out int height))
+            {
+                return false;
+            }
+
+            Color32[] bakedPixels = new Color32[width * height];
+            bool hasOpaque = false;
+            int minX = width;
+            int maxX = -1;
+            int minY = height;
+            int maxY = -1;
+
+            for (int y = 0; y < height; y++)
+            {
+                float v = 1f - (y + 0.5f) / height;
+                for (int x = 0; x < width; x++)
+                {
+                    float u = (x + 0.5f) / width;
+                    if (flipX)
+                    {
+                        u = 1f - u;
+                    }
+                    Vector2 sourceUv = MapWallMountedProjectionUv(u, v);
+                    Color32 color = _atlasSampler.TrySampleRenderTile(renderData, tile, sourceUv.x, sourceUv.y, out Color32 sampled)
+                        ? sampled
+                        : new Color32(0, 0, 0, 0);
+
+                    if (color.a > 8)
+                    {
+                        hasOpaque = true;
+                        minX = Mathf.Min(minX, x);
+                        maxX = Mathf.Max(maxX, x);
+                        minY = Mathf.Min(minY, y);
+                        maxY = Mathf.Max(maxY, y);
+                        if (hasMaterialTint)
+                        {
+                            if (!useSelectiveMaterialTint || ShouldApplySelectiveMatTint(color))
+                            {
+                                color = FpsIdealizedWorld.ApplyMatTint(color, materialColor);
+                            }
+                        }
+
+                        color = FpsLightApplicator.ApplySample(color, light);
+                    }
+
+                    bakedPixels[y * width + x] = color;
+                }
+            }
+
+            if (!hasOpaque)
+            {
+                return false;
+            }
+
+            Texture2D texture2D;
+            if (trimTransparent)
+            {
+                int trimTop = 0;
+                int trimmedWidth = Mathf.Max(1, maxX - minX + 1);
+                int trimmedHeight = Mathf.Max(1, maxY - trimTop + 1);
+                Color32[] trimmed = new Color32[trimmedWidth * trimmedHeight];
+                for (int y = 0; y < trimmedHeight; y++)
+                {
+                    Array.Copy(bakedPixels, (trimTop + y) * width + minX, trimmed, y * trimmedWidth, trimmedWidth);
+                }
+
+                texture2D = new Texture2D(trimmedWidth, trimmedHeight, TextureFormat.RGBA32, false)
+                {
+                    filterMode = FilterMode.Point,
+                    wrapMode = TextureWrapMode.Clamp,
+                    name = $"FpsGpuWallMountedTrimmed_{cacheKey}"
+                };
+                texture2D.SetPixels32(trimmed);
+            }
+            else
+            {
+                texture2D = new Texture2D(width, height, TextureFormat.RGBA32, false)
+                {
+                    filterMode = FilterMode.Point,
+                    wrapMode = TextureWrapMode.Clamp,
+                    name = $"FpsGpuWallMounted_{cacheKey}"
+                };
+                texture2D.SetPixels32(bakedPixels);
+            }
+
+            texture2D.Apply(false, false);
+            _wallMountedCache[cacheKey] = texture2D;
+            MaybeDumpWallMountedProjectionDebug(renderData, tile, flipX, width, height);
+            texture = texture2D;
+            return true;
+        }
+
+        public bool TryGetWallMountedTexture(Sprite sprite, bool flipX, bool trimTransparent, FpsResolvedLightSample light, out Texture texture)
+        {
+            texture = null;
+            if (sprite?.texture == null)
+            {
+                return false;
+            }
+
+            int sourceId = sprite.GetInstanceID();
+            long cacheKey = (((long)sourceId) << 32)
+                ^ (flipX ? (1L << 62) : 0L)
+                ^ (trimTransparent ? (1L << 61) : 0L)
+                ^ ((long)light.PackedLight << 17)
+                ^ (1L << 58);
+            if (_wallMountedCache.TryGetValue(cacheKey, out Texture2D cached) && cached != null)
+            {
+                texture = cached;
+                return true;
+            }
+
+            Rect rect = sprite.textureRect;
+            int width = Mathf.Max(1, Mathf.RoundToInt(rect.width));
+            int height = Mathf.Max(1, Mathf.RoundToInt(rect.height));
+            Color32[] sourcePixels = sprite.texture.GetPixels32();
+            int sourceWidth = sprite.texture.width;
+            int sourceHeight = sprite.texture.height;
+            int startX = Mathf.RoundToInt(rect.xMin);
+            int startY = Mathf.RoundToInt(rect.yMin);
+
+            Color32[] bakedPixels = new Color32[width * height];
+            bool hasOpaque = false;
+            int minX = width;
+            int maxX = -1;
+            int maxY = -1;
+
+            for (int y = 0; y < height; y++)
+            {
+                float v = 1f - (y + 0.5f) / height;
+                for (int x = 0; x < width; x++)
+                {
+                    float u = (x + 0.5f) / width;
+                    if (flipX)
+                    {
+                        u = 1f - u;
+                    }
+
+                    Vector2 sourceUv = MapWallMountedProjectionUv(u, v);
+                    int sourcePixelX = Mathf.Clamp(startX + Mathf.FloorToInt(sourceUv.x * width), 0, sourceWidth - 1);
+                    int sourcePixelY = Mathf.Clamp(startY + Mathf.FloorToInt(sourceUv.y * height), 0, sourceHeight - 1);
+                    Color32 color = sourcePixels[sourcePixelY * sourceWidth + sourcePixelX];
+                    if (color.a > 8)
+                    {
+                        hasOpaque = true;
+                        minX = Mathf.Min(minX, x);
+                        maxX = Mathf.Max(maxX, x);
+                        maxY = Mathf.Max(maxY, y);
+                        color = FpsLightApplicator.ApplySample(color, light);
+                    }
+
+                    bakedPixels[y * width + x] = color;
+                }
+            }
+
+            if (!hasOpaque)
+            {
+                return false;
+            }
+
+            Texture2D texture2D;
+            if (trimTransparent)
+            {
+                int trimmedWidth = Mathf.Max(1, maxX - minX + 1);
+                int trimmedHeight = Mathf.Max(1, maxY + 1);
+                Color32[] trimmed = new Color32[trimmedWidth * trimmedHeight];
+                for (int y = 0; y < trimmedHeight; y++)
+                {
+                    System.Array.Copy(bakedPixels, y * width + minX, trimmed, y * trimmedWidth, trimmedWidth);
+                }
+
+                texture2D = new Texture2D(trimmedWidth, trimmedHeight, TextureFormat.RGBA32, false)
+                {
+                    filterMode = FilterMode.Point,
+                    wrapMode = TextureWrapMode.Clamp,
+                    name = $"FpsGpuWallMountedSpriteTrimmed_{cacheKey}"
+                };
+                texture2D.SetPixels32(trimmed);
+            }
+            else
+            {
+                texture2D = new Texture2D(width, height, TextureFormat.RGBA32, false)
+                {
+                    filterMode = FilterMode.Point,
+                    wrapMode = TextureWrapMode.Clamp,
+                    name = $"FpsGpuWallMountedSprite_{cacheKey}"
+                };
+                texture2D.SetPixels32(bakedPixels);
+            }
+
+            texture2D.Apply(false, false);
+            _wallMountedCache[cacheKey] = texture2D;
+            texture = texture2D;
+            return true;
         }
 
         public bool TryGetTexture(Sprite sprite, out Texture texture)
@@ -436,6 +666,127 @@ namespace Elin_ElinFPSView
             }
 
             return true;
+        }
+
+        private static Vector2 MapWallMountedProjectionUv(float u, float v)
+        {
+            return MapWallMountedProjectionUv(u, v, 0.48f);
+        }
+
+        private static Vector2 MapWallMountedProjectionUv(float u, float v, float shear)
+        {
+            float clampedU = Mathf.Clamp01(u);
+            float clampedV = Mathf.Clamp01(v);
+            float shiftedV = clampedV + (clampedU - 0.5f) * shear;
+            return new Vector2(clampedU, Mathf.Clamp01(shiftedV));
+        }
+
+        private void MaybeDumpWallMountedProjectionDebug(RenderData renderData, int tile, bool flipX, int width, int height)
+        {
+            if (Plugin.Settings?.EnableGpuDiagnostics?.Value != true || renderData?.pass == null)
+            {
+                return;
+            }
+
+            long debugKey = (((long)renderData.pass.GetInstanceID()) << 32) ^ (uint)tile ^ (flipX ? (1L << 62) : 0L);
+            if (_dumpedWallMountedDebugSheets.Contains(debugKey))
+            {
+                return;
+            }
+
+            _dumpedWallMountedDebugSheets.Add(debugKey);
+            try
+            {
+                float[] candidateShears =
+                {
+                    0.22f,
+                    0.28f,
+                    0.38f,
+                    0.48f
+                };
+
+                int columns = 5;
+                int spacing = 4;
+                int sheetWidth = columns * width + (columns - 1) * spacing;
+                int sheetHeight = height;
+                Color32[] sheet = new Color32[sheetWidth * sheetHeight];
+                for (int i = 0; i < sheet.Length; i++)
+                {
+                    sheet[i] = new Color32(20, 20, 20, 255);
+                }
+
+                BlitWallMountedCandidate(sheet, sheetWidth, 0, 0, renderData, tile, flipX, width, height, false, 0f);
+                for (int i = 0; i < 4; i++)
+                {
+                    BlitWallMountedCandidate(
+                        sheet,
+                        sheetWidth,
+                        (i + 1) * (width + spacing),
+                        0,
+                        renderData,
+                        tile,
+                        flipX,
+                        width,
+                        height,
+                        true,
+                        candidateShears[i]);
+                }
+
+                Texture2D contactSheet = new Texture2D(sheetWidth, sheetHeight, TextureFormat.RGBA32, false)
+                {
+                    filterMode = FilterMode.Point,
+                    wrapMode = TextureWrapMode.Clamp,
+                    name = $"FpsGpuWallProjectionDebug_{debugKey}"
+                };
+                contactSheet.SetPixels32(sheet);
+                contactSheet.Apply(false, false);
+
+                string directory = Path.Combine(Environment.CurrentDirectory, "_tmp_gpu_wall_projection_debug");
+                Directory.CreateDirectory(directory);
+                string path = Path.Combine(directory, $"tile_{tile}_wall_projection_sheet.png");
+                File.WriteAllBytes(path, contactSheet.EncodeToPNG());
+                UnityEngine.Object.Destroy(contactSheet);
+                Plugin.Log?.LogInfo($"Wrote GPU wall projection debug sheet: {path} (columns: source, shear 0.22, 0.28, 0.38, 0.48)");
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log?.LogWarning($"Failed to dump wall projection debug sheet: {ex.Message}");
+            }
+        }
+
+        private void BlitWallMountedCandidate(
+            Color32[] destination,
+            int destinationWidth,
+            int offsetX,
+            int offsetY,
+            RenderData renderData,
+            int tile,
+            bool flipX,
+            int width,
+            int height,
+            bool useProjection,
+            float shear)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                float v = 1f - (y + 0.5f) / height;
+                for (int x = 0; x < width; x++)
+                {
+                    float u = (x + 0.5f) / width;
+                    if (flipX)
+                    {
+                        u = 1f - u;
+                    }
+
+                    Vector2 sampleUv = useProjection
+                        ? MapWallMountedProjectionUv(u, v, shear)
+                        : new Vector2(u, v);
+                    Color32 color = _atlasSampler.TrySampleRenderTile(renderData, tile, sampleUv.x, sampleUv.y, out Color32 sampled)
+                        ? sampled
+                        : new Color32(0, 0, 0, 0);
+                    destination[(offsetY + y) * destinationWidth + offsetX + x] = color.a > 0 ? color : new Color32(0, 0, 0, 0);
+                }
+            }
         }
 
         private void MaybeDumpBlockDebugTexture(long cacheKey, Texture2D texture, FpsResolvedWallSurface surface, FpsAtlasSampler.BlockFaceKind face, bool flipX, float coverage)

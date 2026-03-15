@@ -19,6 +19,8 @@ namespace Elin_ElinFPSView
         private readonly FpsGpuSpriteTextureCache _spriteTextureCache = new FpsGpuSpriteTextureCache();
         private readonly FpsAtlasSampler _atlasSampler = new FpsAtlasSampler();
         private readonly MaterialPropertyBlock _propertyBlock = new MaterialPropertyBlock();
+        private readonly List<FpsResolvedRoofPlane> _roofPlanes = new List<FpsResolvedRoofPlane>(128);
+        private readonly List<FpsResolvedWallMountedSprite> _wallMountedSprites = new List<FpsResolvedWallMountedSprite>(128);
         private readonly List<FpsResolvedUprightSprite> _uprightSprites = new List<FpsResolvedUprightSprite>(256);
         private readonly List<FpsResolvedGroundSprite> _groundSprites = new List<FpsResolvedGroundSprite>(256);
         private readonly List<FpsResolvedEffectSprite> _effectSprites = new List<FpsResolvedEffectSprite>(64);
@@ -32,6 +34,12 @@ namespace Elin_ElinFPSView
         private readonly List<GameObject> _wallQuads = new List<GameObject>(256);
         private readonly List<MeshRenderer> _wallRenderers = new List<MeshRenderer>(256);
         private readonly List<MeshFilter> _wallFilters = new List<MeshFilter>(256);
+        private readonly List<GameObject> _roofQuads = new List<GameObject>(128);
+        private readonly List<MeshRenderer> _roofRenderers = new List<MeshRenderer>(128);
+        private readonly List<MeshFilter> _roofFilters = new List<MeshFilter>(128);
+        private readonly List<GameObject> _wallMountedQuads = new List<GameObject>(128);
+        private readonly List<MeshRenderer> _wallMountedRenderers = new List<MeshRenderer>(128);
+        private readonly List<MeshFilter> _wallMountedFilters = new List<MeshFilter>(128);
         private readonly List<GameObject> _uprightQuads = new List<GameObject>(256);
         private readonly List<MeshRenderer> _uprightRenderers = new List<MeshRenderer>(256);
         private readonly List<GameObject> _groundQuads = new List<GameObject>(256);
@@ -40,6 +48,8 @@ namespace Elin_ElinFPSView
         private GameObject _terrainRoot;
         private GameObject _terrainOverlayRoot;
         private GameObject _wallRoot;
+        private GameObject _roofRoot;
+        private GameObject _wallMountedRoot;
         private GameObject _uprightRoot;
         private GameObject _groundRoot;
         private Camera _camera;
@@ -96,6 +106,7 @@ namespace Elin_ElinFPSView
             UpdateCamera(pose);
             GeometryUtility.CalculateFrustumPlanes(_camera, _cameraFrustumPlanes);
             UpdateTerrainPreview(pose);
+            UpdateRoofPreview(pose);
             UpdateSpritePreview(pose, viewState.CameraDistance > 0.2f);
             LogDiagnosticsFrame(pose);
 
@@ -113,6 +124,8 @@ namespace Elin_ElinFPSView
                 _terrainRoot = null;
                 _terrainOverlayRoot = null;
                 _wallRoot = null;
+                _roofRoot = null;
+                _wallMountedRoot = null;
                 _uprightRoot = null;
                 _groundRoot = null;
             }
@@ -174,6 +187,12 @@ namespace Elin_ElinFPSView
             _wallQuads.Clear();
             _wallRenderers.Clear();
             _wallFilters.Clear();
+            _roofQuads.Clear();
+            _roofRenderers.Clear();
+            _roofFilters.Clear();
+            _wallMountedQuads.Clear();
+            _wallMountedRenderers.Clear();
+            _wallMountedFilters.Clear();
             _uprightQuads.Clear();
             _uprightRenderers.Clear();
             _groundQuads.Clear();
@@ -231,6 +250,14 @@ namespace Elin_ElinFPSView
             _wallRoot = new GameObject("Walls");
             _wallRoot.transform.SetParent(_root.transform, false);
             SetLayerRecursively(_wallRoot, RenderLayer);
+
+            _roofRoot = new GameObject("Roofs");
+            _roofRoot.transform.SetParent(_root.transform, false);
+            SetLayerRecursively(_roofRoot, RenderLayer);
+
+            _wallMountedRoot = new GameObject("WallMountedSprites");
+            _wallMountedRoot.transform.SetParent(_root.transform, false);
+            SetLayerRecursively(_wallMountedRoot, RenderLayer);
 
             _groundRoot = new GameObject("GroundSprites");
             _groundRoot.transform.SetParent(_root.transform, false);
@@ -371,6 +398,11 @@ namespace Elin_ElinFPSView
             for (int i = 0; i < _wallRenderers.Count; i++)
             {
                 _wallRenderers[i].sharedMaterial = ResolveWallRendererMaterial(false);
+            }
+
+            for (int i = 0; i < _wallMountedRenderers.Count; i++)
+            {
+                _wallMountedRenderers[i].sharedMaterial = ResolveWallRendererMaterial(false);
             }
 
             for (int i = 0; i < _uprightRenderers.Count; i++)
@@ -708,6 +740,53 @@ namespace Elin_ElinFPSView
             LogDebugFrame(activeIndex, pose);
         }
 
+        private void UpdateRoofPreview(GpuViewPose pose)
+        {
+            float terrainMaxDistance = Mathf.Max(1f, Plugin.Settings.MaxDistance.Value * Plugin.Settings.TerrainDistanceMultiplier.Value);
+            _idealizedWorld.GatherRoofPlanes(pose.PlayerOrigin, terrainMaxDistance + 4f, _roofPlanes);
+            EnsureRoofPool(_roofPlanes.Count);
+
+            int activeIndex = 0;
+            for (int i = 0; i < _roofPlanes.Count; i++)
+            {
+                FpsResolvedRoofPlane plane = _roofPlanes[i];
+                Vector3 center = plane.Face.Center;
+                bool visible = plane.Kind == FpsRoofPlaneKind.InteriorCeiling
+                    ? IsVisibleToCamera(center, terrainMaxDistance + 4f, -1f)
+                    : IsTerrainVisibleToCamera(center, pose, terrainMaxDistance + 4f, 0.5f, 0.6f);
+                if (!visible)
+                {
+                    continue;
+                }
+
+                EnsureRoofPool(activeIndex + 1);
+                GameObject quad = _roofQuads[activeIndex];
+                MeshRenderer renderer = _roofRenderers[activeIndex];
+                MeshFilter filter = _roofFilters[activeIndex];
+                quad.SetActive(true);
+                renderer.sharedMaterial = _spriteMaterial;
+                ApplyWallQuadGeometry(quad, filter, plane.Face, plane.DoubleSided);
+
+                if (!TryApplyRoofTexture(plane, _propertyBlock, out bool usesBakedTint))
+                {
+                    quad.SetActive(false);
+                    continue;
+                }
+
+                string fogCategory = plane.Kind == FpsRoofPlaneKind.InteriorCeiling ? "roof-interior" : "terrain-roof";
+                _propertyBlock.SetColor("_Color", usesBakedTint
+                    ? ApplyAtmosphericFog(Color.white, center, terrainMaxDistance + 4f, 0.12f, fogCategory)
+                    : ApplyAtmosphericFog(ResolveSpriteTint(plane.MaterialColor, plane.HasMaterialTint, plane.BlockSurface.Light), center, terrainMaxDistance + 4f, 0.12f, fogCategory));
+                renderer.SetPropertyBlock(_propertyBlock);
+                activeIndex++;
+            }
+
+            for (int i = activeIndex; i < _roofQuads.Count; i++)
+            {
+                _roofQuads[i].SetActive(false);
+            }
+        }
+
         private int AddWallQuads(int activeWallIndex, int cellX, int cellZ, FpsResolvedWallSurface surface)
         {
             if (surface.Cell == null)
@@ -787,9 +866,9 @@ namespace Elin_ElinFPSView
             MeshRenderer renderer = _wallRenderers[activeWallIndex];
             MeshFilter filter = _wallFilters[activeWallIndex];
             quad.SetActive(true);
-            renderer.sharedMaterial = ResolveWallRendererMaterial(false);
+            renderer.sharedMaterial = _spriteMaterial;
             FpsGpuFaceQuad face = FpsGpuBlockGeometryBuilder.BuildSideQuad(cellX, cellZ, bottom, top, dir);
-            ApplyWallQuadGeometry(quad, filter, face, false);
+            ApplyWallQuadGeometry(quad, filter, face, true);
 
             bool hitVertical = dir == 1 || dir == 3;
             bool textureResolved = _spriteTextureCache.TryGetBlockFaceTexture(surface, hitVertical, out Texture wallTexture);
@@ -824,15 +903,16 @@ namespace Elin_ElinFPSView
             MeshRenderer renderer = _wallRenderers[activeWallIndex];
             MeshFilter filter = _wallFilters[activeWallIndex];
             quad.SetActive(true);
-            renderer.sharedMaterial = ResolveWallRendererMaterial(false);
-            FpsGpuFaceQuad face = FpsGpuBlockGeometryBuilder.BuildSideQuad(cellX, cellZ, bottom, top, dir);
-            ApplyWallQuadGeometry(quad, filter, face, false);
+            renderer.sharedMaterial = _spriteMaterial;
 
-            bool textureResolved = _spriteTextureCache.TryGetTintedRenderTileTexture(
+            bool textureResolved = _spriteTextureCache.TryGetWallMountedTexture(
                 renderData,
                 tile,
                 flipX,
+                true,
                 surface.MaterialColor,
+                true,
+                false,
                 surface.Light,
                 out Texture panelTexture);
             Texture texture = UseSolidFaceDebug()
@@ -840,13 +920,15 @@ namespace Elin_ElinFPSView
                 : textureResolved
                 ? panelTexture
                 : Texture2D.whiteTexture;
+            FpsGpuFaceQuad face = BuildWallPanelFace(cellX, cellZ, dir, bottom, 1f, texture.height / 64f);
+            ApplyWallQuadGeometry(quad, filter, face, true);
             _diagnostics.WallPanels++;
             if (!textureResolved)
             {
                 _diagnostics.WallPanelFallbacks++;
             }
 
-            RecordWallDiagnostic("panel", cellX, cellZ, dir, textureResolved, surface, face, renderer, false);
+            RecordWallDiagnostic("panel", cellX, cellZ, dir, textureResolved, surface, face, renderer, true);
             _propertyBlock.Clear();
             _propertyBlock.SetTexture("_MainTex", texture);
             _propertyBlock.SetColor("_Color", UseSolidFaceDebug()
@@ -861,16 +943,101 @@ namespace Elin_ElinFPSView
         private void UpdateSpritePreview(GpuViewPose pose, bool includePlayerSelf)
         {
             float maxDistance = Mathf.Max(1f, Plugin.Settings.MaxDistance.Value);
-            _idealizedWorld.GatherSprites(pose.PlayerOrigin, maxDistance, includePlayerSelf, _uprightSprites, _groundSprites, _effectSprites);
+            _idealizedWorld.GatherSprites(pose.PlayerOrigin, maxDistance, includePlayerSelf, _wallMountedSprites, _uprightSprites, _groundSprites, _effectSprites);
+            _wallMountedSprites.Sort((a, b) => b.Distance.CompareTo(a.Distance));
             _uprightSprites.Sort((a, b) => b.Distance.CompareTo(a.Distance));
             _groundSprites.Sort((a, b) => b.Distance.CompareTo(a.Distance));
             _effectSprites.Sort((a, b) => b.Distance.CompareTo(a.Distance));
             RecordSpriteDiagnostics();
 
+            EnsureWallMountedPool(_wallMountedSprites.Count);
             EnsureGroundPool(_groundSprites.Count);
             EnsureUprightPool(_uprightSprites.Count + _effectSprites.Count);
+            UpdateWallMountedSprites();
             UpdateGroundSprites();
             UpdateUprightSprites();
+        }
+
+        private void UpdateWallMountedSprites()
+        {
+            float maxDistance = Mathf.Max(1f, Plugin.Settings.MaxDistance.Value);
+            int loggedSamples = 0;
+            for (int i = 0; i < _wallMountedSprites.Count; i++)
+            {
+                FpsResolvedWallMountedSprite sprite = _wallMountedSprites[i];
+                GameObject quad = _wallMountedQuads[i];
+                MeshRenderer renderer = _wallMountedRenderers[i];
+                MeshFilter filter = _wallMountedFilters[i];
+                if (!IsVisibleToCamera(sprite.CellCenter, maxDistance, 0.17364818f))
+                {
+                    quad.SetActive(false);
+                    continue;
+                }
+
+                Texture texture;
+                bool resolved = sprite.Sprite != null
+                    ? _spriteTextureCache.TryGetWallMountedTexture(
+                        sprite.Sprite,
+                        sprite.FlipX,
+                        sprite.TrimTransparent,
+                        sprite.Light,
+                        out texture)
+                    : _spriteTextureCache.TryGetWallMountedTexture(
+                        sprite.RenderData,
+                        sprite.Tile,
+                        sprite.FlipX,
+                        sprite.TrimTransparent,
+                        sprite.MaterialColor,
+                        sprite.HasMaterialTint,
+                        sprite.UseSelectiveMaterialTint,
+                        sprite.Light,
+                        out texture);
+                if (!resolved)
+                {
+                    quad.SetActive(false);
+                    continue;
+                }
+
+                int dir = ResolveWallMountedDir(sprite);
+                FpsGpuFaceQuad face = sprite.UseWallPanelPlacement
+                    ? (sprite.HasCustomAnchor
+                        ? BuildWallPanelFaceAt(
+                            sprite.MountWorld,
+                            dir,
+                            1f,
+                            texture.height / 64f,
+                            sprite.IsDoor ? 0.06f : 0.03f)
+                        : BuildWallPanelFace(
+                            Mathf.FloorToInt(sprite.CellCenter.x - 0.5f),
+                            Mathf.FloorToInt(sprite.CellCenter.z - 0.5f),
+                            dir,
+                            FpsIdealizedWorld.GetCellSurfaceHeight(sprite.Cell),
+                            1f,
+                            texture.height / 64f,
+                            sprite.IsDoor ? 0.06f : 0.03f))
+                    : BuildWallMountedFace(sprite, dir, texture.width / 64f, texture.height / 64f);
+                quad.SetActive(true);
+                renderer.sharedMaterial = _spriteMaterial;
+                ApplyWallQuadGeometry(quad, filter, face, true);
+
+                _propertyBlock.Clear();
+                _propertyBlock.SetTexture("_MainTex", texture);
+                _propertyBlock.SetColor("_Color", Color.white);
+                renderer.SetPropertyBlock(_propertyBlock);
+
+                if (Plugin.Log != null && loggedSamples < 8)
+                {
+                    Plugin.Log.LogInfo(
+                        $"GPU wall-mounted sample[{loggedSamples}]: label={sprite.DiagnosticLabel} cell=({sprite.Cell?.x},{sprite.Cell?.z}) dir={dir} " +
+                        $"trim={sprite.TrimTransparent} door={sprite.IsDoor} panelPlacement={sprite.UseWallPanelPlacement} size=({texture.width},{texture.height}) materialTint={sprite.HasMaterialTint} selectiveTint={sprite.UseSelectiveMaterialTint}");
+                    loggedSamples++;
+                }
+            }
+
+            for (int i = _wallMountedSprites.Count; i < _wallMountedQuads.Count; i++)
+            {
+                _wallMountedQuads[i].SetActive(false);
+            }
         }
 
         private void UpdateGroundSprites()
@@ -1062,6 +1229,48 @@ namespace Elin_ElinFPSView
             return true;
         }
 
+        private bool TryApplyRoofTexture(FpsResolvedRoofPlane plane, MaterialPropertyBlock block, out bool usesBakedTint)
+        {
+            usesBakedTint = false;
+            Texture texture = null;
+
+            switch (plane.TextureKind)
+            {
+                case FpsRoofTextureKind.BlockFace:
+                    usesBakedTint = _spriteTextureCache.TryGetBlockFaceTexture(
+                        plane.BlockSurface,
+                        plane.BlockFaceKind,
+                        plane.FlipX,
+                        out texture);
+                    break;
+                case FpsRoofTextureKind.RenderTile:
+                    if (plane.RenderData != null)
+                    {
+                        if (plane.HasMaterialTint)
+                        {
+                            usesBakedTint = plane.UseSelectiveMaterialTint
+                                ? _spriteTextureCache.TryGetSelectiveTintRenderTileTexture(plane.RenderData, plane.Tile, plane.FlipX, plane.MaterialColor, plane.BlockSurface.Light, out texture)
+                                : _spriteTextureCache.TryGetTintedRenderTileTexture(plane.RenderData, plane.Tile, plane.FlipX, plane.MaterialColor, plane.BlockSurface.Light, out texture);
+                        }
+
+                        if (texture == null)
+                        {
+                            _spriteTextureCache.TryGetTexture(plane.RenderData, plane.Tile, plane.FlipX, out texture);
+                        }
+                    }
+                    break;
+            }
+
+            if (texture == null)
+            {
+                return false;
+            }
+
+            block.Clear();
+            block.SetTexture("_MainTex", texture);
+            return true;
+        }
+
         private bool IsVisibleToCamera(Vector3 position, float maxDistance, float minConeDot)
         {
             if (_camera == null)
@@ -1104,6 +1313,124 @@ namespace Elin_ElinFPSView
             return viewport.z > 0f && viewport.x >= -0.2f && viewport.x <= 1.2f && viewport.y >= -0.2f && viewport.y <= 1.2f;
         }
 
+        private int ResolveWallMountedDir(FpsResolvedWallMountedSprite sprite)
+        {
+            return ((sprite.FaceDir % 4) + 4) % 4;
+        }
+
+        private static FpsGpuFaceQuad BuildWallMountedFace(FpsResolvedWallMountedSprite sprite, int dir, float widthWorld, float heightWorld)
+        {
+            float halfWidth = Mathf.Max(0.05f, widthWorld) * 0.5f;
+            float height = Mathf.Max(0.05f, heightWorld);
+            float baseY = FpsIdealizedWorld.GetCellSurfaceHeight(sprite.Cell);
+            float topY = baseY + height;
+            float inset = 0.015f;
+            float cellX = sprite.CellCenter.x - 0.5f;
+            float cellZ = sprite.CellCenter.z - 0.5f;
+            float centerX = sprite.CellCenter.x;
+            float centerZ = sprite.CellCenter.z;
+
+            switch ((dir % 4 + 4) % 4)
+            {
+                case 0:
+                    return new FpsGpuFaceQuad(
+                        new Vector3(centerX - halfWidth, baseY, cellZ + inset),
+                        new Vector3(centerX + halfWidth, baseY, cellZ + inset),
+                        new Vector3(centerX - halfWidth, topY, cellZ + inset),
+                        new Vector3(centerX + halfWidth, topY, cellZ + inset));
+                case 1:
+                    return new FpsGpuFaceQuad(
+                        new Vector3(cellX + 1f - inset, baseY, centerZ - halfWidth),
+                        new Vector3(cellX + 1f - inset, baseY, centerZ + halfWidth),
+                        new Vector3(cellX + 1f - inset, topY, centerZ - halfWidth),
+                        new Vector3(cellX + 1f - inset, topY, centerZ + halfWidth));
+                case 2:
+                    return new FpsGpuFaceQuad(
+                        new Vector3(centerX + halfWidth, baseY, cellZ + 1f - inset),
+                        new Vector3(centerX - halfWidth, baseY, cellZ + 1f - inset),
+                        new Vector3(centerX + halfWidth, topY, cellZ + 1f - inset),
+                        new Vector3(centerX - halfWidth, topY, cellZ + 1f - inset));
+                default:
+                    return new FpsGpuFaceQuad(
+                        new Vector3(cellX + inset, baseY, centerZ + halfWidth),
+                        new Vector3(cellX + inset, baseY, centerZ - halfWidth),
+                        new Vector3(cellX + inset, topY, centerZ + halfWidth),
+                        new Vector3(cellX + inset, topY, centerZ - halfWidth));
+            }
+        }
+
+        private static FpsGpuFaceQuad BuildWallPanelFace(int cellX, int cellZ, int dir, float baseY, float widthWorld, float heightWorld, float inset = 0.015f)
+        {
+            float halfWidth = Mathf.Max(0.05f, widthWorld) * 0.5f;
+            float height = Mathf.Max(0.05f, heightWorld);
+            float topY = baseY + height;
+            float centerX = cellX + 0.5f;
+            float centerZ = cellZ + 0.5f;
+
+            switch ((dir % 4 + 4) % 4)
+            {
+                case 0:
+                    return new FpsGpuFaceQuad(
+                        new Vector3(centerX - halfWidth, baseY, cellZ + inset),
+                        new Vector3(centerX + halfWidth, baseY, cellZ + inset),
+                        new Vector3(centerX - halfWidth, topY, cellZ + inset),
+                        new Vector3(centerX + halfWidth, topY, cellZ + inset));
+                case 1:
+                    return new FpsGpuFaceQuad(
+                        new Vector3(cellX + 1f - inset, baseY, centerZ - halfWidth),
+                        new Vector3(cellX + 1f - inset, baseY, centerZ + halfWidth),
+                        new Vector3(cellX + 1f - inset, topY, centerZ - halfWidth),
+                        new Vector3(cellX + 1f - inset, topY, centerZ + halfWidth));
+                case 2:
+                    return new FpsGpuFaceQuad(
+                        new Vector3(centerX + halfWidth, baseY, cellZ + 1f - inset),
+                        new Vector3(centerX - halfWidth, baseY, cellZ + 1f - inset),
+                        new Vector3(centerX + halfWidth, topY, cellZ + 1f - inset),
+                        new Vector3(centerX - halfWidth, topY, cellZ + 1f - inset));
+                default:
+                    return new FpsGpuFaceQuad(
+                        new Vector3(cellX + inset, baseY, centerZ + halfWidth),
+                        new Vector3(cellX + inset, baseY, centerZ - halfWidth),
+                        new Vector3(cellX + inset, topY, centerZ + halfWidth),
+                        new Vector3(cellX + inset, topY, centerZ - halfWidth));
+            }
+        }
+
+        private static FpsGpuFaceQuad BuildWallPanelFaceAt(Vector3 anchorWorld, int dir, float widthWorld, float heightWorld, float inset = 0.015f)
+        {
+            float halfWidth = Mathf.Max(0.05f, widthWorld) * 0.5f;
+            float height = Mathf.Max(0.05f, heightWorld);
+            float topY = anchorWorld.y + height;
+
+            switch ((dir % 4 + 4) % 4)
+            {
+                case 0:
+                    return new FpsGpuFaceQuad(
+                        new Vector3(anchorWorld.x - halfWidth, anchorWorld.y, anchorWorld.z + inset),
+                        new Vector3(anchorWorld.x + halfWidth, anchorWorld.y, anchorWorld.z + inset),
+                        new Vector3(anchorWorld.x - halfWidth, topY, anchorWorld.z + inset),
+                        new Vector3(anchorWorld.x + halfWidth, topY, anchorWorld.z + inset));
+                case 1:
+                    return new FpsGpuFaceQuad(
+                        new Vector3(anchorWorld.x + inset, anchorWorld.y, anchorWorld.z - halfWidth),
+                        new Vector3(anchorWorld.x + inset, anchorWorld.y, anchorWorld.z + halfWidth),
+                        new Vector3(anchorWorld.x + inset, topY, anchorWorld.z - halfWidth),
+                        new Vector3(anchorWorld.x + inset, topY, anchorWorld.z + halfWidth));
+                case 2:
+                    return new FpsGpuFaceQuad(
+                        new Vector3(anchorWorld.x + halfWidth, anchorWorld.y, anchorWorld.z - inset),
+                        new Vector3(anchorWorld.x - halfWidth, anchorWorld.y, anchorWorld.z - inset),
+                        new Vector3(anchorWorld.x + halfWidth, topY, anchorWorld.z - inset),
+                        new Vector3(anchorWorld.x - halfWidth, topY, anchorWorld.z - inset));
+                default:
+                    return new FpsGpuFaceQuad(
+                        new Vector3(anchorWorld.x - inset, anchorWorld.y, anchorWorld.z + halfWidth),
+                        new Vector3(anchorWorld.x - inset, anchorWorld.y, anchorWorld.z - halfWidth),
+                        new Vector3(anchorWorld.x - inset, topY, anchorWorld.z + halfWidth),
+                        new Vector3(anchorWorld.x - inset, topY, anchorWorld.z - halfWidth));
+            }
+        }
+
         private bool IsTerrainVisibleToCamera(Vector3 position, GpuViewPose pose, float maxDistance, float distancePadding, float viewportPadding)
         {
             if (_camera == null)
@@ -1117,6 +1444,11 @@ namespace Elin_ElinFPSView
             if (distance > maxDistance + distancePadding)
             {
                 return false;
+            }
+
+            if (distance <= 2.5f)
+            {
+                return true;
             }
 
             if (distance > 0.05f)
@@ -1663,6 +1995,54 @@ namespace Elin_ElinFPSView
                 _wallQuads.Add(quad);
                 _wallRenderers.Add(renderer);
                 _wallFilters.Add(filter);
+                quad.SetActive(false);
+            }
+        }
+
+        private void EnsureRoofPool(int count)
+        {
+            while (_roofQuads.Count < count)
+            {
+                GameObject quad = new GameObject($"GpuRoofQuad_{_roofQuads.Count}");
+                quad.hideFlags = HideFlags.HideAndDontSave;
+                quad.transform.SetParent(_roofRoot.transform, false);
+                SetLayerRecursively(quad, RenderLayer);
+
+                MeshFilter filter = quad.AddComponent<MeshFilter>();
+                filter.sharedMesh = CreateWallQuadMesh($"FpsGpuRoofQuad_{_roofQuads.Count}");
+
+                MeshRenderer renderer = quad.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = _spriteMaterial;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+
+                _roofQuads.Add(quad);
+                _roofRenderers.Add(renderer);
+                _roofFilters.Add(filter);
+                quad.SetActive(false);
+            }
+        }
+
+        private void EnsureWallMountedPool(int count)
+        {
+            while (_wallMountedQuads.Count < count)
+            {
+                GameObject quad = new GameObject($"GpuWallMountedQuad_{_wallMountedQuads.Count}");
+                quad.hideFlags = HideFlags.HideAndDontSave;
+                quad.transform.SetParent(_wallMountedRoot.transform, false);
+                SetLayerRecursively(quad, RenderLayer);
+
+                MeshFilter filter = quad.AddComponent<MeshFilter>();
+                filter.sharedMesh = CreateWallQuadMesh($"FpsGpuWallMountedQuad_{_wallMountedQuads.Count}");
+
+                MeshRenderer renderer = quad.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = _wallMaterial;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+
+                _wallMountedQuads.Add(quad);
+                _wallMountedRenderers.Add(renderer);
+                _wallMountedFilters.Add(filter);
                 quad.SetActive(false);
             }
         }

@@ -13,6 +13,7 @@ namespace Elin_ElinFPSView
         private const float LargeObjectConeDot = 0.17364818f; // ~160 degrees
         private const float SmallObjectConeDot = 0.259f; // ~150 degrees
         private const float GameplayConeDot = 0.0f; // ~180 degrees, frustum still applies
+        private const float RoofHeightOffset = 0.01f;
         private const float LooseItemBaseHeight = 0.18f;
         private const float CharaBaseHeight = 1.05f;
         private const float InstalledBaseHeight = 0.9f;
@@ -20,6 +21,13 @@ namespace Elin_ElinFPSView
         private readonly FpsLightingResolver _lightingResolver = new FpsLightingResolver();
         private static bool _loggedCellObjectSpriteFailure;
         private static bool _loggedCellEffectSpriteFailure;
+        private readonly HashSet<int> _visitedRoofLots = new HashSet<int>();
+        private int _loggedWallFaceObjects;
+        private int _loggedDoorRejections;
+        private int _loggedWallMountedCandidates;
+        private int _loggedInstalledCardSurvey;
+        private int _loggedCellObjectSurvey;
+        private int _loggedRoofLots;
 
         public void PrepareFrame()
         {
@@ -266,10 +274,17 @@ namespace Elin_ElinFPSView
             Vector2 origin,
             float maxDistance,
             bool includePlayerSelf,
+            List<FpsResolvedWallMountedSprite> wallMountedOutput,
             List<FpsResolvedUprightSprite> uprightOutput,
             List<FpsResolvedGroundSprite> groundOutput,
             List<FpsResolvedEffectSprite> effectOutput)
         {
+            _loggedWallFaceObjects = 0;
+            _loggedDoorRejections = 0;
+            _loggedWallMountedCandidates = 0;
+            _loggedInstalledCardSurvey = 0;
+            _loggedCellObjectSurvey = 0;
+            wallMountedOutput.Clear();
             uprightOutput.Clear();
             groundOutput.Clear();
             effectOutput.Clear();
@@ -294,18 +309,18 @@ namespace Elin_ElinFPSView
                     {
                         for (int i = 0; i < detail.things.Count; i++)
                         {
-                            TryAddCardSprite(detail.things[i], origin, maxDistance, includePlayerSelf, lighting, uprightOutput, groundOutput);
+                            TryAddCardSprite(detail.things[i], origin, maxDistance, includePlayerSelf, lighting, wallMountedOutput, uprightOutput, groundOutput);
                         }
 
                         for (int i = 0; i < detail.charas.Count; i++)
                         {
-                            TryAddCardSprite(detail.charas[i], origin, maxDistance, includePlayerSelf, lighting, uprightOutput, groundOutput);
+                            TryAddCardSprite(detail.charas[i], origin, maxDistance, includePlayerSelf, lighting, wallMountedOutput, uprightOutput, groundOutput);
                         }
                     }
 
                     try
                     {
-                        TryAddCellObjectSprite(cell, x, z, origin, maxDistance, lighting, uprightOutput, groundOutput);
+                        TryAddCellObjectSprite(cell, x, z, origin, maxDistance, lighting, wallMountedOutput, uprightOutput, groundOutput);
                     }
                     catch (System.Exception ex)
                     {
@@ -330,6 +345,787 @@ namespace Elin_ElinFPSView
                     }
                 }
             }
+        }
+
+        public void GatherRoofPlanes(Vector2 origin, float maxDistance, List<FpsResolvedRoofPlane> output)
+        {
+            output.Clear();
+            _visitedRoofLots.Clear();
+            _loggedRoofLots = 0;
+
+            BaseTileMap tileMap = EClass.scene?.screenElin?.tileMap ?? EClass.screen?.tileMap;
+            if (tileMap?.roofStyles == null || EClass._map == null)
+            {
+                return;
+            }
+
+            Room currentRoom = _lightingResolver.GetCurrentRoom() ?? EClass.pc?.pos?.cell?.room;
+            Lot currentLot = _lightingResolver.GetCurrentLot() ?? currentRoom?.lot;
+            bool showRoof = _lightingResolver.GetShowRoof();
+            bool hideRoomFog = _lightingResolver.GetHideRoomFog();
+            bool noRoofMode = _lightingResolver.GetNoRoofMode();
+
+            int radius = Mathf.Min(EClass._map.Size - 1, Mathf.CeilToInt(maxDistance) + 8);
+            int centerX = Mathf.FloorToInt(origin.x);
+            int centerZ = Mathf.FloorToInt(origin.y);
+            for (int z = centerZ - radius; z <= centerZ + radius; z++)
+            {
+                for (int x = centerX - radius; x <= centerX + radius; x++)
+                {
+                    if (x < 0 || z < 0 || x >= EClass._map.Size || z >= EClass._map.Size)
+                    {
+                        continue;
+                    }
+
+                    Lot lot = EClass._map.cells[x, z]?.room?.lot;
+                    TryAddRoofLot(lot, tileMap, origin, maxDistance, output, currentLot, showRoof, hideRoomFog, noRoofMode, addInteriorCeiling: false);
+                }
+            }
+
+            if (currentRoom?.lot != null && currentRoom.HasRoof && !(currentRoom.data?.atrium ?? false))
+            {
+                TryAddRoofLot(currentRoom.lot, tileMap, origin, maxDistance, output, currentLot, showRoof, hideRoomFog, noRoofMode, addInteriorCeiling: true);
+            }
+        }
+
+        private void TryAddRoofLot(
+            Lot lot,
+            BaseTileMap tileMap,
+            Vector2 origin,
+            float maxDistance,
+            List<FpsResolvedRoofPlane> output,
+            Lot currentLot,
+            bool showRoof,
+            bool hideRoomFog,
+            bool noRoofMode,
+            bool addInteriorCeiling)
+        {
+            if (lot == null
+                || !TryResolveRoofStyle(tileMap, lot, out RoofStyle roofStyle)
+                || !TryBuildRoofLayout(lot, roofStyle, tileMap, out FpsRoofLayout layout))
+            {
+                return;
+            }
+
+            int lotKey = lot.id != 0 ? lot.id : lot.GetHashCode();
+            bool isFirstVisit = _visitedRoofLots.Add(lotKey);
+            if (!isFirstVisit && !addInteriorCeiling)
+            {
+                return;
+            }
+
+            bool nearPlayer = IsLotNearOrigin(lot, origin, maxDistance + 6f);
+            if (isFirstVisit && nearPlayer)
+            {
+                bool suppressExteriorForCurrentLot = currentLot != null
+                    && currentLot == lot
+                    && (!showRoof || hideRoomFog);
+                bool suppressExteriorForGlobalNoRoof = !showRoof && currentLot == null && noRoofMode;
+                if (!suppressExteriorForCurrentLot && !suppressExteriorForGlobalNoRoof)
+                {
+                    AddExteriorRoofPlanes(layout, roofStyle, output);
+                    LogRoofLot(lot, roofStyle, exteriorOnly: false);
+                }
+            }
+
+            if (addInteriorCeiling)
+            {
+                AddInteriorCeilingPlane(layout, roofStyle, output);
+            }
+        }
+
+        private static bool TryResolveRoofStyle(BaseTileMap tileMap, Lot lot, out RoofStyle roofStyle)
+        {
+            roofStyle = null;
+            if (tileMap?.roofStyles == null || lot == null || lot.idRoofStyle <= 0 || lot.idRoofStyle >= tileMap.roofStyles.Length)
+            {
+                return false;
+            }
+
+            roofStyle = tileMap.roofStyles[lot.idRoofStyle];
+            return roofStyle != null && roofStyle.type != RoofStyle.Type.None;
+        }
+
+        private static bool IsLotNearOrigin(Lot lot, Vector2 origin, float maxDistance)
+        {
+            float closestX = Mathf.Clamp(origin.x, lot.x, lot.mx + 1f);
+            float closestZ = Mathf.Clamp(origin.y, lot.z, lot.mz + 1f);
+            float sqrDistance = (new Vector2(closestX, closestZ) - origin).sqrMagnitude;
+            return sqrDistance <= maxDistance * maxDistance;
+        }
+
+        private void AddExteriorRoofPlanes(FpsRoofLayout layout, RoofStyle roofStyle, List<FpsResolvedRoofPlane> output)
+        {
+            switch (roofStyle.type)
+            {
+                case RoofStyle.Type.Flat:
+                case RoofStyle.Type.FlatFloor:
+                    AddFlatRoofPlanes(layout, output);
+                    break;
+                case RoofStyle.Type.Default:
+                case RoofStyle.Type.DefaultNoTop:
+                    AddRidgeRoofPlanes(layout, roofStyle, output);
+                    break;
+            }
+        }
+
+        private void AddFlatRoofPlanes(FpsRoofLayout layout, List<FpsResolvedRoofPlane> output)
+        {
+            float topY = layout.BaseY + layout.StepY * 0.42f;
+            if (TryResolveRoofTopSurface(layout.Lot, layout.Reverse, layout.Light, out FpsResolvedWallSurface topSurface))
+            {
+                output.Add(CreateRoofBlockPlane(
+                    layout.Lot,
+                    FpsRoofPlaneKind.Top,
+                    FpsGpuRoofGeometryBuilder.BuildHorizontalQuad(layout.MinX, layout.MaxX, layout.MinZ, layout.MaxZ, topY + RoofHeightOffset),
+                    topSurface,
+                    FpsAtlasSampler.BlockFaceKind.Top,
+                    false,
+                    false,
+                    "roof-flat-top"));
+            }
+
+            if (TryResolveRoofEdgeSurface(layout.Lot, 3, layout.Light, out FpsResolvedWallSurface westSurface))
+            {
+                output.Add(CreateRoofBlockPlane(
+                    layout.Lot,
+                    FpsRoofPlaneKind.Edge,
+                    FpsGpuRoofGeometryBuilder.BuildVerticalEdgeAtX(layout.MinX, layout.MinZ, layout.MaxZ, layout.BaseY, topY, false),
+                    westSurface,
+                    FpsAtlasSampler.BlockFaceKind.Left,
+                    false,
+                    false,
+                    "roof-flat-west"));
+            }
+
+            if (TryResolveRoofEdgeSurface(layout.Lot, 1, layout.Light, out FpsResolvedWallSurface eastSurface))
+            {
+                output.Add(CreateRoofBlockPlane(
+                    layout.Lot,
+                    FpsRoofPlaneKind.Edge,
+                    FpsGpuRoofGeometryBuilder.BuildVerticalEdgeAtX(layout.MaxX, layout.MinZ, layout.MaxZ, layout.BaseY, topY, true),
+                    eastSurface,
+                    FpsAtlasSampler.BlockFaceKind.Right,
+                    false,
+                    false,
+                    "roof-flat-east"));
+            }
+
+            if (TryResolveRoofEdgeSurface(layout.Lot, 0, layout.Light, out FpsResolvedWallSurface northSurface))
+            {
+                output.Add(CreateRoofBlockPlane(
+                    layout.Lot,
+                    FpsRoofPlaneKind.Edge,
+                    FpsGpuRoofGeometryBuilder.BuildVerticalEdgeAtZ(layout.MinZ, layout.MinX, layout.MaxX, layout.BaseY, topY, false),
+                    northSurface,
+                    FpsAtlasSampler.BlockFaceKind.Left,
+                    false,
+                    false,
+                    "roof-flat-north"));
+            }
+
+            if (TryResolveRoofEdgeSurface(layout.Lot, 2, layout.Light, out FpsResolvedWallSurface southSurface))
+            {
+                output.Add(CreateRoofBlockPlane(
+                    layout.Lot,
+                    FpsRoofPlaneKind.Edge,
+                    FpsGpuRoofGeometryBuilder.BuildVerticalEdgeAtZ(layout.MaxZ, layout.MinX, layout.MaxX, layout.BaseY, topY, true),
+                    southSurface,
+                    FpsAtlasSampler.BlockFaceKind.Right,
+                    false,
+                    false,
+                    "roof-flat-south"));
+            }
+        }
+
+        private void AddRidgeRoofPlanes(FpsRoofLayout layout, RoofStyle roofStyle, List<FpsResolvedRoofPlane> output)
+        {
+            float ridgeStart = layout.MinorStart + layout.FlatStart;
+            float ridgeEnd = layout.MinorStart + layout.FlatEnd;
+            float ridgeCenter = (ridgeStart + ridgeEnd) * 0.5f;
+
+            int lowDir = layout.Reverse ? 3 : 0;
+            int highDir = layout.Reverse ? 1 : 2;
+
+            float topY = layout.TopY;
+
+            if (roofStyle.type == RoofStyle.Type.DefaultNoTop && layout.RowCount <= 1)
+            {
+                if (TryResolveRoofTopSurface(layout.Lot, layout.Reverse, layout.Light, out FpsResolvedWallSurface fallbackTopSurface))
+                {
+                    output.Add(CreateRoofBlockPlane(
+                        layout.Lot,
+                        FpsRoofPlaneKind.Top,
+                        FpsGpuRoofGeometryBuilder.BuildHorizontalQuad(layout.MinX, layout.MaxX, layout.MinZ, layout.MaxZ, topY + RoofHeightOffset),
+                        fallbackTopSurface,
+                        FpsAtlasSampler.BlockFaceKind.Top,
+                        false,
+                        false,
+                        "roof-defaultnotop-top-fallback"));
+                }
+
+                AddRidgeRoofEdgePlanes(layout, topY, output);
+                return;
+            }
+
+            if (roofStyle.type == RoofStyle.Type.DefaultNoTop)
+            {
+                float leftEnd = Mathf.Max(layout.MinorStart + 0.5f, ridgeCenter);
+                float rightStart = Mathf.Min(layout.MinorEnd - 0.5f, ridgeCenter);
+
+                if (leftEnd > layout.MinorStart + 0.01f
+                    && TryResolveRoofSlopeSurface(layout.Lot, lowDir, layout.Light, out FpsResolvedWallSurface leftSlopeSurface))
+                {
+                    output.Add(CreateRoofBlockPlane(
+                        layout.Lot,
+                        FpsRoofPlaneKind.SlopeLeft,
+                        BuildRoofSlopeFace(layout, layout.MinorStart, leftEnd, layout.BaseY, topY),
+                        leftSlopeSurface,
+                        FpsAtlasSampler.BlockFaceKind.Left,
+                        false,
+                        false,
+                        "roof-defaultnotop-slope-a"));
+                }
+
+                if (layout.MinorEnd > rightStart + 0.01f
+                    && TryResolveRoofSlopeSurface(layout.Lot, highDir, layout.Light, out FpsResolvedWallSurface rightSlopeSurface))
+                {
+                    output.Add(CreateRoofBlockPlane(
+                        layout.Lot,
+                        FpsRoofPlaneKind.SlopeRight,
+                        BuildRoofSlopeFace(layout, rightStart, layout.MinorEnd, topY, layout.BaseY),
+                        rightSlopeSurface,
+                        FpsAtlasSampler.BlockFaceKind.Right,
+                        false,
+                        false,
+                        "roof-defaultnotop-slope-b"));
+                }
+
+                AddRidgeRoofEdgePlanes(layout, topY, output);
+                return;
+            }
+
+            if (layout.FlatStart > 0
+                && TryResolveRoofSlopeSurface(layout.Lot, lowDir, layout.Light, out FpsResolvedWallSurface risingSlopeSurface))
+            {
+                output.Add(CreateRoofBlockPlane(
+                    layout.Lot,
+                    FpsRoofPlaneKind.SlopeLeft,
+                    BuildRoofSlopeFace(layout, layout.MinorStart, ridgeStart, layout.BaseY, topY),
+                    risingSlopeSurface,
+                    FpsAtlasSampler.BlockFaceKind.Left,
+                    false,
+                    false,
+                    "roof-default-slope-a"));
+            }
+
+            if (layout.HasFlatBand
+                && TryResolveRoofTopSurface(layout.Lot, layout.Reverse, layout.Light, out FpsResolvedWallSurface ridgeSurface))
+            {
+                output.Add(CreateRoofBlockPlane(
+                    layout.Lot,
+                    FpsRoofPlaneKind.Top,
+                    BuildRoofTopFace(layout, ridgeStart, ridgeEnd, topY + RoofHeightOffset),
+                    ridgeSurface,
+                    FpsAtlasSampler.BlockFaceKind.Top,
+                    false,
+                    false,
+                    "roof-default-ridge"));
+            }
+
+            if (layout.FlatEnd < layout.RowCount
+                && TryResolveRoofSlopeSurface(layout.Lot, highDir, layout.Light, out FpsResolvedWallSurface fallingSlopeSurface))
+            {
+                output.Add(CreateRoofBlockPlane(
+                    layout.Lot,
+                    FpsRoofPlaneKind.SlopeRight,
+                    BuildRoofSlopeFace(layout, ridgeEnd, layout.MinorEnd, topY, layout.BaseY),
+                    fallingSlopeSurface,
+                    FpsAtlasSampler.BlockFaceKind.Right,
+                    false,
+                    false,
+                    "roof-default-slope-b"));
+            }
+
+            AddRidgeRoofEdgePlanes(layout, topY, output);
+        }
+
+        private void AddInteriorCeilingPlane(FpsRoofLayout layout, RoofStyle roofStyle, List<FpsResolvedRoofPlane> output)
+        {
+            float inset = 0.05f;
+            float minX = layout.Lot.x + inset;
+            float maxX = layout.Lot.mx + 1f - inset;
+            float minZ = layout.Lot.z + inset;
+            float maxZ = layout.Lot.mz + 1f - inset;
+            if (maxX <= minX || maxZ <= minZ)
+            {
+                return;
+            }
+
+            float ceilingY = layout.BaseY - 0.04f;
+            if (!TryResolveRoofTopSurface(layout.Lot, layout.Reverse, layout.Light, out FpsResolvedWallSurface ceilingSurface))
+            {
+                return;
+            }
+
+            output.Add(CreateRoofBlockPlane(
+                layout.Lot,
+                FpsRoofPlaneKind.InteriorCeiling,
+                FpsGpuRoofGeometryBuilder.BuildHorizontalQuad(minX, maxX, minZ, maxZ, ceilingY),
+                ceilingSurface,
+                FpsAtlasSampler.BlockFaceKind.Top,
+                true,
+                true,
+                "roof-interior-ceiling"));
+        }
+
+        private void AddRidgeRoofEdgePlanes(FpsRoofLayout layout, float topY, List<FpsResolvedRoofPlane> output)
+        {
+            if (layout.Reverse)
+            {
+                if (TryResolveRoofEdgeSurface(layout.Lot, 0, layout.Light, out FpsResolvedWallSurface northSurface))
+                {
+                    output.Add(CreateRoofBlockPlane(
+                        layout.Lot,
+                        FpsRoofPlaneKind.Edge,
+                        FpsGpuRoofGeometryBuilder.BuildVerticalEdgeAtZ(layout.MinZ, layout.MinX, layout.MaxX, layout.BaseY, topY, false),
+                        northSurface,
+                        FpsAtlasSampler.BlockFaceKind.Left,
+                        false,
+                        false,
+                        "roof-ridge-edge-north"));
+                }
+
+                if (TryResolveRoofEdgeSurface(layout.Lot, 2, layout.Light, out FpsResolvedWallSurface southSurface))
+                {
+                    output.Add(CreateRoofBlockPlane(
+                        layout.Lot,
+                        FpsRoofPlaneKind.Edge,
+                        FpsGpuRoofGeometryBuilder.BuildVerticalEdgeAtZ(layout.MaxZ, layout.MinX, layout.MaxX, layout.BaseY, topY, true),
+                        southSurface,
+                        FpsAtlasSampler.BlockFaceKind.Right,
+                        false,
+                        false,
+                        "roof-ridge-edge-south"));
+                }
+
+                return;
+            }
+
+            if (TryResolveRoofEdgeSurface(layout.Lot, 3, layout.Light, out FpsResolvedWallSurface westSurface))
+            {
+                output.Add(CreateRoofBlockPlane(
+                    layout.Lot,
+                    FpsRoofPlaneKind.Edge,
+                    FpsGpuRoofGeometryBuilder.BuildVerticalEdgeAtX(layout.MinX, layout.MinZ, layout.MaxZ, layout.BaseY, topY, false),
+                    westSurface,
+                    FpsAtlasSampler.BlockFaceKind.Left,
+                    false,
+                    false,
+                    "roof-ridge-edge-west"));
+            }
+
+            if (TryResolveRoofEdgeSurface(layout.Lot, 1, layout.Light, out FpsResolvedWallSurface eastSurface))
+            {
+                output.Add(CreateRoofBlockPlane(
+                    layout.Lot,
+                    FpsRoofPlaneKind.Edge,
+                    FpsGpuRoofGeometryBuilder.BuildVerticalEdgeAtX(layout.MaxX, layout.MinZ, layout.MaxZ, layout.BaseY, topY, true),
+                    eastSurface,
+                    FpsAtlasSampler.BlockFaceKind.Right,
+                    false,
+                    false,
+                    "roof-ridge-edge-east"));
+            }
+        }
+
+        private static FpsGpuFaceQuad BuildRoofTopFace(FpsRoofLayout layout, float minorStart, float minorEnd, float y)
+        {
+            if (layout.Reverse)
+            {
+                return FpsGpuRoofGeometryBuilder.BuildHorizontalQuad(minorStart, minorEnd, layout.MinZ, layout.MaxZ, y);
+            }
+
+            return FpsGpuRoofGeometryBuilder.BuildHorizontalQuad(layout.MinX, layout.MaxX, minorStart, minorEnd, y);
+        }
+
+        private static FpsGpuFaceQuad BuildRoofSlopeFace(FpsRoofLayout layout, float minorStart, float minorEnd, float lowY, float highY)
+        {
+            if (layout.Reverse)
+            {
+                return FpsGpuRoofGeometryBuilder.BuildSlopeAlongX(minorStart, minorEnd, layout.MinZ, layout.MaxZ, lowY, highY);
+            }
+
+            return FpsGpuRoofGeometryBuilder.BuildSlopeAlongZ(layout.MinX, layout.MaxX, minorStart, minorEnd, lowY, highY);
+        }
+
+        private bool TryBuildRoofLayout(Lot lot, RoofStyle roofStyle, BaseTileMap tileMap, out FpsRoofLayout layout)
+        {
+            layout = default;
+            if (lot == null || roofStyle == null || tileMap == null)
+            {
+                return false;
+            }
+
+            ResolveRoofBounds(lot, roofStyle, out int minX, out int minZ, out int maxX, out int maxZ);
+            int rowCount = lot.reverse ? maxX - minX : maxZ - minZ;
+            if (rowCount <= 0)
+            {
+                return false;
+            }
+
+            int flatStart;
+            int flatEnd;
+            switch (roofStyle.type)
+            {
+                case RoofStyle.Type.Flat:
+                case RoofStyle.Type.FlatFloor:
+                    flatStart = Mathf.Clamp(roofStyle.flatW, 0, rowCount);
+                    flatEnd = Mathf.Clamp(rowCount - roofStyle.flatW, flatStart, rowCount);
+                    break;
+                case RoofStyle.Type.Default:
+                case RoofStyle.Type.DefaultNoTop:
+                    flatStart = Mathf.Clamp(rowCount / 2 - roofStyle.flatW, 0, rowCount);
+                    flatEnd = Mathf.Clamp(rowCount / 2 + roofStyle.flatW + ((rowCount % 2 != 0) ? 1 : 0), flatStart, rowCount);
+                    break;
+                default:
+                    return false;
+            }
+
+            int ridgeSteps = Mathf.Max(1, Mathf.Max(flatStart, rowCount - flatEnd));
+            float baseY = ResolveLotRoofBaseHeight(lot) + ResolveRoofBaseYOffset(lot, roofStyle);
+            float stepY = ResolveRoofStep(tileMap);
+
+            layout = new FpsRoofLayout
+            {
+                Lot = lot,
+                Type = roofStyle.type,
+                Reverse = lot.reverse,
+                MinX = minX,
+                MinZ = minZ,
+                MaxX = maxX,
+                MaxZ = maxZ,
+                RowCount = rowCount,
+                FlatStart = flatStart,
+                FlatEnd = flatEnd,
+                BaseY = baseY,
+                StepY = stepY,
+                TopY = baseY + ridgeSteps * stepY,
+                Light = _lightingResolver.ResolveRoofLight(lot)
+            };
+            return true;
+        }
+
+        private static void ResolveRoofBounds(Lot lot, RoofStyle roofStyle, out int minX, out int minZ, out int maxX, out int maxZ)
+        {
+            if (lot.reverse)
+            {
+                minZ = lot.z - roofStyle.h;
+                minX = lot.x - roofStyle.w;
+                maxZ = lot.mz + 1 + roofStyle.h;
+                maxX = lot.mx + 1 + roofStyle.w;
+                if (minX > 1 && minZ > 0 && EClass._map.cells[minX - 1, minZ].HasFullBlock)
+                {
+                    minX--;
+                }
+
+                if (maxZ < EClass._map.Size && maxX < EClass._map.Size && EClass._map.cells[maxX - 1, maxZ].HasFullBlock)
+                {
+                    maxZ++;
+                }
+            }
+            else
+            {
+                minX = lot.x - roofStyle.w;
+                minZ = lot.z - roofStyle.h;
+                maxX = lot.mx + 1 + roofStyle.w;
+                maxZ = lot.mz + 1 + roofStyle.h;
+                if (minZ > 0 && minX > 1 && EClass._map.cells[minX - 1, minZ].HasFullBlock)
+                {
+                    minX--;
+                }
+
+                if (maxX < EClass._map.Size && maxZ < EClass._map.Size && EClass._map.cells[maxX - 1, maxZ].HasFullBlock)
+                {
+                    maxZ++;
+                }
+            }
+
+            if (roofStyle.wing && lot.height > 1)
+            {
+                if (lot.reverse)
+                {
+                    minX--;
+                    maxX++;
+                }
+                else
+                {
+                    minZ--;
+                    maxZ++;
+                }
+            }
+
+            minX = Mathf.Clamp(minX, 0, EClass._map.Size);
+            minZ = Mathf.Clamp(minZ, 0, EClass._map.Size);
+            maxX = Mathf.Clamp(maxX, 0, EClass._map.Size);
+            maxZ = Mathf.Clamp(maxZ, 0, EClass._map.Size);
+        }
+
+        private static float ResolveRoofOverhang(RoofStyle roofStyle)
+        {
+            return roofStyle.wing ? 0.4f : 0.18f;
+        }
+
+        private static float ResolveRoofStep(BaseTileMap tileMap)
+        {
+            return Mathf.Max(0.18f, Mathf.Abs(tileMap.roofFix2.y) * GetTerrainHeightScale());
+        }
+
+        private static float ResolveRoofBaseYOffset(Lot lot, RoofStyle roofStyle)
+        {
+            float scale = GetTerrainHeightScale();
+            Vector3 offset = lot.fullblock ? roofStyle.posFixBlock : roofStyle.posFix;
+            float y = offset.y * scale;
+            if (lot.height == 1 && lot.heightFix < 20)
+            {
+                y += roofStyle.lowRoofFix.y * scale;
+            }
+
+            return y;
+        }
+
+        private static float ResolveLotRoofBaseHeight(Lot lot)
+        {
+            if (EClass._map == null)
+            {
+                return 0f;
+            }
+
+            float maxHeight = float.MinValue;
+            bool found = false;
+            for (int z = lot.z; z <= lot.mz; z++)
+            {
+                for (int x = lot.x; x <= lot.mx; x++)
+                {
+                    if (x < 0 || z < 0 || x >= EClass._map.Size || z >= EClass._map.Size)
+                    {
+                        continue;
+                    }
+
+                    Cell cell = EClass._map.cells[x, z];
+                    if (cell == null)
+                    {
+                        continue;
+                    }
+
+                    float cellTop = GetCellSurfaceHeight(cell);
+                    if (cell.HasBlock || cell.HasWallOrFence || cell.HasFullBlock || cell._roofBlock != 0)
+                    {
+                        cellTop += 1f;
+                    }
+
+                    maxHeight = !found ? cellTop : Mathf.Max(maxHeight, cellTop);
+                    found = true;
+                }
+            }
+
+            if (found)
+            {
+                return maxHeight;
+            }
+
+            return lot.mh * GetTerrainHeightScale() + Mathf.Max(0.5f, lot.realHeight);
+        }
+
+        private bool TryResolveRoofSlopeTile(Lot lot, bool reverse, bool lowSide, out RenderData renderData, out int tile)
+        {
+            renderData = null;
+            tile = 0;
+            if (lot == null || lot.idRoofTile <= 0 || EMono.sources?.objs?.rows == null || lot.idRoofTile >= EMono.sources.objs.rows.Count)
+            {
+                return false;
+            }
+
+            SourceObj.Row row = EMono.sources.objs.rows[lot.idRoofTile];
+            if (row?.renderData == null)
+            {
+                return false;
+            }
+
+            int dir = reverse
+                ? (lowSide ? 3 : 1)
+                : (lowSide ? 0 : 2);
+            tile = row.GetTile(MATERIAL.sourceGold, dir);
+            renderData = row.renderData;
+            return true;
+        }
+
+        private bool TryResolveRoofSlopeSurface(Lot lot, int dir, FpsResolvedLightSample light, out FpsResolvedWallSurface surface)
+        {
+            surface = default;
+            if (lot == null || EMono.sources?.blocks?.rows == null)
+            {
+                return false;
+            }
+
+            SourceBlock.Row blockRow = null;
+            if (lot.idRamp > 0 && lot.idRamp < EMono.sources.blocks.rows.Count)
+            {
+                blockRow = EMono.sources.blocks.rows[lot.idRamp];
+            }
+
+            if (blockRow == null && lot.idBlock > 0 && lot.idBlock < EMono.sources.blocks.rows.Count)
+            {
+                blockRow = EMono.sources.blocks.rows[lot.idBlock];
+            }
+
+            return TryCreateRoofBlockSurface(blockRow, dir, lot.colBlock, light, out surface);
+        }
+
+        private bool TryResolveRoofTopSurface(Lot lot, bool reverse, FpsResolvedLightSample light, out FpsResolvedWallSurface surface)
+        {
+            surface = default;
+            SourceBlock.Row blockRow = null;
+            if (lot != null && lot.idRoofTile > 0 && EMono.sources?.objs?.rows != null && lot.idRoofTile < EMono.sources.objs.rows.Count)
+            {
+                SourceObj.Row roofRow = EMono.sources.objs.rows[lot.idRoofTile];
+                if (roofRow != null && roofRow.idRoof > 0 && EMono.sources.blocks?.rows != null && roofRow.idRoof < EMono.sources.blocks.rows.Count)
+                {
+                    blockRow = EMono.sources.blocks.rows[roofRow.idRoof];
+                }
+            }
+
+            if (blockRow == null && lot != null && EMono.sources?.blocks?.rows != null && lot.idBlock > 0 && lot.idBlock < EMono.sources.blocks.rows.Count)
+            {
+                blockRow = EMono.sources.blocks.rows[lot.idBlock];
+            }
+
+            return TryCreateRoofBlockSurface(blockRow, reverse ? 1 : 0, lot?.colRoof ?? 104025, light, out surface);
+        }
+
+        private bool TryResolveRoofEdgeSurface(Lot lot, int dir, FpsResolvedLightSample light, out FpsResolvedWallSurface surface)
+        {
+            surface = default;
+            if (lot == null || EMono.sources?.blocks?.rows == null)
+            {
+                return false;
+            }
+
+            SourceBlock.Row blockRow = null;
+            if (lot.idRamp > 0 && lot.idRamp < EMono.sources.blocks.rows.Count)
+            {
+                blockRow = EMono.sources.blocks.rows[lot.idRamp];
+            }
+
+            if (blockRow == null && lot.idBlock > 0 && lot.idBlock < EMono.sources.blocks.rows.Count)
+            {
+                blockRow = EMono.sources.blocks.rows[lot.idBlock];
+            }
+
+            return TryCreateRoofBlockSurface(blockRow, dir, lot.colBlock, light, out surface);
+        }
+
+        private static bool TryCreateRoofBlockSurface(SourceBlock.Row blockRow, int dir, int materialColor, FpsResolvedLightSample light, out FpsResolvedWallSurface surface)
+        {
+            surface = default;
+            if (blockRow?.renderData == null)
+            {
+                return false;
+            }
+
+            surface = new FpsResolvedWallSurface
+            {
+                Cell = null,
+                Tile = blockRow.GetTile(MATERIAL.sourceGold, dir),
+                RenderData = blockRow.renderData,
+                MaterialColor = materialColor == 0 ? 104025 : materialColor,
+                UseSnowAtlas = false,
+                Light = light
+            };
+            return true;
+        }
+
+        private static FpsResolvedRoofPlane CreateRoofRenderPlane(
+            Lot lot,
+            FpsRoofPlaneKind kind,
+            FpsGpuFaceQuad face,
+            RenderData renderData,
+            int tile,
+            int materialColor,
+            FpsResolvedLightSample light,
+            string label)
+        {
+            return new FpsResolvedRoofPlane
+            {
+                Lot = lot,
+                Kind = kind,
+                Face = face,
+                TextureKind = FpsRoofTextureKind.RenderTile,
+                RenderData = renderData,
+                Tile = tile,
+                MaterialColor = materialColor == 0 ? 104025 : materialColor,
+                HasMaterialTint = true,
+                UseSelectiveMaterialTint = false,
+                FlipX = false,
+                TrimTransparent = false,
+                BlockSurface = new FpsResolvedWallSurface
+                {
+                    Cell = null,
+                    Tile = 0,
+                    RenderData = null,
+                    MaterialColor = materialColor == 0 ? 104025 : materialColor,
+                    UseSnowAtlas = false,
+                    Light = light
+                },
+                BlockFaceKind = FpsAtlasSampler.BlockFaceKind.Top,
+                DoubleSided = true,
+                UsePanelPlacement = false,
+                DiagnosticLabel = label
+            };
+        }
+
+        private static FpsResolvedRoofPlane CreateRoofBlockPlane(
+            Lot lot,
+            FpsRoofPlaneKind kind,
+            FpsGpuFaceQuad face,
+            FpsResolvedWallSurface blockSurface,
+            FpsAtlasSampler.BlockFaceKind blockFaceKind,
+            bool doubleSided,
+            bool usePanelPlacement,
+            string label)
+        {
+            return new FpsResolvedRoofPlane
+            {
+                Lot = lot,
+                Kind = kind,
+                Face = face,
+                TextureKind = FpsRoofTextureKind.BlockFace,
+                RenderData = null,
+                Tile = 0,
+                MaterialColor = 104025,
+                HasMaterialTint = false,
+                UseSelectiveMaterialTint = false,
+                FlipX = false,
+                TrimTransparent = false,
+                BlockSurface = blockSurface,
+                BlockFaceKind = blockFaceKind,
+                DoubleSided = doubleSided,
+                UsePanelPlacement = usePanelPlacement,
+                DiagnosticLabel = label
+            };
+        }
+
+        private void LogRoofLot(Lot lot, RoofStyle roofStyle, bool exteriorOnly)
+        {
+            if (Plugin.Log == null || _loggedRoofLots >= 12 || lot == null || roofStyle == null)
+            {
+                return;
+            }
+
+            Plugin.Log.LogInfo(
+                $"GPU roof lot[{_loggedRoofLots}]: id={lot.id} bounds=({lot.x},{lot.z})-({lot.mx},{lot.mz}) style={roofStyle.type} reverse={lot.reverse} " +
+                $"flatW={roofStyle.flatW} wing={roofStyle.wing} fullblock={lot.fullblock} height={lot.height} roofTile={lot.idRoofTile} block={lot.idBlock} ramp={lot.idRamp} exteriorOnly={exteriorOnly}");
+            _loggedRoofLots++;
         }
 
         public static Vector2 GetCardTileCenter(Card card)
@@ -369,6 +1165,7 @@ namespace Elin_ElinFPSView
             float maxDistance,
             bool includePlayerSelf,
             FpsResolvedCellLighting lighting,
+            List<FpsResolvedWallMountedSprite> wallMountedOutput,
             List<FpsResolvedUprightSprite> uprightOutput,
             List<FpsResolvedGroundSprite> groundOutput)
         {
@@ -376,6 +1173,8 @@ namespace Elin_ElinFPSView
             {
                 return;
             }
+
+            LogInstalledCardSurvey(card);
 
             if (card == EClass.pc && !includePlayerSelf)
             {
@@ -387,8 +1186,123 @@ namespace Elin_ElinFPSView
                 return;
             }
 
+            bool wallMountedInstalledCard = IsWallMountedInstalledCard(card);
+            LogWallMountedCandidate(
+                "card",
+                card?.id.ToString(),
+                card?.pos?.cell,
+                card?.TileType,
+                card?.trait?.IsDoor == true || card?.TileType?.IsDoor == true,
+                wallMountedInstalledCard,
+                wallMountedInstalledCard);
+
+            if (wallMountedInstalledCard)
+            {
+                TryAddWallMountedInstalledCard(card, origin, maxDistance, lighting, wallMountedOutput);
+                return;
+            }
+
             BillboardKind kind = ResolveBillboardKind(card);
             TryAddUprightSprite(card, origin, ResolveCardVisibilityDistance(kind, maxDistance), kind, lighting, uprightOutput);
+        }
+
+        private void TryAddWallMountedInstalledCard(
+            Card card,
+            Vector2 origin,
+            float maxDistance,
+            FpsResolvedCellLighting lighting,
+            List<FpsResolvedWallMountedSprite> output)
+        {
+            Vector2 position = GetCardTileCenter(card);
+            float distance = Vector2.Distance(position, origin);
+            if (distance <= 0.1f || distance > maxDistance + 1f)
+            {
+                return;
+            }
+
+            RenderData renderData = card.renderer?.data ?? card.sourceRenderCard?.renderData;
+            if (renderData == null || card.Tiles == null || card.Tiles.Length == 0)
+            {
+                return;
+            }
+
+            TileType tileType = card.TileType;
+            bool isDoor = card.trait?.IsDoor == true || tileType?.IsDoor == true;
+            bool flipX = card.dir % 2 != 0;
+            int tile = Mathf.Abs(card.Tiles[card.refVal % card.Tiles.Length]);
+
+            output.Add(new FpsResolvedWallMountedSprite
+            {
+                Cell = card.pos?.cell,
+                CellCenter = new Vector3(position.x, GetCellSurfaceHeight(card.pos?.cell), position.y),
+                MountWorld = isDoor ? Vector3.zero : ResolveWallMountedCardAnchor(card, ResolveWallMountedCardFaceDir(card)),
+                HasCustomAnchor = !isDoor,
+                Sprite = null,
+                RenderData = renderData,
+                Tile = tile,
+                FlipX = flipX,
+                Distance = distance,
+                WallDir = card.pos?.cell?.blockDir ?? 0,
+                FaceDir = isDoor ? ResolveDoorFaceDir(card.pos?.cell) : ResolveWallMountedCardFaceDir(card),
+                IsDoor = isDoor,
+                UseWallPanelPlacement = true,
+                TrimTransparent = isDoor,
+                MaterialColor = 0,
+                HasMaterialTint = false,
+                UseSelectiveMaterialTint = false,
+                Light = lighting.BlockLight,
+                DiagnosticLabel = card.id.ToString()
+            });
+        }
+
+        private static int ResolveWallMountedCardFaceDir(Card card)
+        {
+            if (card == null)
+            {
+                return 0;
+            }
+
+            TileType tileType = card.TileType;
+            int desiredDir = tileType?.GetDesiredDir(card.pos, card.dir) ?? card.dir;
+            if (desiredDir < 0)
+            {
+                desiredDir = card.dir;
+            }
+
+            return ((desiredDir % 4) + 4) % 4;
+        }
+
+        private static Vector3 ResolveWallMountedCardAnchor(Card card, int desiredDir)
+        {
+            if (card?.pos == null || card.TileType == null)
+            {
+                return Vector3.zero;
+            }
+
+            Vector3 mount = card.pos.Position();
+            card.TileType.GetMountHeight(ref mount, card.pos, desiredDir, card);
+            return mount;
+        }
+
+        private static int ResolveDoorFaceDir(Cell cell)
+        {
+            if (cell == null)
+            {
+                return 0;
+            }
+
+            switch ((cell.blockDir % 4 + 4) % 4)
+            {
+                case 0:
+                    return 0;
+                case 1:
+                    return 1;
+                case 2:
+                    // Door in a corner-like/shared-wall cell should still align to one wall axis, not camera-facing.
+                    return 0;
+                default:
+                    return 0;
+            }
         }
 
         private void TryAddUprightSprite(
@@ -401,7 +1315,8 @@ namespace Elin_ElinFPSView
         {
             Vector2 position = GetCardTileCenter(card);
             float distance = Vector2.Distance(position, origin);
-            if (distance <= 0.1f || distance > maxDistance + 1f)
+            bool isPlayerSelf = card == EClass.pc;
+            if ((!isPlayerSelf && distance <= 0.1f) || distance > maxDistance + 1f)
             {
                 return;
             }
@@ -504,16 +1419,34 @@ namespace Elin_ElinFPSView
             Vector2 origin,
             float maxDistance,
             FpsResolvedCellLighting lighting,
+            List<FpsResolvedWallMountedSprite> wallMountedOutput,
             List<FpsResolvedUprightSprite> uprightOutput,
             List<FpsResolvedGroundSprite> groundOutput)
         {
+            void LogDoorRejection(SourceObj.Row row, RenderData data, string reason)
+            {
+                if (Plugin.Log == null || _loggedDoorRejections >= 12 || row?.tileType?.IsDoor != true)
+                {
+                    return;
+                }
+
+                Plugin.Log.LogInfo(
+                    $"GPU door reject[{_loggedDoorRejections}]: label={row.alias ?? row.id.ToString()} cell=({cellX},{cellZ}) " +
+                    $"reason={reason} seen={cell?.isSeen} hasBlock={cell?.HasBlock} wallOrFence={cell?.HasWallOrFence} fullBlock={cell?.HasFullBlock} " +
+                    $"blockDir={cell?.blockDir} renderData={(data != null ? data.GetType().Name : "null")}");
+                _loggedDoorRejections++;
+            }
+
             if (cell == null || cell.obj == 0)
             {
                 return;
             }
 
+            LogCellObjectSurvey(cell, cellX, cellZ);
+
             if (!cell.isSeen)
             {
+                LogDoorRejection(cell.sourceObj, null, "cell-not-seen");
                 return;
             }
 
@@ -521,6 +1454,7 @@ namespace Elin_ElinFPSView
             RenderData renderData = ResolveCellObjectRenderData(cell);
             if (sourceObj == null || renderData == null || renderData.SkipOnMap)
             {
+                LogDoorRejection(sourceObj, renderData, sourceObj == null ? "no-sourceObj" : renderData == null ? "no-renderData" : "skip-on-map");
                 return;
             }
 
@@ -530,17 +1464,67 @@ namespace Elin_ElinFPSView
             float visibilityDistance = ResolveCellObjectVisibilityDistance(sourceObj, renderData, uprightObject, maxDistance);
             if (distance <= 0.1f || distance > visibilityDistance + 1f)
             {
+                LogDoorRejection(sourceObj, renderData, distance <= 0.1f ? "too-close" : $"distance>{visibilityDistance + 1f:0.00}");
                 return;
             }
 
             if (!TryResolveCellObjectTile(cell, out int tile))
             {
+                LogDoorRejection(sourceObj, renderData, "no-tile");
                 return;
             }
 
             int materialColor = ResolveCellObjectMaterialColor(cell, sourceObj);
             bool hasMaterialTint = sourceObj.colorMod != 0 || sourceObj.useAltColor;
             bool useSelectiveMaterialTint = sourceObj.HasGrowth && hasMaterialTint;
+            bool wallMountedCellObject = IsWallMountedCellObject(cell, sourceObj, renderData);
+            LogWallMountedCandidate(
+                "cell",
+                sourceObj.alias ?? sourceObj.id.ToString(),
+                cell,
+                sourceObj.tileType,
+                sourceObj.tileType?.IsDoor == true,
+                sourceObj.tileType?.IsDoor == true || sourceObj.tileType?.IsBlockMount == true,
+                wallMountedCellObject);
+
+            if (wallMountedCellObject)
+            {
+                wallMountedOutput.Add(new FpsResolvedWallMountedSprite
+                {
+                    Cell = cell,
+                    CellCenter = new Vector3(position.x, GetCellSurfaceHeight(cell), position.y),
+                    Sprite = null,
+                    RenderData = renderData,
+                    Tile = tile,
+                    FlipX = false,
+                    Distance = distance,
+                    WallDir = cell.blockDir,
+                    FaceDir = ((cell.objDir % 4) + 4) % 4,
+                    IsDoor = false,
+                    UseWallPanelPlacement = true,
+                    TrimTransparent = ShouldTrimWallMountedTransparent(cell, sourceObj, renderData),
+                    MaterialColor = hasMaterialTint ? materialColor : 0,
+                    HasMaterialTint = hasMaterialTint,
+                    UseSelectiveMaterialTint = useSelectiveMaterialTint,
+                    Light = lighting.BlockLight,
+                    DiagnosticLabel = sourceObj.alias ?? sourceObj.id.ToString()
+                });
+                if (Plugin.Log != null && _loggedWallFaceObjects < 8)
+                {
+                    Plugin.Log.LogInfo(
+                        $"GPU wall-face object[{_loggedWallFaceObjects}]: label={sourceObj.alias ?? sourceObj.id.ToString()} " +
+                        $"cell=({cellX},{cellZ}) tileType={sourceObj.tileType?.GetType().Name} blockMount={sourceObj.tileType?.IsBlockMount} door={sourceObj.tileType?.IsDoor} " +
+                        $"wallOrFence={cell.HasWallOrFence} fullBlock={cell.HasFullBlock} blockDir={cell.blockDir}");
+                    _loggedWallFaceObjects++;
+                }
+                return;
+            }
+
+            if (sourceObj.tileType?.IsDoor == true)
+            {
+                LogDoorRejection(sourceObj, renderData, "door-fell-through-to-non-wall-mounted");
+            }
+
             if (uprightObject)
             {
                 Vector2 worldSize = ResolveCellObjectUprightWorldSize(sourceObj, renderData);
@@ -619,6 +1603,32 @@ namespace Elin_ElinFPSView
             }
 
             return BillboardKind.LooseItem;
+        }
+
+        private static bool IsWallMountedInstalledCard(Card card)
+        {
+            if (card == null || !card.IsInstalled || card.pos?.cell == null)
+            {
+                return false;
+            }
+
+            TileType tileType = card.TileType;
+            if (tileType == null)
+            {
+                return false;
+            }
+
+            if (tileType.IsDoor || card.trait?.IsDoor == true)
+            {
+                return card.pos.cell.HasBlock;
+            }
+
+            if (tileType.IsBlockMount)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         private static Sprite ResolveCardSprite(Card card)
@@ -882,6 +1892,115 @@ namespace Elin_ElinFPSView
 
             return renderData.size.y * Mathf.Max(0.1f, renderData.imageScale.y)
                 >= renderData.size.x * Mathf.Max(0.1f, renderData.imageScale.x) * 0.9f;
+        }
+
+        private static bool IsWallMountedCellObject(Cell cell, SourceObj.Row sourceObj, RenderData renderData)
+        {
+            if (cell == null || sourceObj == null || renderData == null)
+            {
+                return false;
+            }
+
+            TileType tileType = sourceObj.tileType;
+            if (tileType == null)
+            {
+                return false;
+            }
+
+            if (tileType.IsDoor)
+            {
+                return cell.HasBlock;
+            }
+
+            if (tileType.IsBlockMount)
+            {
+                return cell.HasWallOrFence || cell.HasFullBlock || cell.HasBlock;
+            }
+
+            if (!cell.HasWallOrFence && !cell.HasFullBlock)
+            {
+                return false;
+            }
+
+            if (sourceObj.HasGrowth)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private void LogWallMountedCandidate(
+            string source,
+            string label,
+            Cell cell,
+            TileType tileType,
+            bool door,
+            bool candidate,
+            bool routedToWallMounted)
+        {
+            if (Plugin.Log == null || _loggedWallMountedCandidates >= 20 || !candidate)
+            {
+                return;
+            }
+
+            Plugin.Log.LogInfo(
+                $"GPU wall-mounted candidate[{_loggedWallMountedCandidates}]: source={source} label={label} cell=({cell?.x},{cell?.z}) " +
+                $"tileType={tileType?.GetType().Name} blockMount={tileType?.IsBlockMount} door={door} routed={routedToWallMounted} " +
+                $"wallOrFence={cell?.HasWallOrFence} fullBlock={cell?.HasFullBlock} hasBlock={cell?.HasBlock} objDir={cell?.objDir} blockDir={cell?.blockDir}");
+            _loggedWallMountedCandidates++;
+        }
+
+        private void LogInstalledCardSurvey(Card card)
+        {
+            if (Plugin.Log == null || _loggedInstalledCardSurvey >= 24 || card == null || !card.IsInstalled)
+            {
+                return;
+            }
+
+            TileType tileType = card.TileType;
+            Plugin.Log.LogInfo(
+                $"GPU installed-card survey[{_loggedInstalledCardSurvey}]: id={card.id} refVal={card.refVal} cell=({card.pos?.cell?.x},{card.pos?.cell?.z}) " +
+                $"tileType={tileType?.GetType().Name} blockMount={tileType?.IsBlockMount} door={(tileType?.IsDoor == true) || card.trait?.IsDoor == true} " +
+                $"wallOrFence={card.pos?.cell?.HasWallOrFence} fullBlock={card.pos?.cell?.HasFullBlock} hasBlock={card.pos?.cell?.HasBlock} " +
+                $"dir={card.dir} objDir={card.pos?.cell?.objDir} blockDir={card.pos?.cell?.blockDir}");
+            _loggedInstalledCardSurvey++;
+        }
+
+        private void LogCellObjectSurvey(Cell cell, int cellX, int cellZ)
+        {
+            if (Plugin.Log == null || _loggedCellObjectSurvey >= 24 || cell == null || cell.obj == 0 || cell.sourceObj == null)
+            {
+                return;
+            }
+
+            TileType tileType = cell.sourceObj.tileType;
+            Plugin.Log.LogInfo(
+                $"GPU cell-obj survey[{_loggedCellObjectSurvey}]: id={cell.sourceObj.id} alias={cell.sourceObj.alias} cell=({cellX},{cellZ}) " +
+                $"tileType={tileType?.GetType().Name} blockMount={tileType?.IsBlockMount} door={tileType?.IsDoor} " +
+                $"wallOrFence={cell.HasWallOrFence} fullBlock={cell.HasFullBlock} hasBlock={cell.HasBlock} objDir={cell.objDir} blockDir={cell.blockDir}");
+            _loggedCellObjectSurvey++;
+        }
+
+        private static bool LooksLikeWallMountedItem(SourceObj.Row sourceObj, RenderData renderData)
+        {
+            if (sourceObj == null || renderData == null)
+            {
+                return false;
+            }
+
+            Vector2 sourcePixelSize = ResolveRenderDataSourcePixelSize(renderData);
+            return sourcePixelSize.x <= 40f && sourcePixelSize.y <= 40f;
+        }
+
+        private static bool ShouldTrimWallMountedTransparent(Cell cell, SourceObj.Row sourceObj, RenderData renderData)
+        {
+            if (sourceObj?.tileType?.IsDoor == true)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         private static Vector2 ResolveCellObjectUprightWorldSize(SourceObj.Row sourceObj, RenderData renderData)
@@ -1210,6 +2329,90 @@ namespace Elin_ElinFPSView
         public float VisibilityDistance;
         public float VisibilityConeDot;
         public FpsResolvedLightSample Light;
+    }
+
+    internal struct FpsResolvedWallMountedSprite
+    {
+        public Cell Cell;
+        public Vector3 CellCenter;
+        public Vector3 MountWorld;
+        public bool HasCustomAnchor;
+        public Sprite Sprite;
+        public RenderData RenderData;
+        public int Tile;
+        public bool FlipX;
+        public float Distance;
+        public int WallDir;
+        public int FaceDir;
+        public bool IsDoor;
+        public bool UseWallPanelPlacement;
+        public bool TrimTransparent;
+        public int MaterialColor;
+        public bool HasMaterialTint;
+        public bool UseSelectiveMaterialTint;
+        public FpsResolvedLightSample Light;
+        public string DiagnosticLabel;
+    }
+
+    internal enum FpsRoofTextureKind
+    {
+        None,
+        RenderTile,
+        BlockFace
+    }
+
+    internal enum FpsRoofPlaneKind
+    {
+        Top,
+        SlopeLeft,
+        SlopeRight,
+        Edge,
+        Ramp,
+        InteriorCeiling
+    }
+
+    internal struct FpsResolvedRoofPlane
+    {
+        public Lot Lot;
+        public FpsRoofPlaneKind Kind;
+        public FpsGpuFaceQuad Face;
+        public FpsRoofTextureKind TextureKind;
+        public RenderData RenderData;
+        public int Tile;
+        public int MaterialColor;
+        public bool HasMaterialTint;
+        public bool UseSelectiveMaterialTint;
+        public bool FlipX;
+        public bool TrimTransparent;
+        public FpsResolvedWallSurface BlockSurface;
+        public FpsAtlasSampler.BlockFaceKind BlockFaceKind;
+        public bool DoubleSided;
+        public bool UsePanelPlacement;
+        public string DiagnosticLabel;
+    }
+
+    internal struct FpsRoofLayout
+    {
+        public Lot Lot;
+        public RoofStyle.Type Type;
+        public bool Reverse;
+        public int MinX;
+        public int MinZ;
+        public int MaxX;
+        public int MaxZ;
+        public int RowCount;
+        public int FlatStart;
+        public int FlatEnd;
+        public float BaseY;
+        public float StepY;
+        public float TopY;
+        public FpsResolvedLightSample Light;
+
+        public float MinorStart => Reverse ? MinX : MinZ;
+
+        public float MinorEnd => Reverse ? MaxX : MaxZ;
+
+        public bool HasFlatBand => FlatEnd > FlatStart;
     }
 
     internal enum BillboardKind

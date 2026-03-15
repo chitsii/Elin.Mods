@@ -85,6 +85,54 @@ namespace Elin_ElinFPSView
             return resolved;
         }
 
+        public FpsResolvedLightSample ResolveRoofLight(Lot lot)
+        {
+            if (!_hasContext || lot == null || _tileMap == null)
+            {
+                return FpsResolvedLightSample.Unlit;
+            }
+
+            try
+            {
+                return FpsLightApplicator.DecodeSample(_tileMap.GetRoofLight(lot));
+            }
+            catch (Exception ex)
+            {
+                if (!_loggedApproximateFailure)
+                {
+                    _loggedApproximateFailure = true;
+                    Plugin.Log?.LogWarning($"Failed to query BaseTileMap.GetRoofLight(). Falling back to unlit roof sample. First failure: {ex}");
+                }
+
+                return FpsResolvedLightSample.Unlit;
+            }
+        }
+
+        public Room GetCurrentRoom()
+        {
+            return _hasContext ? _context.CurrentRoom : null;
+        }
+
+        public Lot GetCurrentLot()
+        {
+            return _hasContext ? _context.CurrentLot : null;
+        }
+
+        public bool GetShowRoof()
+        {
+            return _hasContext && _context.ShowRoof;
+        }
+
+        public bool GetHideRoomFog()
+        {
+            return _hasContext && _context.HideRoomFog;
+        }
+
+        public bool GetNoRoofMode()
+        {
+            return _hasContext && _context.NoRoofMode;
+        }
+
         private FpsResolvedCellLighting ResolveCellLightingCore(Cell cell)
         {
             bool roof = cell.HasRoof;
@@ -339,6 +387,8 @@ namespace Elin_ElinFPSView
             public int SnowColorToken;
             public int CurrentHeight;
             public bool ShowRoof;
+            public bool HideRoomFog;
+            public bool NoRoofMode;
             public bool DarkenOuter;
             public bool FogBounds;
             public bool IsSnowCovered;
@@ -367,6 +417,8 @@ namespace Elin_ElinFPSView
                     SnowColorToken = GetInt(SnowColorTokenField, tileMap),
                     CurrentHeight = GetInt(CurrentHeightField, tileMap),
                     ShowRoof = tileMap.showRoof,
+                    HideRoomFog = tileMap.hideRoomFog,
+                    NoRoofMode = tileMap.noRoofMode,
                     DarkenOuter = GetBool(DarkenOuterField, tileMap),
                     FogBounds = GetBool(FogBoundsField, tileMap),
                     IsSnowCovered = GetBool(IsSnowCoveredField, tileMap),

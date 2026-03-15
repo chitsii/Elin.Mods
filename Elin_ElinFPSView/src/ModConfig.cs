@@ -32,11 +32,15 @@ namespace Elin_ElinFPSView
 
         public ConfigEntry<bool> EnableDistanceFog { get; private set; }
 
+        public ConfigEntry<FpsRoofTextureProjectionMode> RoofTextureProjectionMode { get; private set; }
+
         public ConfigEntry<float> LookSensitivity { get; private set; }
 
         public ConfigEntry<float> PitchSensitivity { get; private set; }
 
         public ConfigEntry<bool> EnableGpuDiagnostics { get; private set; }
+
+        public ConfigEntry<bool> EnableDeveloperLogs { get; private set; }
 
         public ConfigEntry<bool> GpuDebugSolidFaces { get; private set; }
 
@@ -55,9 +59,11 @@ namespace Elin_ElinFPSView
                 EnableDistanceShading = configFile.Bind("Rendering", "EnableDistanceShading", true, "Darken distant walls."),
                 EnableWorldLighting = configFile.Bind("Rendering", "EnableWorldLighting", true, "Apply Elin cell lighting, fire light, and shadow colors."),
                 EnableDistanceFog = configFile.Bind("Rendering", "EnableDistanceFog", true, "Fade distant terrain and sprites toward the camera background color."),
+                RoofTextureProjectionMode = configFile.Bind("Rendering", "RoofTextureProjectionMode", FpsRoofTextureProjectionMode.Projected, "Roof texture mode. Projected uses the confirmed source->slice->projection pipeline, RawTile shows the unprojected source tile, and SolidGray disables roof textures. Legacy shear values are treated as Projected for compatibility."),
                 LookSensitivity = configFile.Bind("Input", "LookSensitivity", 0.025f, "Horizontal mouse-look sensitivity in radians per mouse delta."),
                 PitchSensitivity = configFile.Bind("Input", "PitchSensitivity", 0.015f, "Vertical mouse-look sensitivity in normalized screen offset per mouse delta."),
                 EnableGpuDiagnostics = configFile.Bind("Debug", "EnableGpuDiagnostics", true, "Log GPU wall/block/riser diagnostics to Player.log."),
+                EnableDeveloperLogs = configFile.Bind("Debug", "EnableDeveloperLogs", false, "Log high-volume developer-only survey/candidate traces to Player.log."),
                 GpuDebugSolidFaces = configFile.Bind("Debug", "GpuDebugSolidFaces", false, "Render GPU wall/block/riser faces with solid colors instead of textures.")
             };
 

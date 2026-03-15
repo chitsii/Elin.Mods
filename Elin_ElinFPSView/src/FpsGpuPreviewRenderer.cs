@@ -750,10 +750,10 @@ namespace Elin_ElinFPSView
             for (int i = 0; i < _roofPlanes.Count; i++)
             {
                 FpsResolvedRoofPlane plane = _roofPlanes[i];
+                _spriteTextureCache.MaybeDumpRoofSourceTexture(plane);
+                _spriteTextureCache.MaybeDumpRoofSliceTextures(plane);
                 Vector3 center = plane.Face.Center;
-                bool visible = plane.Kind == FpsRoofPlaneKind.InteriorCeiling
-                    ? IsVisibleToCamera(center, terrainMaxDistance + 4f, -1f)
-                    : IsTerrainVisibleToCamera(center, pose, terrainMaxDistance + 4f, 0.5f, 0.6f);
+                bool visible = IsRoofPlaneVisible(plane, pose, terrainMaxDistance + 4f);
                 if (!visible)
                 {
                     continue;
@@ -764,19 +764,26 @@ namespace Elin_ElinFPSView
                 MeshRenderer renderer = _roofRenderers[activeIndex];
                 MeshFilter filter = _roofFilters[activeIndex];
                 quad.SetActive(true);
-                renderer.sharedMaterial = _spriteMaterial;
+                renderer.sharedMaterial = ResolveWallRendererMaterial(plane.DoubleSided);
                 ApplyWallQuadGeometry(quad, filter, plane.Face, plane.DoubleSided);
+                ApplyRoofTextureUv(filter.sharedMesh, plane);
 
-                if (!TryApplyRoofTexture(plane, _propertyBlock, out bool usesBakedTint))
+                bool solidRoofDebug = UseSolidFaceDebug();
+                if (!TryApplyRoofTexture(plane, _propertyBlock, out bool usesBakedTint, out bool useFallbackGray))
                 {
                     quad.SetActive(false);
                     continue;
                 }
 
                 string fogCategory = plane.Kind == FpsRoofPlaneKind.InteriorCeiling ? "roof-interior" : "terrain-roof";
-                _propertyBlock.SetColor("_Color", usesBakedTint
-                    ? ApplyAtmosphericFog(Color.white, center, terrainMaxDistance + 4f, 0.12f, fogCategory)
-                    : ApplyAtmosphericFog(ResolveSpriteTint(plane.MaterialColor, plane.HasMaterialTint, plane.BlockSurface.Light), center, terrainMaxDistance + 4f, 0.12f, fogCategory));
+                Color baseColor = solidRoofDebug
+                    ? ResolveRoofDebugColor(plane.Kind)
+                    : useFallbackGray
+                        ? ResolveRoofFallbackColor(plane.Kind)
+                    : usesBakedTint || plane.TextureKind == FpsRoofTextureKind.PrimarySource
+                        ? Color.white
+                        : ResolveSpriteTint(plane.MaterialColor, plane.HasMaterialTint, plane.BlockSurface.Light);
+                _propertyBlock.SetColor("_Color", ApplyAtmosphericFog(baseColor, center, terrainMaxDistance + 4f, 0.12f, fogCategory));
                 renderer.SetPropertyBlock(_propertyBlock);
                 activeIndex++;
             }
@@ -787,6 +794,55 @@ namespace Elin_ElinFPSView
             }
         }
 
+        private bool IsRoofPlaneVisible(FpsResolvedRoofPlane plane, GpuViewPose pose, float maxDistance)
+        {
+            FpsGpuFaceQuad face = plane.Face;
+            Vector3 cameraPosition = _camera != null ? _camera.transform.position : Vector3.zero;
+            if (IsPointUnderRoofFace(face, cameraPosition, 0.2f))
+            {
+                return true;
+            }
+
+            if (plane.Kind == FpsRoofPlaneKind.InteriorCeiling)
+            {
+                if (IsVisibleToCamera(face.Center, maxDistance, -1f))
+                {
+                    return true;
+                }
+
+                return IsAnyRoofVertexVisible(face, pose, maxDistance, 0.5f, 1.1f);
+            }
+
+            if (IsTerrainVisibleToCamera(face.Center, pose, maxDistance, 0.5f, 0.6f))
+            {
+                return true;
+            }
+
+            return IsAnyRoofVertexVisible(face, pose, maxDistance, 0.75f, 1.2f);
+        }
+
+        private bool IsAnyRoofVertexVisible(FpsGpuFaceQuad face, GpuViewPose pose, float maxDistance, float distancePadding, float viewportPadding)
+        {
+            return IsTerrainVisibleToCamera(face.BottomLeft, pose, maxDistance, distancePadding, viewportPadding)
+                || IsTerrainVisibleToCamera(face.BottomRight, pose, maxDistance, distancePadding, viewportPadding)
+                || IsTerrainVisibleToCamera(face.TopLeft, pose, maxDistance, distancePadding, viewportPadding)
+                || IsTerrainVisibleToCamera(face.TopRight, pose, maxDistance, distancePadding, viewportPadding);
+        }
+
+        private static bool IsPointUnderRoofFace(FpsGpuFaceQuad face, Vector3 point, float verticalPadding)
+        {
+            float minX = Mathf.Min(Mathf.Min(face.BottomLeft.x, face.BottomRight.x), Mathf.Min(face.TopLeft.x, face.TopRight.x));
+            float maxX = Mathf.Max(Mathf.Max(face.BottomLeft.x, face.BottomRight.x), Mathf.Max(face.TopLeft.x, face.TopRight.x));
+            float minZ = Mathf.Min(Mathf.Min(face.BottomLeft.z, face.BottomRight.z), Mathf.Min(face.TopLeft.z, face.TopRight.z));
+            float maxZ = Mathf.Max(Mathf.Max(face.BottomLeft.z, face.BottomRight.z), Mathf.Max(face.TopLeft.z, face.TopRight.z));
+            float minY = Mathf.Min(Mathf.Min(face.BottomLeft.y, face.BottomRight.y), Mathf.Min(face.TopLeft.y, face.TopRight.y));
+            return point.x >= minX
+                && point.x <= maxX
+                && point.z >= minZ
+                && point.z <= maxZ
+                && point.y <= minY + verticalPadding;
+        }
+
         private int AddWallQuads(int activeWallIndex, int cellX, int cellZ, FpsResolvedWallSurface surface)
         {
             if (surface.Cell == null)
@@ -795,7 +851,7 @@ namespace Elin_ElinFPSView
             }
 
             float bottom = FpsIdealizedWorld.GetCellSurfaceHeight(surface.Cell);
-            float top = bottom + 1f;
+            float top = ResolveWallTopHeight(surface.Cell, bottom);
 
             if (surface.Cell.HasWallOrFence && !surface.Cell.HasFullBlock)
             {
@@ -807,21 +863,28 @@ namespace Elin_ElinFPSView
 
         private int AddFullBlockCornerQuads(int activeWallIndex, int cellX, int cellZ, float bottom, float top, FpsResolvedWallSurface surface)
         {
-            for (int dir = 0; dir < 4; dir++)
+            float segmentBottom = bottom;
+            while (segmentBottom < top - 0.01f)
             {
-                if (!ShouldRenderBlockFace(surface.Cell, dir, top))
+                float segmentTop = Mathf.Min(segmentBottom + 1f, top);
+                for (int dir = 0; dir < 4; dir++)
                 {
-                    continue;
+                    if (!ShouldRenderBlockFace(surface.Cell, dir, segmentTop))
+                    {
+                        continue;
+                    }
+
+                    activeWallIndex = AddBlockFaceQuad(
+                        activeWallIndex,
+                        cellX,
+                        cellZ,
+                        segmentBottom,
+                        segmentTop,
+                        dir,
+                        surface);
                 }
 
-                activeWallIndex = AddBlockFaceQuad(
-                    activeWallIndex,
-                    cellX,
-                    cellZ,
-                    bottom,
-                    top,
-                    dir,
-                    surface);
+                segmentBottom = segmentTop;
             }
 
             return activeWallIndex;
@@ -838,14 +901,22 @@ namespace Elin_ElinFPSView
 
             int baseTile = Mathf.Abs(tiles[0]);
             int wallDir = surface.Cell.blockDir;
-            if (wallDir == 0 || wallDir == 2)
+            float segmentBottom = bottom;
+            while (segmentBottom < top - 0.01f)
             {
-                activeWallIndex = AddWallPanelQuad(activeWallIndex, cellX, cellZ, bottom, top, 0, renderData, baseTile, false, surface);
-            }
+                float segmentTop = Mathf.Min(segmentBottom + 1f, top);
+                float segmentHeight = segmentTop - segmentBottom;
+                if (wallDir == 0 || wallDir == 2)
+                {
+                    activeWallIndex = AddWallPanelQuad(activeWallIndex, cellX, cellZ, segmentBottom, segmentHeight, 0, renderData, baseTile, false, surface);
+                }
 
-            if (wallDir == 1 || wallDir == 2)
-            {
-                activeWallIndex = AddWallPanelQuad(activeWallIndex, cellX, cellZ, bottom, top, 1, renderData, baseTile, true, surface);
+                if (wallDir == 1 || wallDir == 2)
+                {
+                    activeWallIndex = AddWallPanelQuad(activeWallIndex, cellX, cellZ, segmentBottom, segmentHeight, 1, renderData, baseTile, true, surface);
+                }
+
+                segmentBottom = segmentTop;
             }
 
             return activeWallIndex;
@@ -895,7 +966,7 @@ namespace Elin_ElinFPSView
             return activeWallIndex + 1;
         }
 
-        private int AddWallPanelQuad(int activeWallIndex, int cellX, int cellZ, float bottom, float top, int dir, RenderData renderData, int tile, bool flipX, FpsResolvedWallSurface surface)
+        private int AddWallPanelQuad(int activeWallIndex, int cellX, int cellZ, float bottom, float heightWorld, int dir, RenderData renderData, int tile, bool flipX, FpsResolvedWallSurface surface)
         {
             EnsureWallPool(activeWallIndex + 1);
 
@@ -920,7 +991,7 @@ namespace Elin_ElinFPSView
                 : textureResolved
                 ? panelTexture
                 : Texture2D.whiteTexture;
-            FpsGpuFaceQuad face = BuildWallPanelFace(cellX, cellZ, dir, bottom, 1f, texture.height / 64f);
+            FpsGpuFaceQuad face = BuildWallPanelFace(cellX, cellZ, dir, bottom, 1f, heightWorld);
             ApplyWallQuadGeometry(quad, filter, face, true);
             _diagnostics.WallPanels++;
             if (!textureResolved)
@@ -938,6 +1009,35 @@ namespace Elin_ElinFPSView
                 : new Color32(255, 0, 255, 255));
             renderer.SetPropertyBlock(_propertyBlock);
             return activeWallIndex + 1;
+        }
+
+        private static float ResolveWallTopHeight(Cell cell, float bottom)
+        {
+            if (cell?.sourceBlock?.tileType?.RepeatBlock != true)
+            {
+                return bottom + 1f;
+            }
+
+            Room room = ResolveRepeatBlockRoom(cell);
+            if (room?.lot == null)
+            {
+                return bottom + 1f;
+            }
+
+            return bottom + Mathf.Max(0.05f, room.lot.realHeight);
+        }
+
+        private static Room ResolveRepeatBlockRoom(Cell cell)
+        {
+            if (cell == null)
+            {
+                return null;
+            }
+
+            return cell.room
+                ?? cell.Front.room
+                ?? cell.Right.room
+                ?? cell.FrontRight.room;
         }
 
         private void UpdateSpritePreview(GpuViewPose pose, bool includePlayerSelf)
@@ -1229,10 +1329,27 @@ namespace Elin_ElinFPSView
             return true;
         }
 
-        private bool TryApplyRoofTexture(FpsResolvedRoofPlane plane, MaterialPropertyBlock block, out bool usesBakedTint)
+        private bool TryApplyRoofTexture(FpsResolvedRoofPlane plane, MaterialPropertyBlock block, out bool usesBakedTint, out bool useFallbackGray)
         {
             usesBakedTint = false;
+            useFallbackGray = false;
             Texture texture = null;
+            FpsRoofTextureProjectionMode roofTextureMode = Plugin.Settings?.RoofTextureProjectionMode?.Value ?? FpsRoofTextureProjectionMode.SolidGray;
+
+            if (UseSolidFaceDebug())
+            {
+                block.Clear();
+                block.SetTexture("_MainTex", Texture2D.whiteTexture);
+                return true;
+            }
+
+            if (roofTextureMode == FpsRoofTextureProjectionMode.SolidGray)
+            {
+                block.Clear();
+                block.SetTexture("_MainTex", Texture2D.whiteTexture);
+                useFallbackGray = true;
+                return true;
+            }
 
             switch (plane.TextureKind)
             {
@@ -1243,32 +1360,63 @@ namespace Elin_ElinFPSView
                         plane.FlipX,
                         out texture);
                     break;
-                case FpsRoofTextureKind.RenderTile:
+                case FpsRoofTextureKind.PrimarySource:
                     if (plane.RenderData != null)
                     {
-                        if (plane.HasMaterialTint)
-                        {
-                            usesBakedTint = plane.UseSelectiveMaterialTint
-                                ? _spriteTextureCache.TryGetSelectiveTintRenderTileTexture(plane.RenderData, plane.Tile, plane.FlipX, plane.MaterialColor, plane.BlockSurface.Light, out texture)
-                                : _spriteTextureCache.TryGetTintedRenderTileTexture(plane.RenderData, plane.Tile, plane.FlipX, plane.MaterialColor, plane.BlockSurface.Light, out texture);
-                        }
-
-                        if (texture == null)
-                        {
-                            _spriteTextureCache.TryGetTexture(plane.RenderData, plane.Tile, plane.FlipX, out texture);
-                        }
+                        usesBakedTint = _spriteTextureCache.TryGetRoofRenderTileTexture(plane, roofTextureMode, out texture);
                     }
                     break;
             }
 
             if (texture == null)
             {
-                return false;
+                block.Clear();
+                block.SetTexture("_MainTex", Texture2D.whiteTexture);
+                useFallbackGray = true;
+                return true;
             }
 
             block.Clear();
             block.SetTexture("_MainTex", texture);
             return true;
+        }
+
+        private static Color ResolveRoofFallbackColor(FpsRoofPlaneKind kind)
+        {
+            switch (kind)
+            {
+                case FpsRoofPlaneKind.Top:
+                    return new Color32(156, 156, 156, 255);
+                case FpsRoofPlaneKind.SlopeLeft:
+                    return new Color32(148, 148, 148, 255);
+                case FpsRoofPlaneKind.SlopeRight:
+                    return new Color32(140, 140, 140, 255);
+                case FpsRoofPlaneKind.Edge:
+                    return new Color32(122, 122, 122, 255);
+                case FpsRoofPlaneKind.InteriorCeiling:
+                    return new Color32(132, 132, 132, 255);
+                default:
+                    return new Color32(144, 144, 144, 255);
+            }
+        }
+
+        private static Color ResolveRoofDebugColor(FpsRoofPlaneKind kind)
+        {
+            switch (kind)
+            {
+                case FpsRoofPlaneKind.Top:
+                    return new Color32(214, 164, 72, 255);
+                case FpsRoofPlaneKind.SlopeLeft:
+                    return new Color32(196, 92, 92, 255);
+                case FpsRoofPlaneKind.SlopeRight:
+                    return new Color32(92, 150, 214, 255);
+                case FpsRoofPlaneKind.Edge:
+                    return new Color32(118, 86, 58, 255);
+                case FpsRoofPlaneKind.InteriorCeiling:
+                    return new Color32(170, 170, 190, 255);
+                default:
+                    return new Color32(220, 80, 220, 255);
+            }
         }
 
         private bool IsVisibleToCamera(Vector3 position, float maxDistance, float minConeDot)
@@ -2291,6 +2439,29 @@ namespace Elin_ElinFPSView
             };
         }
 
+        private static void ApplyRoofTextureUv(Mesh mesh, FpsResolvedRoofPlane plane)
+        {
+            if (mesh == null)
+            {
+                return;
+            }
+
+            if (plane.TextureKind == FpsRoofTextureKind.PrimarySource
+                && plane.ProjectionKind == FpsRoofTextureProjectionKind.TriSlice)
+            {
+                mesh.uv = new[]
+                {
+                    new Vector2(0f, 0f),
+                    new Vector2(1f, 0f),
+                    new Vector2(0.5f, 1f),
+                    new Vector2(0.5f, 1f)
+                };
+                return;
+            }
+
+            SetQuadUv(mesh, new Rect(0f, 0f, 1f, 1f));
+        }
+
         private static int GetPreviewDiameter()
         {
             return MaxPreviewRadius * 2 + 1;
@@ -2417,7 +2588,8 @@ namespace Elin_ElinFPSView
                 return true;
             }
 
-            float neighborTop = FpsIdealizedWorld.GetCellSurfaceHeight(neighbor) + (neighbor.HasFullBlock ? 1f : 0f);
+            float neighborBottom = FpsIdealizedWorld.GetCellSurfaceHeight(neighbor);
+            float neighborTop = ResolveWallTopHeight(neighbor, neighborBottom);
             return neighborTop + 0.01f < top;
         }
 

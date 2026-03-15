@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using BepInEx;
 using UnityEngine;
 
 namespace Elin_ElinFPSView
@@ -12,8 +13,11 @@ namespace Elin_ElinFPSView
         private readonly Dictionary<long, Texture2D> _tintedRenderTileCache = new Dictionary<long, Texture2D>();
         private readonly Dictionary<long, Texture2D> _wallTileCache = new Dictionary<long, Texture2D>();
         private readonly Dictionary<long, Texture2D> _wallMountedCache = new Dictionary<long, Texture2D>();
+        private readonly Dictionary<long, Texture2D> _roofRenderTileCache = new Dictionary<long, Texture2D>();
         private readonly HashSet<long> _dumpedDebugTextures = new HashSet<long>();
         private readonly HashSet<long> _dumpedWallMountedDebugSheets = new HashSet<long>();
+        private readonly HashSet<long> _dumpedRoofDebugTextures = new HashSet<long>();
+        private readonly HashSet<long> _dumpedRoofSliceDebugTextures = new HashSet<long>();
         private readonly FpsAtlasSampler _atlasSampler = new FpsAtlasSampler();
         private const float MinimumBlockFaceOpaqueRatio = 0.08f;
 
@@ -59,13 +63,366 @@ namespace Elin_ElinFPSView
                 }
             }
 
+            foreach (Texture2D texture in _roofRenderTileCache.Values)
+            {
+                if (texture != null)
+                {
+                    UnityEngine.Object.Destroy(texture);
+                }
+            }
+
             _spriteCache.Clear();
             _renderTileCache.Clear();
             _tintedRenderTileCache.Clear();
             _wallTileCache.Clear();
             _wallMountedCache.Clear();
+            _roofRenderTileCache.Clear();
             _dumpedDebugTextures.Clear();
             _dumpedWallMountedDebugSheets.Clear();
+            _dumpedRoofDebugTextures.Clear();
+            _dumpedRoofSliceDebugTextures.Clear();
+        }
+
+        public void MaybeDumpRoofSourceTexture(FpsResolvedRoofPlane plane)
+        {
+            long debugKey = (((long)(plane.Lot?.id ?? 0)) << 32)
+                ^ ((long)plane.Kind << 24)
+                ^ ((long)plane.TextureKind << 20)
+                ^ (uint)plane.Tile
+                ^ (plane.FlipX ? (1L << 62) : 0L);
+            if (_dumpedRoofDebugTextures.Contains(debugKey))
+            {
+                return;
+            }
+
+            try
+            {
+                Texture texture = null;
+                string subDirectory = "unknown";
+                string baseName = $"lot_{plane.Lot?.id ?? 0}_kind_{plane.Kind}_unresolved";
+                string failureReason = null;
+                switch (plane.TextureKind)
+                {
+                    case FpsRoofTextureKind.PrimarySource:
+                        if (plane.RenderData == null)
+                        {
+                            failureReason = "renderData-null";
+                            break;
+                        }
+
+                        if (!TryGetTexture(plane.RenderData, plane.Tile, plane.FlipX, out texture))
+                        {
+                            failureReason = "primary-source-unresolved";
+                        }
+                        if (plane.SourceOrigin == FpsRoofSourceOrigin.RoofTopPrimary)
+                        {
+                            subDirectory = "block_tiles";
+                            baseName = $"lot_{plane.Lot?.id ?? 0}_kind_Top_tile_{plane.Tile}_face_Top_origin_{plane.SourceOrigin}";
+                        }
+                        else
+                        {
+                            subDirectory = "render_tiles";
+                            baseName = $"lot_{plane.Lot?.id ?? 0}_kind_{plane.Kind}_tile_{plane.Tile}_origin_{plane.SourceOrigin}_flip_{(plane.FlipX ? 1 : 0)}";
+                        }
+                        break;
+                    case FpsRoofTextureKind.BlockFace:
+                        if (plane.BlockSurface.RenderData == null)
+                        {
+                            failureReason = "block-renderData-null";
+                            break;
+                        }
+
+                        if (!TryGetTexture(plane.BlockSurface.RenderData, plane.BlockSurface.Tile, false, out texture))
+                        {
+                            failureReason = "block-tile-unresolved";
+                        }
+
+                        subDirectory = "block_tiles";
+                        baseName = $"lot_{plane.Lot?.id ?? 0}_kind_{plane.Kind}_tile_{plane.BlockSurface.Tile}_face_{plane.BlockFaceKind}";
+                        break;
+                    default:
+                        return;
+                }
+
+                string root = Path.Combine(Paths.GameRootPath, "_tmp_gpu_roof_debug", subDirectory);
+                Directory.CreateDirectory(root);
+                string infoPath = Path.Combine(root, $"{baseName}.txt");
+                File.WriteAllText(
+                    infoPath,
+                    $"lot={plane.Lot?.id ?? 0}\n" +
+                    $"kind={plane.Kind}\n" +
+                    $"textureKind={plane.TextureKind}\n" +
+                    $"tile={plane.Tile}\n" +
+                    $"blockTile={plane.BlockSurface.Tile}\n" +
+                    $"blockFace={plane.BlockFaceKind}\n" +
+                    $"flipX={plane.FlipX}\n" +
+                    $"label={plane.DiagnosticLabel}\n" +
+                    $"failure={failureReason ?? "none"}\n");
+
+                if (!(texture is Texture2D texture2D))
+                {
+                    Plugin.Log?.LogWarning($"Failed to resolve GPU roof source texture: {infoPath} reason={failureReason ?? "not-texture2d"}");
+                    _dumpedRoofDebugTextures.Add(debugKey);
+                    return;
+                }
+
+                string imagePath = Path.Combine(root, $"{baseName}.png");
+                File.WriteAllBytes(imagePath, texture2D.EncodeToPNG());
+                Plugin.Log?.LogInfo($"Dumped GPU roof source texture: {imagePath}");
+                _dumpedRoofDebugTextures.Add(debugKey);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log?.LogWarning($"Failed to dump roof source texture: {ex.Message}");
+            }
+        }
+
+        public void MaybeDumpRoofSliceTextures(FpsResolvedRoofPlane plane)
+        {
+            if (!plane.HasLotPrimarySource)
+            {
+                return;
+            }
+
+            FpsResolvedRoofPrimarySource source = plane.LotPrimarySource;
+            long debugKey = (((long)(plane.Lot?.id ?? 0)) << 32)
+                ^ ((long)source.RoofTileId << 12)
+                ^ ((long)source.TileDirection << 8)
+                ^ (uint)source.Tile;
+            if (_dumpedRoofSliceDebugTextures.Contains(debugKey))
+            {
+                return;
+            }
+
+            try
+            {
+                if (!TryGetTexture(source.RenderData, source.Tile, false, out Texture texture) || !(texture is Texture2D sourceTexture))
+                {
+                    Plugin.Log?.LogWarning(
+                        $"Failed to resolve GPU roof slice source texture: lot={plane.Lot?.id ?? 0} roofTile={source.RoofTileId} dir={source.TileDirection} tile={source.Tile}");
+                    _dumpedRoofSliceDebugTextures.Add(debugKey);
+                    return;
+                }
+
+                RoofSliceGuide guide = ResolveRoofSliceGuide();
+                RoofRectSlice rectSliceDefinition = guide.RectSlice;
+                RoofTriSlice triSliceDefinition = guide.TriSlice;
+                string root = Path.Combine(Paths.GameRootPath, "_tmp_gpu_roof_debug", "roof_top_primary_slices");
+                Directory.CreateDirectory(root);
+                string baseName = $"lot_{plane.Lot?.id ?? 0}_roofTile_{source.RoofTileId}_dir_{source.TileDirection}_kind_Top_tile_{source.Tile}_face_Top";
+
+                string sourcePath = Path.Combine(root, $"{baseName}_source.png");
+                File.WriteAllBytes(sourcePath, sourceTexture.EncodeToPNG());
+
+                Texture2D annotated = null;
+                Texture2D rectSlice = null;
+                Texture2D triSlice = null;
+                Texture2D triProjection = null;
+                try
+                {
+                    annotated = CreateRoofSliceAnnotatedTexture(sourceTexture, guide);
+                    File.WriteAllBytes(Path.Combine(root, $"{baseName}_source_points.png"), annotated.EncodeToPNG());
+
+                    rectSlice = CreateRoofSliceTexture(sourceTexture, rectSliceDefinition.Polygon);
+                    File.WriteAllBytes(Path.Combine(root, $"{baseName}_rect_slice.png"), rectSlice.EncodeToPNG());
+
+                    Texture2D rectProjection = null;
+                    try
+                    {
+                        rectProjection = CreateRectProjectionTexture(sourceTexture, rectSliceDefinition);
+                        File.WriteAllBytes(Path.Combine(root, $"{baseName}_rect_projection.png"), rectProjection.EncodeToPNG());
+                    }
+                    finally
+                    {
+                        if (rectProjection != null)
+                        {
+                            UnityEngine.Object.Destroy(rectProjection);
+                        }
+                    }
+
+                    triSlice = CreateRoofSliceTexture(sourceTexture, triSliceDefinition.Polygon);
+                    File.WriteAllBytes(Path.Combine(root, $"{baseName}_tri_slice.png"), triSlice.EncodeToPNG());
+
+                    triProjection = CreateTriProjectionTexture(sourceTexture, triSliceDefinition);
+                    File.WriteAllBytes(Path.Combine(root, $"{baseName}_tri_projection.png"), triProjection.EncodeToPNG());
+                }
+                finally
+                {
+                    if (annotated != null)
+                    {
+                        UnityEngine.Object.Destroy(annotated);
+                    }
+
+                    if (rectSlice != null)
+                    {
+                        UnityEngine.Object.Destroy(rectSlice);
+                    }
+
+                    if (triSlice != null)
+                    {
+                        UnityEngine.Object.Destroy(triSlice);
+                    }
+
+                    if (triProjection != null)
+                    {
+                        UnityEngine.Object.Destroy(triProjection);
+                    }
+                }
+
+                File.WriteAllText(
+                    Path.Combine(root, $"{baseName}_slice_points.txt"),
+                    $"lot={plane.Lot?.id ?? 0}\n" +
+                    $"roofTileId={source.RoofTileId}\n" +
+                    $"tileDirection={source.TileDirection}\n" +
+                    $"tile={source.Tile}\n" +
+                    $"origin={source.Origin}\n" +
+                    $"referenceCanvas=96x80\n" +
+                    $"A={FormatVector(guide.A)}\n" +
+                    $"B={FormatVector(guide.B)}\n" +
+                    $"C={FormatVector(guide.C)}\n" +
+                    $"D={FormatVector(guide.D)}\n" +
+                    $"E={FormatVector(guide.E)}\n" +
+                    $"rectSlice=A,B,C,D\n" +
+                    $"triSlice=B,C,E\n" +
+                    $"triProjection=top:B,bottomLeft:C,bottomRight:E\n" +
+                    $"rectProjectionCanvas={sourceTexture.width}x{sourceTexture.height}\n" +
+                    $"triProjectionCanvas={sourceTexture.width}x{sourceTexture.height}\n" +
+                    $"triProjectionDestination=top:(0.5,0.0),bottomLeft:(0.0,1.0),bottomRight:(1.0,1.0)\n");
+
+                Plugin.Log?.LogInfo($"Dumped GPU roof slice textures: {Path.Combine(root, baseName)}_*");
+                _dumpedRoofSliceDebugTextures.Add(debugKey);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log?.LogWarning($"Failed to dump roof slice textures: {ex.Message}");
+            }
+        }
+
+        public bool TryGetRoofRenderTileTexture(FpsResolvedRoofPlane plane, FpsRoofTextureProjectionMode mode, out Texture texture)
+        {
+            texture = null;
+            FpsRoofTextureProjectionMode canonicalMode = ResolveCanonicalRoofTextureProjectionMode(mode);
+            if (plane.RenderData?.pass == null || canonicalMode == FpsRoofTextureProjectionMode.SolidGray)
+            {
+                return false;
+            }
+
+            long cacheKey = (((long)plane.RenderData.pass.GetInstanceID()) << 32)
+                ^ (uint)plane.Tile
+                ^ (plane.FlipX ? (1L << 62) : 0L)
+                ^ ((long)canonicalMode << 52)
+                ^ ((long)plane.ProjectionKind << 48)
+                ^ ((long)plane.Kind << 45);
+            if (_roofRenderTileCache.TryGetValue(cacheKey, out Texture2D cached) && cached != null)
+            {
+                texture = cached;
+                return true;
+            }
+
+            if (!TryGetTexture(plane.RenderData, plane.Tile, plane.FlipX, out Texture sourceTexture)
+                || !(sourceTexture is Texture2D sourceTexture2D))
+            {
+                return false;
+            }
+
+            Texture2D projectedTexture = null;
+            try
+            {
+                if (!TryCreateRoofProjectionTexture(sourceTexture2D, plane.ProjectionKind, canonicalMode, out projectedTexture))
+                {
+                    return false;
+                }
+
+                _roofRenderTileCache[cacheKey] = projectedTexture;
+                texture = projectedTexture;
+                projectedTexture = null;
+                return true;
+            }
+            finally
+            {
+                if (projectedTexture != null)
+                {
+                    UnityEngine.Object.Destroy(projectedTexture);
+                }
+            }
+        }
+
+        private static FpsRoofTextureProjectionMode ResolveCanonicalRoofTextureProjectionMode(FpsRoofTextureProjectionMode mode)
+        {
+            switch (mode)
+            {
+                case FpsRoofTextureProjectionMode.SolidGray:
+                    return FpsRoofTextureProjectionMode.SolidGray;
+                case FpsRoofTextureProjectionMode.RawTile:
+                    return FpsRoofTextureProjectionMode.RawTile;
+                default:
+                    return FpsRoofTextureProjectionMode.Projected;
+            }
+        }
+
+        private static bool TryCreateRoofProjectionTexture(
+            Texture2D sourceTexture,
+            FpsRoofTextureProjectionKind projectionKind,
+            FpsRoofTextureProjectionMode mode,
+            out Texture2D texture)
+        {
+            texture = null;
+            if (sourceTexture == null)
+            {
+                return false;
+            }
+
+            if (mode == FpsRoofTextureProjectionMode.RawTile || projectionKind == FpsRoofTextureProjectionKind.RawTile)
+            {
+                texture = CreateTextureCopy(sourceTexture, "FpsGpuRoofRawTile");
+                return texture != null;
+            }
+
+            RoofSliceGuide guide = ResolveRoofSliceGuide();
+            Texture2D sliceTexture = null;
+            try
+            {
+                switch (projectionKind)
+                {
+                    case FpsRoofTextureProjectionKind.RectSlice:
+                        sliceTexture = CreateRoofSliceTexture(sourceTexture, guide.RectSlice.Polygon);
+                        texture = CreateRectProjectionTexture(sliceTexture, guide.RectSlice);
+                        return texture != null;
+                    case FpsRoofTextureProjectionKind.TriSlice:
+                        sliceTexture = CreateRoofSliceTexture(sourceTexture, guide.TriSlice.Polygon);
+                        texture = CreateTriProjectionTexture(sliceTexture, guide.TriSlice);
+                        return texture != null;
+                    default:
+                        texture = CreateTextureCopy(sourceTexture, "FpsGpuRoofRawTile");
+                        return texture != null;
+                }
+            }
+            finally
+            {
+                if (sliceTexture != null)
+                {
+                    UnityEngine.Object.Destroy(sliceTexture);
+                }
+            }
+        }
+
+        private static Texture2D CreateTextureCopy(Texture2D sourceTexture, string textureName)
+        {
+            if (sourceTexture == null)
+            {
+                return null;
+            }
+
+            Color32[] pixels = sourceTexture.GetPixels32();
+            Texture2D texture = new Texture2D(sourceTexture.width, sourceTexture.height, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp,
+                name = textureName
+            };
+            texture.SetPixels32(pixels);
+            texture.Apply(false, false);
+            return texture;
         }
 
         public bool TryGetWallMountedTexture(RenderData renderData, int tile, bool flipX, bool trimTransparent, int materialColor, bool hasMaterialTint, bool useSelectiveMaterialTint, FpsResolvedLightSample light, out Texture texture)
@@ -679,6 +1036,351 @@ namespace Elin_ElinFPSView
             float clampedV = Mathf.Clamp01(v);
             float shiftedV = clampedV + (clampedU - 0.5f) * shear;
             return new Vector2(clampedU, Mathf.Clamp01(shiftedV));
+        }
+
+        private static RoofSliceGuide ResolveRoofSliceGuide()
+        {
+            // 96x80 source coordinates provided directly from Paint verification.
+            return new RoofSliceGuide(
+                FromPaintPixels(29f, 5f),
+                FromPaintPixels(66f, 24f),
+                FromPaintPixels(46f, 61f),
+                FromPaintPixels(4f, 41f),
+                FromPaintPixels(91f, 36f));
+        }
+
+        private static Vector2 FromPaintPixels(float xFromLeft, float yFromTop)
+        {
+            const float annotatedWidth = 96f;
+            const float annotatedHeight = 80f;
+            return new Vector2(
+                Mathf.Clamp01(xFromLeft / (annotatedWidth - 1f)),
+                Mathf.Clamp01(yFromTop / (annotatedHeight - 1f)));
+        }
+
+        private static string FormatVector(Vector2 value)
+        {
+            return $"{value.x:F4},{value.y:F4}";
+        }
+
+        private static Texture2D CreateRoofSliceAnnotatedTexture(Texture2D sourceTexture, RoofSliceGuide guide)
+        {
+            int width = sourceTexture.width;
+            int height = sourceTexture.height;
+            Color32[] pixels = sourceTexture.GetPixels32();
+            Color32[] annotated = new Color32[pixels.Length];
+            Array.Copy(pixels, annotated, pixels.Length);
+
+            DrawMarker(annotated, width, height, guide.A, new Color32(255, 32, 32, 255));
+            DrawMarker(annotated, width, height, guide.B, new Color32(255, 32, 32, 255));
+            DrawMarker(annotated, width, height, guide.C, new Color32(255, 32, 32, 255));
+            DrawMarker(annotated, width, height, guide.D, new Color32(255, 32, 32, 255));
+            DrawMarker(annotated, width, height, guide.E, new Color32(255, 32, 32, 255));
+
+            Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp,
+                name = "FpsGpuRoofSliceAnnotated"
+            };
+            texture.SetPixels32(annotated);
+            texture.Apply(false, false);
+            return texture;
+        }
+
+        private static Texture2D CreateRoofSliceTexture(Texture2D sourceTexture, Vector2[] polygon)
+        {
+            int width = sourceTexture.width;
+            int height = sourceTexture.height;
+            Color32[] sourcePixels = sourceTexture.GetPixels32();
+            Color32[] output = new Color32[sourcePixels.Length];
+
+            for (int y = 0; y < height; y++)
+            {
+                float vFromTop = 1f - (y + 0.5f) / height;
+                for (int x = 0; x < width; x++)
+                {
+                    float u = (x + 0.5f) / width;
+                    Vector2 sample = new Vector2(u, vFromTop);
+                    if (!IsPointInsidePolygon(sample, polygon))
+                    {
+                        output[y * width + x] = new Color32(0, 0, 0, 0);
+                        continue;
+                    }
+
+                    output[y * width + x] = sourcePixels[y * width + x];
+                }
+            }
+
+            Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp,
+                name = "FpsGpuRoofSlice"
+            };
+            texture.SetPixels32(output);
+            texture.Apply(false, false);
+            return texture;
+        }
+
+        private static Texture2D CreateRectProjectionTexture(Texture2D sourceTexture, RoofRectSlice rectSlice)
+        {
+            int width = sourceTexture.width;
+            int height = sourceTexture.height;
+            Color32[] sourcePixels = sourceTexture.GetPixels32();
+            Color32[] output = new Color32[width * height];
+
+            for (int y = 0; y < height; y++)
+            {
+                float vFromTop = 1f - (y + 0.5f) / height;
+                Vector2 sourceLeft = Vector2.Lerp(rectSlice.TopLeft, rectSlice.BottomLeft, vFromTop);
+                Vector2 sourceRight = Vector2.Lerp(rectSlice.TopRight, rectSlice.BottomRight, vFromTop);
+                for (int x = 0; x < width; x++)
+                {
+                    float u = (x + 0.5f) / width;
+                    Vector2 sourceUvTop = Vector2.Lerp(sourceLeft, sourceRight, u);
+                    output[y * width + x] = SampleTextureNearest(sourcePixels, width, height, sourceUvTop.x, sourceUvTop.y);
+                }
+            }
+
+            Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp,
+                name = "FpsGpuRoofRectProjection"
+            };
+            texture.SetPixels32(output);
+            texture.Apply(false, false);
+            return texture;
+        }
+
+        private static Texture2D CreateTriProjectionTexture(Texture2D sourceTexture, RoofTriSlice triSlice)
+        {
+            int width = sourceTexture.width;
+            int height = sourceTexture.height;
+            Color32[] sourcePixels = sourceTexture.GetPixels32();
+            Color32[] output = new Color32[width * height];
+            Vector2 destinationTop = new Vector2(0.5f, 0f);
+            Vector2 destinationBottomLeft = new Vector2(0f, 1f);
+            Vector2 destinationBottomRight = new Vector2(1f, 1f);
+
+            for (int y = 0; y < height; y++)
+            {
+                float vFromTop = 1f - (y + 0.5f) / height;
+                for (int x = 0; x < width; x++)
+                {
+                    float u = (x + 0.5f) / width;
+                    Vector2 destinationPoint = new Vector2(u, vFromTop);
+                    if (!TryGetTriangleBarycentricWeights(
+                        destinationPoint,
+                        destinationTop,
+                        destinationBottomLeft,
+                        destinationBottomRight,
+                        out float weightTop,
+                        out float weightBottomLeft,
+                        out float weightBottomRight))
+                    {
+                        output[y * width + x] = new Color32(0, 0, 0, 0);
+                        continue;
+                    }
+
+                    Vector2 sourceUvTop = triSlice.Top * weightTop
+                        + triSlice.BottomLeft * weightBottomLeft
+                        + triSlice.BottomRight * weightBottomRight;
+                    output[y * width + x] = SampleTextureNearest(sourcePixels, width, height, sourceUvTop.x, sourceUvTop.y);
+                }
+            }
+
+            Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp,
+                name = "FpsGpuRoofTriProjection"
+            };
+            texture.SetPixels32(output);
+            texture.Apply(false, false);
+            return texture;
+        }
+
+        private static Color32 SampleTextureNearest(Color32[] pixels, int width, int height, float u, float vTop)
+        {
+            int x = Mathf.Clamp(Mathf.FloorToInt(u * width), 0, width - 1);
+            int yFromTop = Mathf.Clamp(Mathf.FloorToInt(vTop * height), 0, height - 1);
+            int y = height - 1 - yFromTop;
+            return pixels[y * width + x];
+        }
+
+        private static bool TryGetTriangleBarycentricWeights(
+            Vector2 point,
+            Vector2 a,
+            Vector2 b,
+            Vector2 c,
+            out float weightA,
+            out float weightB,
+            out float weightC)
+        {
+            weightA = 0f;
+            weightB = 0f;
+            weightC = 0f;
+
+            float area = Cross(b - a, c - a);
+            if (Mathf.Abs(area) <= 0.000001f)
+            {
+                return false;
+            }
+
+            weightA = Cross(b - point, c - point) / area;
+            weightB = Cross(c - point, a - point) / area;
+            weightC = 1f - weightA - weightB;
+            const float epsilon = -0.000001f;
+            return weightA >= epsilon && weightB >= epsilon && weightC >= epsilon;
+        }
+
+        private static void DrawMarker(Color32[] pixels, int width, int height, Vector2 point, Color32 color)
+        {
+            int centerX = Mathf.Clamp(Mathf.RoundToInt(point.x * (width - 1)), 0, width - 1);
+            int centerY = Mathf.Clamp(Mathf.RoundToInt((1f - point.y) * (height - 1)), 0, height - 1);
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    int x = centerX + dx;
+                    int y = centerY + dy;
+                    if (x < 0 || y < 0 || x >= width || y >= height)
+                    {
+                        continue;
+                    }
+
+                    pixels[y * width + x] = color;
+                }
+            }
+        }
+
+        private static bool IsPointInsidePolygon(Vector2 point, Vector2[] polygon)
+        {
+            if (polygon == null || polygon.Length < 3)
+            {
+                return false;
+            }
+
+            if (polygon.Length == 3)
+            {
+                return IsPointInsideTriangle(point, polygon[0], polygon[1], polygon[2]);
+            }
+
+            if (polygon.Length == 4)
+            {
+                return IsPointInsideTriangle(point, polygon[0], polygon[1], polygon[2])
+                    || IsPointInsideTriangle(point, polygon[0], polygon[2], polygon[3]);
+            }
+
+            return false;
+        }
+
+        private static bool IsPointInsideTriangle(Vector2 point, Vector2 a, Vector2 b, Vector2 c)
+        {
+            float area = Cross(b - a, c - a);
+            if (Mathf.Abs(area) <= 0.000001f)
+            {
+                return false;
+            }
+
+            float sign = Mathf.Sign(area);
+            float edge0 = Cross(b - a, point - a) * sign;
+            float edge1 = Cross(c - b, point - b) * sign;
+            float edge2 = Cross(a - c, point - c) * sign;
+            const float epsilon = -0.000001f;
+            return edge0 >= epsilon && edge1 >= epsilon && edge2 >= epsilon;
+        }
+
+        private static float Cross(Vector2 a, Vector2 b)
+        {
+            return a.x * b.y - a.y * b.x;
+        }
+
+        private readonly struct RoofSliceGuide
+        {
+            public RoofSliceGuide(
+                Vector2 a,
+                Vector2 b,
+                Vector2 c,
+                Vector2 d,
+                Vector2 e)
+            {
+                A = a;
+                B = b;
+                C = c;
+                D = d;
+                E = e;
+                RectQuad = new[]
+                {
+                    a,
+                    b,
+                    c,
+                    d
+                };
+                TriPolygon = new[]
+                {
+                    b,
+                    c,
+                    e
+                };
+            }
+
+            public Vector2 A { get; }
+            public Vector2 B { get; }
+            public Vector2 C { get; }
+            public Vector2 D { get; }
+            public Vector2 E { get; }
+            public Vector2[] RectQuad { get; }
+            public Vector2[] TriPolygon { get; }
+            public RoofRectSlice RectSlice => new RoofRectSlice(A, B, C, D);
+            public RoofTriSlice TriSlice => new RoofTriSlice(B, C, E);
+        }
+
+        private readonly struct RoofRectSlice
+        {
+            public RoofRectSlice(Vector2 topLeft, Vector2 topRight, Vector2 bottomRight, Vector2 bottomLeft)
+            {
+                TopLeft = topLeft;
+                TopRight = topRight;
+                BottomRight = bottomRight;
+                BottomLeft = bottomLeft;
+                Polygon = new[]
+                {
+                    topLeft,
+                    topRight,
+                    bottomRight,
+                    bottomLeft
+                };
+            }
+
+            public Vector2 TopLeft { get; }
+            public Vector2 TopRight { get; }
+            public Vector2 BottomRight { get; }
+            public Vector2 BottomLeft { get; }
+            public Vector2[] Polygon { get; }
+        }
+
+        private readonly struct RoofTriSlice
+        {
+            public RoofTriSlice(Vector2 top, Vector2 bottomLeft, Vector2 bottomRight)
+            {
+                Top = top;
+                BottomLeft = bottomLeft;
+                BottomRight = bottomRight;
+                Polygon = new[]
+                {
+                    top,
+                    bottomLeft,
+                    bottomRight
+                };
+            }
+
+            public Vector2 Top { get; }
+            public Vector2 BottomLeft { get; }
+            public Vector2 BottomRight { get; }
+            public Vector2[] Polygon { get; }
         }
 
         private void MaybeDumpWallMountedProjectionDebug(RenderData renderData, int tile, bool flipX, int width, int height)

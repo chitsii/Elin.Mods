@@ -100,13 +100,6 @@ def define_hecatia_talk(builder: DramaBuilder):
 
     # ── post_reveal_greeting: identity already known ──
     builder.step(post_reveal_greeting)
-    builder.say(
-        "prg_1",
-        "ほな、今日は何がいるん？",
-        "So, what do you need today?",
-        actor=hecatia,
-        text_cn="那，今天需要什么？",
-    )
     builder.jump(choices)
 
     # ── reveal_scene: the tome reacts (narrator intro) ──

@@ -15,6 +15,7 @@ namespace Elin_ArsMoriendi
         private static int _modSelectedSlot = -1;
         private static HashSet<Thing> _augmentCorpses = new();
         private static Vector2 _corpseScrollPos;
+        private static Vector2 _servantMainScrollPos;
         private static string? _autoSelectMessage;
         private static int _modPanelTab; // 0=注入, 1=増設
         private static bool _showThresholdDetail;
@@ -33,6 +34,7 @@ namespace Elin_ArsMoriendi
             _selectedServant = null;
             _augmentCorpses.Clear();
             _corpseScrollPos = Vector2.zero;
+            _servantMainScrollPos = Vector2.zero;
         }
 
         // ── Servant Tab ──
@@ -45,6 +47,14 @@ namespace Elin_ArsMoriendi
             GUILayout.Space(6);
             DrawDivider();
             GUILayout.Space(6);
+
+            _servantMainScrollPos = GUILayout.BeginScrollView(
+                _servantMainScrollPos,
+                _scrollStyle,
+                GUILayout.ExpandHeight(true),
+                GUILayout.ExpandWidth(true));
+            try
+            {
 
             // ── Summary ──
             var allServants = mgr.GetAllServants();
@@ -205,6 +215,11 @@ namespace Elin_ArsMoriendi
                 DrawDivider();
                 GUILayout.Space(6);
                 DrawModificationPanel(mgr, _selectedServant);
+            }
+            }
+            finally
+            {
+                GUILayout.EndScrollView();
             }
         }
 
@@ -440,7 +455,9 @@ namespace Elin_ArsMoriendi
                 totalAtMax ? _warningStyle : _descStyle);
             GUILayout.Space(2);
 
-            // Slot selection
+            GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true), GUILayout.MinHeight(320));
+
+            GUILayout.BeginVertical(GUILayout.Width(240));
             foreach (var slot in NecromancyManager.AugmentableSlots)
             {
                 int currentCount = NecromancyManager.CountBodySlots(servant, slot.SlotId);
@@ -454,180 +471,213 @@ namespace Elin_ArsMoriendi
                 {
                     _modSelectedSlot = slotSelected ? -1 : slot.SlotId;
                     _augmentCorpses.Clear();
+                    _autoSelectMessage = null;
                 }
                 GUI.enabled = true;
                 GUILayout.Label($"({L("現在", "Cur", "当前")}: {currentCount}, +{added})",
-                    _descStyle, GUILayout.Width(120));
+                    _descStyle, GUILayout.Width(140));
                 GUILayout.EndHorizontal();
             }
+            GUILayout.FlexibleSpace();
+            GUILayout.EndVertical();
 
-            // Material corpse selection (if a slot is selected)
-            if (_modSelectedSlot > 0)
+            GUILayout.Space(12);
+
+            GUILayout.BeginVertical(_scrollStyle, GUILayout.ExpandWidth(true), GUILayout.MinHeight(320));
+            DrawAugmentMaterialPanel(mgr, servant);
+            GUILayout.EndVertical();
+
+            GUILayout.EndHorizontal();
+            } // end _modPanelTab == 1 (Augment)
+        }
+
+        private static void DrawAugmentMaterialPanel(NecromancyManager mgr, Chara servant)
+        {
+            if (_modSelectedSlot <= 0)
             {
-                var selectedSlot = Array.Find(NecromancyManager.AugmentableSlots, s => s.SlotId == _modSelectedSlot);
-                if (selectedSlot != null)
+                GUILayout.Label(
+                    L("左側で増設したい部位を選択してください。",
+                      "Select the body part to augment on the left.",
+                      "请在左侧选择要增设的部位。"),
+                    _descStyle);
+                return;
+            }
+
+            var selectedSlot = Array.Find(NecromancyManager.AugmentableSlots, s => s.SlotId == _modSelectedSlot);
+            if (selectedSlot == null)
+                return;
+
+            int rampageChance = mgr.GetRampageChance(servant.uid);
+            var availableCorpses = mgr.FindCorpses();
+            _augmentCorpses.RemoveWhere(t => !availableCorpses.Contains(t));
+
+            var compatibleCorpses = availableCorpses
+                .Where(c => NecromancyManager.CorpseHasBodyPart(c, selectedSlot.FigureName))
+                .ToList();
+
+            GUILayout.Label($"{selectedSlot.GetSlotName()} {L("の素材選択", "Materials", "素材选择")}", _headerStyle);
+
+            GUILayout.Label(
+                string.Format(
+                    L("適合素材 {0}体",
+                      "{0} compatible corpses",
+                      "适配素材 {0}体"),
+                    compatibleCorpses.Count),
+                _descStyle);
+            GUILayout.Space(4);
+
+            if (compatibleCorpses.Count == 0)
+            {
+                GUILayout.Label(
+                    string.Format(
+                        L("適合する素材がありません。({0}を持つ種族の死体が必要)",
+                          "No suitable materials. (Requires corpse of a race with {0})",
+                          "没有合适的素材。(需要拥有{0}的种族的尸体)"),
+                        selectedSlot.GetSlotName()),
+                    _badStyle);
+                return;
+            }
+
+            int resonance = mgr.GetSlotResonance(servant.uid, _modSelectedSlot);
+            double rate = NecromancyManager.CalculateAugmentRate(_augmentCorpses.Count, resonance);
+
+            GUILayout.BeginHorizontal(_scrollStyle);
+            GUILayout.Label($"{L("選択中", "Selected", "已选择")}: {_augmentCorpses.Count}", _summaryLabelStyle, GUILayout.Width(120));
+            GUILayout.Label($"{L("成功率", "Rate", "成功率")}: {rate:P0}", rate >= 0.3 ? _goodStyle : _warningStyle, GUILayout.Width(140));
+            if (resonance > 0)
+                GUILayout.Label($"{L("共鳴", "Resonance", "共鸣")}: +{resonance * 5}%", _descStyle);
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(4);
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button(L("自動選択", "Auto-select", "自动选择"), _buttonStyle, GUILayout.Width(90)))
+            {
+                _augmentCorpses.Clear();
+                int needed = 1;
+                while (needed < compatibleCorpses.Count
+                       && NecromancyManager.CalculateAugmentRate(needed, resonance) < 0.95)
+                    needed++;
+                var sorted = compatibleCorpses.OrderBy(c => GetCorpseLv(c)).ToList();
+                int selected = Math.Min(needed, sorted.Count);
+                for (int i = 0; i < selected; i++)
+                    _augmentCorpses.Add(sorted[i]);
+                double autoRate = NecromancyManager.CalculateAugmentRate(selected, resonance);
+                _autoSelectMessage = string.Format(
+                    L("弱い順に{0}体を選択 (成功率: ~{1:P0})",
+                      "{0} weakest selected (rate: ~{1:P0})",
+                      "已按弱到强选择{0}体 (成功率: ~{1:P0})"),
+                    selected, autoRate);
+            }
+            if (GUILayout.Button(L("解除", "Clear", "清除"), _buttonStyle, GUILayout.Width(60)))
+            {
+                _augmentCorpses.Clear();
+                _autoSelectMessage = null;
+            }
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+
+            if (_autoSelectMessage != null)
+                GUILayout.Label(_autoSelectMessage, _descStyle);
+
+            GUILayout.Space(2);
+            _corpseScrollPos = GUILayout.BeginScrollView(
+                _corpseScrollPos,
+                _scrollStyle,
+                GUILayout.Height(220),
+                GUILayout.ExpandWidth(true));
+            foreach (var corpse in compatibleCorpses)
+            {
+                bool isSelected = _augmentCorpses.Contains(corpse);
+                var rowRect = GUILayoutUtility.GetRect(0f, 28f, GUILayout.ExpandWidth(true));
+                GUI.Box(rowRect, GUIContent.none, _boxStyle);
+
+                string toggle = isSelected ? "[✓]" : "[  ]";
+                var toggleRect = new Rect(rowRect.x + 4f, rowRect.y + 2f, 42f, 24f);
+                if (GUI.Button(toggleRect, toggle, _buttonStyle))
                 {
-                    GUILayout.Space(4);
+                    if (isSelected) _augmentCorpses.Remove(corpse);
+                    else _augmentCorpses.Add(corpse);
+                    _autoSelectMessage = null;
+                }
 
-                    var availableCorpses = mgr.FindCorpses();
-                    // Clean up stale refs
-                    _augmentCorpses.RemoveWhere(t => !availableCorpses.Contains(t));
+                var iconRect = new Rect(rowRect.x + 52f, rowRect.y + 2f, 24f, 24f);
+                DrawCharaIcon(iconRect, sourceId: corpse.c_idRefCard);
 
-                    var compatibleCorpses = availableCorpses
-                        .Where(c => NecromancyManager.CorpseHasBodyPart(c, selectedSlot.FigureName))
-                        .ToList();
+                var levelRect = new Rect(rowRect.xMax - 52f, rowRect.y + 5f, 48f, 18f);
+                var nameRect = new Rect(rowRect.x + 82f, rowRect.y + 5f, rowRect.width - 138f, 18f);
+                GUI.Label(nameRect, $"{corpse.GetName(NameStyle.Full)} x{corpse.Num}", _labelStyle);
+                GUI.Label(levelRect, $"Lv.{GetCorpseLv(corpse)}", _descStyle);
+            }
+            GUILayout.EndScrollView();
 
-                    GUILayout.Label(string.Format(L("▸ {0}の素材死体を選択 ({1}体)",
-                        "▸ Select material corpses for {0} ({1})",
-                        "▸ 选择{0}的素材尸体 ({1}体)"),
-                        selectedSlot.GetSlotName(), compatibleCorpses.Count), _descStyle);
-                    GUILayout.Space(2);
+            GUILayout.Space(6);
+            GUILayout.BeginHorizontal();
+            GUI.enabled = _augmentCorpses.Count > 0 && !_pendingConfirm;
+            if (GUILayout.Button(L("増設する", "Augment", "增设"), _buttonStyle, GUILayout.Width(120)))
+            {
+                var capturedServant = servant;
+                int capturedSlotId = _modSelectedSlot;
+                var capturedCorpses = new List<Thing>(_augmentCorpses);
+                int capturedResonance = mgr.GetSlotResonance(capturedServant.uid, capturedSlotId);
+                double capturedRate = NecromancyManager.CalculateAugmentRate(capturedCorpses.Count, capturedResonance);
 
-                    if (compatibleCorpses.Count == 0)
+                string msg = string.Format(
+                    "{0} ← {1} ({2}: {3:P0})",
+                    selectedSlot.GetSlotName(),
+                    $"{capturedCorpses.Count}{L("個の死体", " corpses", "个尸体")}",
+                    L("成功率", "Rate", "成功率"),
+                    capturedRate);
+                if (rampageChance > 0)
+                    msg += $"\n⚠ {L("暴走率", "Rampage", "暴走率")}: {rampageChance}%";
+
+                ShowConfirmDialog(msg, () =>
+                {
+                    _lastResult = null;
+                    var augSlot = Array.Find(NecromancyManager.AugmentableSlots, s => s.SlotId == capturedSlotId);
+                    string slotName = augSlot?.GetSlotName() ?? $"Slot{capturedSlotId}";
+                    bool success = mgr.AugmentBodyPart(capturedServant, capturedSlotId, capturedCorpses);
+                    if (success)
                     {
-                        GUILayout.Label(string.Format(
-                            L("適合する素材がありません。({0}を持つ種族の死体が必要)",
-                              "No suitable materials. (Requires corpse of a race with {0})",
-                              "没有合适的素材。(需要拥有{0}的种族的尸体)"),
-                            selectedSlot.GetSlotName()), _badStyle);
+                        LangHelper.Say("augmentSuccess", capturedServant);
+                        EClass.pc.pos.PlayEffect("mutation");
+                        EClass.pc.pos.PlaySound("mutation");
+                        _lastResult = new ActionResult
+                        {
+                            Title = $"{slotName} {L("増設成功", "Augment Success", "增设成功")}",
+                            Detail = $"{L("成功率", "Rate", "成功率")}: {capturedRate:P0}, {L("共鳴リセット", "Resonance reset", "共鸣重置")}",
+                            AccentColor = SpectralGreen
+                        };
+
+                        var rampage = mgr.CheckRampage(capturedServant);
+                        if (rampage != null)
+                        {
+                            HandleRampage(mgr, capturedServant, rampage.Value);
+                        }
                     }
                     else
                     {
-                        // Auto-select / Clear buttons
-                        GUILayout.BeginHorizontal();
-                        if (GUILayout.Button(L("自動選択", "Auto-select", "自动选择"), _buttonStyle, GUILayout.Width(90)))
+                        LangHelper.Say("augmentFailed");
+                        EClass.pc.pos.PlaySound("fail");
+                        int newResonance = mgr.GetSlotResonance(capturedServant.uid, capturedSlotId);
+                        _lastResult = new ActionResult
                         {
-                            _augmentCorpses.Clear();
-                            int resonance = mgr.GetSlotResonance(servant.uid, _modSelectedSlot);
-                            int needed = 1;
-                            while (needed < compatibleCorpses.Count
-                                   && NecromancyManager.CalculateAugmentRate(needed, resonance) < 0.95)
-                                needed++;
-                            var sorted = compatibleCorpses.OrderBy(c => GetCorpseLv(c)).ToList();
-                            int selected = Math.Min(needed, sorted.Count);
-                            for (int i = 0; i < selected; i++)
-                                _augmentCorpses.Add(sorted[i]);
-                            double autoRate = NecromancyManager.CalculateAugmentRate(selected, resonance);
-                            _autoSelectMessage = string.Format(
-                                L("弱い順に{0}体を選択 (成功率: ~{1:P0})",
-                                  "{0} weakest selected (rate: ~{1:P0})",
-                                  "已按弱到强选择{0}体 (成功率: ~{1:P0})"),
-                                selected, autoRate);
-                        }
-                        if (GUILayout.Button(L("解除", "Clear", "清除"), _buttonStyle, GUILayout.Width(60)))
-                        {
-                            _augmentCorpses.Clear();
-                            _autoSelectMessage = null;
-                        }
-                        GUILayout.EndHorizontal();
-
-                        if (_autoSelectMessage != null)
-                            GUILayout.Label(_autoSelectMessage, _descStyle);
-
-                        GUILayout.Space(2);
-
-                        // Scrollable corpse list
-                        _corpseScrollPos = GUILayout.BeginScrollView(
-                            _corpseScrollPos,
-                            _scrollStyle,
-                            GUILayout.MaxHeight(800),
-                            GUILayout.ExpandWidth(true));
-                        foreach (var corpse in compatibleCorpses)
-                        {
-                            bool isSelected = _augmentCorpses.Contains(corpse);
-                            GUILayout.BeginHorizontal(_boxStyle, GUILayout.ExpandWidth(true), GUILayout.MinHeight(34));
-                            string toggle = isSelected ? "[✓]" : "[  ]";
-                            if (GUILayout.Button(toggle, _buttonStyle, GUILayout.Width(42), GUILayout.Height(26)))
-                            {
-                                if (isSelected) _augmentCorpses.Remove(corpse);
-                                else _augmentCorpses.Add(corpse);
-                                _autoSelectMessage = null;
-                            }
-
-                            GUILayout.Label(GUIContent.none, GUIStyle.none, GUILayout.Width(28), GUILayout.Height(28));
-                            var iconRect = GUILayoutUtility.GetLastRect();
-                            DrawCharaIcon(iconRect, sourceId: corpse.c_idRefCard);
-
-                            GUILayout.Label($"{corpse.GetName(NameStyle.Full)} x{corpse.Num}", _labelStyle, GUILayout.ExpandWidth(true));
-                            GUILayout.Label($"Lv.{GetCorpseLv(corpse)}", _descStyle, GUILayout.Width(52));
-                            GUILayout.EndHorizontal();
-                        }
-                        GUILayout.EndScrollView();
+                            Title = $"{slotName} {L("増設失敗", "Augment Failed", "增设失败")}",
+                            Detail = $"{L("素材消費済", "Materials consumed", "素材已消耗")}, {L("共鳴", "Resonance", "共鸣")}: +{newResonance * 5}%",
+                            AccentColor = BloodCrimson
+                        };
                     }
 
-                    // Success rate preview with resonance
-                    if (_augmentCorpses.Count > 0)
-                    {
-                        int resonance = mgr.GetSlotResonance(servant.uid, _modSelectedSlot);
-                        double rate = NecromancyManager.CalculateAugmentRate(_augmentCorpses.Count, resonance);
-                        string rateText = $"{L("成功率", "Success rate", "成功率")}: {rate:P0} ({_augmentCorpses.Count}{L("個投入", " corpses", "个投入")})";
-                        if (resonance > 0)
-                            rateText += $"  ({L("共鳴", "Resonance", "共鸣")}: +{resonance * 5}%)";
-                        GUILayout.Label(rateText, rate >= 0.3 ? _goodStyle : _warningStyle);
-                    }
-
-                    // Augment button
-                    GUI.enabled = _augmentCorpses.Count > 0 && !_pendingConfirm;
-                    if (GUILayout.Button(L("増設する", "Augment", "增设"), _buttonStyle, GUILayout.Width(120)))
-                    {
-                        var capturedServant = servant;
-                        int capturedSlotId = _modSelectedSlot;
-                        var capturedCorpses = new List<Thing>(_augmentCorpses);
-                        int capturedResonance = mgr.GetSlotResonance(servant.uid, capturedSlotId);
-                        double rate = NecromancyManager.CalculateAugmentRate(capturedCorpses.Count, capturedResonance);
-
-                        string msg = string.Format(
-                            "{0} ← {1} ({2}: {3:P0})",
-                            selectedSlot.GetSlotName(),
-                            $"{capturedCorpses.Count}{L("個の死体", " corpses", "个尸体")}",
-                            L("成功率", "Rate", "成功率"),
-                            rate);
-                        if (rampageChance > 0)
-                            msg += $"\n⚠ {L("暴走率", "Rampage", "暴走率")}: {rampageChance}%";
-
-                        ShowConfirmDialog(msg, () =>
-                        {
-                            _lastResult = null;
-                            var augSlot = Array.Find(NecromancyManager.AugmentableSlots, s => s.SlotId == capturedSlotId);
-                            string slotName = augSlot?.GetSlotName() ?? $"Slot{capturedSlotId}";
-                            bool success = mgr.AugmentBodyPart(capturedServant, capturedSlotId, capturedCorpses);
-                            if (success)
-                            {
-                                LangHelper.Say("augmentSuccess", capturedServant);
-                                EClass.pc.pos.PlayEffect("mutation");
-                                EClass.pc.pos.PlaySound("mutation");
-                                _lastResult = new ActionResult
-                                {
-                                    Title = $"{slotName} {L("増設成功", "Augment Success", "增设成功")}",
-                                    Detail = $"{L("成功率", "Rate", "成功率")}: {rate:P0}, {L("共鳴リセット", "Resonance reset", "共鸣重置")}",
-                                    AccentColor = SpectralGreen
-                                };
-
-                                var rampage = mgr.CheckRampage(capturedServant);
-                                if (rampage != null)
-                                {
-                                    HandleRampage(mgr, capturedServant, rampage.Value);
-                                }
-                            }
-                            else
-                            {
-                                LangHelper.Say("augmentFailed");
-                                EClass.pc.pos.PlaySound("fail");
-                                int newResonance = mgr.GetSlotResonance(capturedServant.uid, capturedSlotId);
-                                _lastResult = new ActionResult
-                                {
-                                    Title = $"{slotName} {L("増設失敗", "Augment Failed", "增设失败")}",
-                                    Detail = $"{L("素材消費済", "Materials consumed", "素材已消耗")}, {L("共鳴", "Resonance", "共鸣")}: +{newResonance * 5}%",
-                                    AccentColor = BloodCrimson
-                                };
-                            }
-                            _augmentCorpses.Clear();
-                        });
-                    }
-                    GUI.enabled = true;
-                }
+                    _augmentCorpses.Clear();
+                });
             }
-            } // end _modPanelTab == 1 (Augment)
+            GUI.enabled = true;
+            if (GUILayout.Button(L("選択解除", "Clear Selection", "清除选择"), _buttonStyle, GUILayout.Width(120)))
+            {
+                _augmentCorpses.Clear();
+                _autoSelectMessage = null;
+            }
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
         }
 
         private static void HandleRampage(NecromancyManager mgr, Chara servant, RampageResult result)

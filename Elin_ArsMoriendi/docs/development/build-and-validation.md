@@ -35,11 +35,22 @@
   - `build.bat debug`
   - `build.bat debug regen`
 
+## Unity AssetBundle 更新
+
+最終確認: 2026-03-14
+
+- `build.bat` は Unity の `ars_spell_particle` bundle を再生成しない
+- Unity asset を変更した作業では、先に `C:\Users\tishi\Elin_Mods` で prefab/material を更新する
+- その後に Unity メニュー `Tools/Build Ars Spell Bundle` を実行し、repo 側 `Asset` を更新する
+- そこまで終わってから `build.bat` を実行する
+- 詳細は `docs/development/unity-fx-first-effect-guide.md` を参照する
+
 ## Drama v2 移行時のチェック運用 (Ars)
 
 - 1シナリオ移行ごとに `build.bat` を実行して fail-fast を通す
 - 生成物更新が必要なケースのみ `build.bat regen` を実行する
 - 差分確認対象は `LangMod/EN/Dialog/Drama/*.xlsx` を基本とする
+- `tools/drama/create_drama_excel.py` は v2 save handler 未登録を旧 builder にフォールバックせず、即エラーにする
 - 差分レビューでは以下を分離して判定する
   - 許容: text id 自動化（移行時は常時発生）、整形由来の空セル整理
   - 不許容: 分岐先、条件式、action/param の意味変更

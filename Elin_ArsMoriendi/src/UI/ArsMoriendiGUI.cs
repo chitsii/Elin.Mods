@@ -23,8 +23,8 @@ namespace Elin_ArsMoriendi
         private static Action? _confirmAction;
 
         private const int WindowId = 92710;
-        private const float WindowWidth = 720f;
-        private const float WindowHeight = 580f;
+        private const float WindowWidth = 820f;
+        private const float WindowHeight = 760f;
         private const int MaxStockDisplay = 50;
         private const float StockLabelWidth = 170f;
         private const float StockBarWidth = 100f;
@@ -266,21 +266,30 @@ namespace Elin_ArsMoriendi
 
                 GUILayout.Space(4);
 
-                // Scrollable tab content
-                _scrollPos = GUILayout.BeginScrollView(_scrollPos, _scrollStyle);
-                try
+                if (_currentTab == 2)
                 {
                     switch (_currentTab)
                     {
-                        case 0: DrawKnowledgeTab(); break;
-                        case 1: DrawRitualTab(); break;
                         case 2: DrawServantTab(); break;
-                        case 3: DrawChapterFourTab(); break;
                     }
                 }
-                finally
+                else
                 {
-                    GUILayout.EndScrollView();
+                    // Scrollable tab content
+                    _scrollPos = GUILayout.BeginScrollView(_scrollPos, _scrollStyle);
+                    try
+                    {
+                        switch (_currentTab)
+                        {
+                            case 0: DrawKnowledgeTab(); break;
+                            case 1: DrawRitualTab(); break;
+                            case 3: DrawChapterFourTab(); break;
+                        }
+                    }
+                    finally
+                    {
+                        GUILayout.EndScrollView();
+                    }
                 }
             }
             finally

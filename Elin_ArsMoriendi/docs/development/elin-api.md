@@ -180,3 +180,11 @@ grep "drink" ../SourceExcels/csv/SourceCard_Category.csv
   - `GameArsDramaRuntimeContext.TryStartDrama` は idempotent（既開始なら false）。
   - 開始時に `chitsii.ars.drama.started.<drama_id> = 1` を保存して `QuestDrama.PlayDeferred(drama_id)` を呼ぶ。
   - 既開始時は `QuestBridge.TryStartDrama: skipped already started (...)` をログ出力。
+
+## Drama の `inject/Unique` 挙動（実装確認済み）
+
+- 最終確認: 2026-03-12
+- `action=inject`, `param=Unique` は `DramaCustomSequence` の Unique 会話ビルダーを現在の talk に差し込み、NPC 状態に応じてバニラの `_invite`, `_joinParty`, `_leaveParty`, `_buy`, `_heal` などを追加する。
+- 追加候補は `Trait`, `IsHomeMember`, `affinity.CanInvite()`, `CanJoinParty` などで変わるため、「仲間化の導線だけ欲しい」場合でも表示内容は NPC の状態依存になる。
+- merchant 系ドラマで mod 側が手動で `_buy` を置いている場合、`inject/Unique` と同居させると取引導線が重複しうる。解禁後専用メニューへ分離するか、手動 `_buy` を片側だけに寄せる。
+- `_choices` は `inject` で蓄積したバニラ選択肢を同一会話内の後続 prompt に再注入するためのアクション。勧誘や join/leave 後に会話が終了する設計なら、`inject/Unique` 単独で十分なことが多い。

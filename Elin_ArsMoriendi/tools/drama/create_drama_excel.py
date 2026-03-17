@@ -56,90 +56,57 @@ from drama_v2.scenarios.ars_stigmata import save_stigmata_xlsx
 from drama_v2.scenarios.ars_tome_awakening import save_tome_awakening_xlsx
 
 from drama.data import DramaIds
-from drama.drama_builder import DramaBuilder
 
 # Output directory
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "LangMod", "EN", "Dialog", "Drama")
 
-# Drama definitions: (drama_id, define_function)
+# Drama definitions: (drama_id, v2 save_function)
 DRAMAS = [
-    (DramaIds.FIRST_SOUL, None),
-    (DramaIds.TOME_AWAKENING, None),
-    (DramaIds.KAREN_ENCOUNTER, None),
-    (DramaIds.KAREN_RETREAT, None),
-    (DramaIds.CINDER_RECORDS, None),
-    (DramaIds.SCOUT_ENCOUNTER, None),
-    (DramaIds.STIGMATA, None),
-    (DramaIds.ERENOS_APPEAR, None),
-    (DramaIds.ERENOS_DEFEAT, None),
-    (DramaIds.APOTHEOSIS, None),
-    (DramaIds.FIRST_SERVANT, None),
-    (DramaIds.SERVANT_RAMPAGE, None),
-    (DramaIds.SERVANT_LOST, None),
-    (DramaIds.DORMANT_FLAVOR, None),
-    (DramaIds.KAREN_SHADOW, None),
-    (DramaIds.SEVENTH_SIGN, None),
-    (DramaIds.KAREN_AMBUSH, None),
-    (DramaIds.ERENOS_AMBUSH, None),
-    (DramaIds.SCOUT_AMBUSH, None),
-    (DramaIds.HECATIA_TALK, None),
+    (DramaIds.FIRST_SOUL, save_first_soul_xlsx),
+    (DramaIds.TOME_AWAKENING, save_tome_awakening_xlsx),
+    (DramaIds.KAREN_ENCOUNTER, save_karen_encounter_xlsx),
+    (DramaIds.KAREN_RETREAT, save_karen_retreat_xlsx),
+    (DramaIds.CINDER_RECORDS, save_cinder_records_xlsx),
+    (DramaIds.SCOUT_ENCOUNTER, save_scout_encounter_xlsx),
+    (DramaIds.STIGMATA, save_stigmata_xlsx),
+    (DramaIds.ERENOS_APPEAR, save_erenos_appear_xlsx),
+    (DramaIds.ERENOS_DEFEAT, save_erenos_defeat_xlsx),
+    (DramaIds.APOTHEOSIS, save_apotheosis_xlsx),
+    (DramaIds.FIRST_SERVANT, save_first_servant_xlsx),
+    (DramaIds.SERVANT_RAMPAGE, save_servant_rampage_xlsx),
+    (DramaIds.SERVANT_LOST, save_servant_lost_xlsx),
+    (DramaIds.DORMANT_FLAVOR, save_dormant_flavor_xlsx),
+    (DramaIds.KAREN_SHADOW, save_karen_shadow_xlsx),
+    (DramaIds.SEVENTH_SIGN, save_seventh_sign_xlsx),
+    (DramaIds.KAREN_AMBUSH, save_karen_ambush_xlsx),
+    (DramaIds.ERENOS_AMBUSH, save_erenos_ambush_xlsx),
+    (DramaIds.SCOUT_AMBUSH, save_scout_ambush_xlsx),
+    (DramaIds.HECATIA_TALK, save_hecatia_talk_xlsx),
 ]
+
+
+def validate_drama_registry() -> None:
+    missing = [drama_id for drama_id, save_fn in DRAMAS if not callable(save_fn)]
+    if missing:
+        missing_csv = ", ".join(missing)
+        raise RuntimeError(
+            "Drama generator registry is incomplete. "
+            f"Missing v2 save handler(s): {missing_csv}"
+        )
 
 
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+    validate_drama_registry()
 
     success = 0
     errors = 0
 
-    for drama_id, define_fn in DRAMAS:
+    for drama_id, save_fn in DRAMAS:
         try:
             filename = f"drama_{drama_id}.xlsx"
             filepath = os.path.join(OUTPUT_DIR, filename)
-            if drama_id == DramaIds.FIRST_SOUL:
-                save_first_soul_xlsx(filepath)
-            elif drama_id == DramaIds.DORMANT_FLAVOR:
-                save_dormant_flavor_xlsx(filepath)
-            elif drama_id == DramaIds.TOME_AWAKENING:
-                save_tome_awakening_xlsx(filepath)
-            elif drama_id == DramaIds.APOTHEOSIS:
-                save_apotheosis_xlsx(filepath)
-            elif drama_id == DramaIds.KAREN_ENCOUNTER:
-                save_karen_encounter_xlsx(filepath)
-            elif drama_id == DramaIds.KAREN_RETREAT:
-                save_karen_retreat_xlsx(filepath)
-            elif drama_id == DramaIds.CINDER_RECORDS:
-                save_cinder_records_xlsx(filepath)
-            elif drama_id == DramaIds.SCOUT_ENCOUNTER:
-                save_scout_encounter_xlsx(filepath)
-            elif drama_id == DramaIds.STIGMATA:
-                save_stigmata_xlsx(filepath)
-            elif drama_id == DramaIds.ERENOS_APPEAR:
-                save_erenos_appear_xlsx(filepath)
-            elif drama_id == DramaIds.ERENOS_DEFEAT:
-                save_erenos_defeat_xlsx(filepath)
-            elif drama_id == DramaIds.FIRST_SERVANT:
-                save_first_servant_xlsx(filepath)
-            elif drama_id == DramaIds.SERVANT_RAMPAGE:
-                save_servant_rampage_xlsx(filepath)
-            elif drama_id == DramaIds.SERVANT_LOST:
-                save_servant_lost_xlsx(filepath)
-            elif drama_id == DramaIds.KAREN_SHADOW:
-                save_karen_shadow_xlsx(filepath)
-            elif drama_id == DramaIds.SEVENTH_SIGN:
-                save_seventh_sign_xlsx(filepath)
-            elif drama_id == DramaIds.KAREN_AMBUSH:
-                save_karen_ambush_xlsx(filepath)
-            elif drama_id == DramaIds.ERENOS_AMBUSH:
-                save_erenos_ambush_xlsx(filepath)
-            elif drama_id == DramaIds.SCOUT_AMBUSH:
-                save_scout_ambush_xlsx(filepath)
-            elif drama_id == DramaIds.HECATIA_TALK:
-                save_hecatia_talk_xlsx(filepath)
-            else:
-                builder = DramaBuilder(mod_name="ArsMoriendi")
-                define_fn(builder)
-                builder.save(filepath, sheet_name=drama_id)
+            save_fn(filepath)
             success += 1
         except Exception as e:
             print(f"[ERROR] Failed to generate {drama_id}: {e}")

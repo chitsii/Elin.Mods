@@ -44,12 +44,6 @@ def save_hecatia_talk_xlsx(path: str) -> None:
     d.node(
         "post_reveal_greeting",
         *d.seq(
-            d.line(
-                "ほな、今日は何がいるん？",
-                actor=ars_hecatia,
-                en="So, what do you need today?",
-                cn="那，今天需要什么？",
-            ),
             d.go("choices"),
         ),
     )
@@ -193,6 +187,18 @@ def save_hecatia_talk_xlsx(path: str) -> None:
     d.node(
         "choices",
         *d.seq(
+            d.switch_on_flag(
+                "chitsii.ars.event.hecatia_revealed",
+                cases=[("==", 1, "choices_revealed")],
+                default_to="choices_base",
+                actor="pc",
+            ),
+        ),
+    )
+
+    d.node(
+        "choices_base",
+        *d.seq(
             d.line(
                 "何にする？", actor=ars_hecatia, en="What'll it be?", cn="想要什么？"
             ),
@@ -228,6 +234,46 @@ def save_hecatia_talk_xlsx(path: str) -> None:
                         cn="询问禁书",
                     ),
                     d.option("取引する", "_buy", en="Trade", cn="交易"),
+                    d.option("去る", "end", en="Leave", cn="离开"),
+                ],
+                cancel="end",
+            ),
+        ),
+    )
+
+    d.node(
+        "choices_revealed",
+        *d.seq(
+            d.line(
+                "何にする？", actor=ars_hecatia, en="What'll it be?", cn="想要什么？"
+            ),
+            d.raw({"action": "inject", "param": "Unique"}),
+            d.choice_block(
+                [
+                    d.option(
+                        "聞きたいことがある",
+                        "ask_menu",
+                        en="I have a question",
+                        cn="有事想问",
+                    ),
+                    d.option(
+                        "死霊術の概要を知りたい",
+                        "spell_menu",
+                        en="I want an overview of necromancy",
+                        cn="我想了解死灵术概要",
+                    ),
+                    d.option(
+                        "死霊術呪文の戦術指南をしてほしい",
+                        "guidebook_info",
+                        en="I want tactical guidance for necromancy spells",
+                        cn="请给我死灵术咒文的战术指南",
+                    ),
+                    d.option(
+                        "禁書について聞く",
+                        "lore_menu",
+                        en="Ask about the tome",
+                        cn="询问禁书",
+                    ),
                     d.option("去る", "end", en="Leave", cn="离开"),
                 ],
                 cancel="end",

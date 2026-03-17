@@ -757,6 +757,7 @@ namespace Elin_ArsMoriendi
             }
         }
 
+
         private static void ForceLoop(GameObject go)
         {
             var systems = go.GetComponentsInChildren<ParticleSystem>(true);

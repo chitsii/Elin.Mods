@@ -138,6 +138,10 @@ xcopy "%~dp0package.xml" "%STEAM_PACKAGE_DIR%\" /Y
 if exist "%~dp0preview.jpg" xcopy "%~dp0preview.jpg" "%STEAM_PACKAGE_DIR%\" /Y
 
 echo Copying LangMod...
+if exist "%STEAM_PACKAGE_DIR%\LangMod" (
+    echo Cleaning stale SourceLocalization.json...
+    del /S /Q "%STEAM_PACKAGE_DIR%\LangMod\*SourceLocalization.json" >nul 2>&1
+)
 if exist "%~dp0LangMod" (
     xcopy "%~dp0LangMod" "%STEAM_PACKAGE_DIR%\LangMod\" /E /Y /I
 )

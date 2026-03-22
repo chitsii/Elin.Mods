@@ -443,6 +443,9 @@ xcopy "%~dp0package.xml" "%STEAM_PACKAGE_DIR%\" /Y /Q >nul 2>&1
 xcopy "%~dp0preview.jpg" "%STEAM_PACKAGE_DIR%\" /Y /Q >nul 2>&1
 xcopy "%~dp0Package\quest_definitions.json" "%STEAM_PACKAGE_DIR%\Package\" /Y /I /Q >nul 2>&1
 xcopy "%~dp0Package\battle_stages.json" "%STEAM_PACKAGE_DIR%\Package\" /Y /I /Q >nul 2>&1
+if exist "%STEAM_PACKAGE_DIR%\LangMod" (
+    del /S /Q "%STEAM_PACKAGE_DIR%\LangMod\*SourceLocalization.json" >nul 2>&1
+)
 xcopy "%~dp0LangMod" "%STEAM_PACKAGE_DIR%\LangMod\" /E /Y /I /Q >nul 2>&1
 xcopy "%~dp0Texture" "%STEAM_PACKAGE_DIR%\Texture\" /E /Y /I /Q >nul 2>&1
 xcopy "%~dp0Portrait" "%STEAM_PACKAGE_DIR%\Portrait\" /E /Y /I /Q >nul 2>&1

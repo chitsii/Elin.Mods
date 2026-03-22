@@ -488,7 +488,7 @@ def define_makuma2(builder: DramaBuilder):
         "lily_25",
         "「心臓」を１つ、それから「大地のルーンモールド」を１つ。これらを私に渡してください。",
         "One 'heart,' and one 'rune mold of earth.' Please deliver these to me.",
-        "「心脏」一颗，然后「大地的符文模具」一个。请把这些交给我。",
+        "「心脏」一颗，然后「大地的卢恩模具」一个。请把这些交给我。",
         actor=lily,
     ).say(
         "lily_26",
@@ -515,7 +515,7 @@ def define_makuma2(builder: DramaBuilder):
         "hasItem,heart",
         "hasItem,rune_mold_earth",
         text_en="Hand over the materials (heart x1, rune mold x1)",
-        text_cn="交付材料（心脏×1、符文模具×1）",
+        text_cn="交付材料（心脏×1、卢恩模具×1）",
         text_id="c_give_materials",
     ).choice(
         no_materials,
@@ -549,7 +549,7 @@ def define_makuma2(builder: DramaBuilder):
         "lily_no_mat2",
         "心臓は簡単でしょう。ルーンモールドは、ご自身で魔法石から磨き上げる必要があります。",
         "The heart should be simple enough. As for the rune mold, you will need to craft it yourself from a magic stone.",
-        "心脏应该很简单。符文模具需要您自己用魔法石打磨制作。",
+        "心脏应该很简单。卢恩模具需要您自己用大地结晶制作。",
         actor=lily,
     ).say(
         "lily_no_mat3",
@@ -576,7 +576,7 @@ def define_makuma2(builder: DramaBuilder):
         "narr_20_2",
         "心臓とルーンの鋳型が淡く光り、徐々に融合していく。",
         "The heart and rune mold glow faintly and gradually begin to fuse.",
-        "心脏和符文模具发出微光，逐渐融合在一起。",
+        "心脏和卢恩模具发出微光，逐渐融合在一起。",
         actor=narrator,
     ).say(
         "narr_20_3",

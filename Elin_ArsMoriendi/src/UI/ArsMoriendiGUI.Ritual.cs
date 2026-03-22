@@ -10,12 +10,14 @@ namespace Elin_ArsMoriendi
         // ── Ritual Tab State ──
         private static Thing? _selectedCorpse;
         private static bool _showAllCorpses;
+        private static bool _showRitualFormulaDetail;
         private static Dictionary<string, int> _soulSliders = new();
 
         private static void ResetRitualState()
         {
             _selectedCorpse = null;
             _showAllCorpses = false;
+            _showRitualFormulaDetail = false;
             _soulSliders.Clear();
         }
 
@@ -158,20 +160,30 @@ namespace Elin_ArsMoriendi
 
             int levelCap = NecromancyManager.GetLevelCap();
             int rawLv = NecromancyManager.CalculateResurrectionLevel(totalSU);
-            int finalLv = Math.Min(rawLv, levelCap);
-            bool capped = rawLv > levelCap;
+            int revivedLv = Math.Min(rawLv, levelCap);
+            bool capped = revivedLv >= levelCap && totalSU > 0;
 
             GUILayout.BeginHorizontal();
             GUILayout.Label(L("合計SU:", "Total SU:", "合计SU:"), _summaryLabelStyle, GUILayout.Width(80));
             GUILayout.Label($"{totalSU}", totalSU > 0 ? _summaryValueStyle : _summaryMissingStyle, GUILayout.Width(60));
-            GUILayout.Label(L("予測Lv:", "Est. Lv:", "预测Lv:"), _summaryLabelStyle, GUILayout.Width(70));
-            GUILayout.Label($"{finalLv}", _summaryValueStyle, GUILayout.Width(40));
+            GUILayout.Label(L("蘇生後Lv:", "Raised Lv:", "复苏后Lv:"), _summaryLabelStyle, GUILayout.Width(85));
+            GUILayout.Label($"{revivedLv}", _summaryValueStyle, GUILayout.Width(40));
             GUILayout.Label("/", _descStyle, GUILayout.Width(10));
             GUILayout.Label(L("上限:", "Cap:", "上限:"), _summaryLabelStyle, GUILayout.Width(40));
             GUILayout.Label($"{levelCap}", capped ? _warningStyle : _descStyle, GUILayout.Width(40));
             if (capped)
                 GUILayout.Label(L("↑上限到達", "↑Capped", "↑已达上限"), _warningStyle);
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button(_showRitualFormulaDetail ? "[−]" : "[?]", _buttonStyle, GUILayout.Width(28), GUILayout.Height(20)))
+            {
+                _showRitualFormulaDetail = !_showRitualFormulaDetail;
+            }
             GUILayout.EndHorizontal();
+
+            if (_showRitualFormulaDetail)
+            {
+                DrawRitualFormulaDetail(totalSU, levelCap, revivedLv);
+            }
 
             // ── Ritual Preparation Summary ──
             GUILayout.Space(8);
@@ -220,12 +232,12 @@ namespace Elin_ArsMoriendi
             GUI.enabled = canPerform && !_pendingConfirm;
             if (GUILayout.Button(L("儀式を行う", "Perform Ritual", "进行仪式"), _buttonStyle, GUILayout.Width(200)))
             {
-                ShowRitualConfirmation(mgr, totalSU, finalLv);
+                ShowRitualConfirmation(mgr, totalSU, revivedLv);
             }
             GUI.enabled = true;
         }
 
-        private static void ShowRitualConfirmation(NecromancyManager mgr, int totalSU, int predictedLv)
+        private static void ShowRitualConfirmation(NecromancyManager mgr, int totalSU, int revivedLv)
         {
             if (_selectedCorpse == null || totalSU <= 0) return;
 
@@ -236,7 +248,7 @@ namespace Elin_ArsMoriendi
             string confirmMsg = string.Format(
                 "{0} → Lv.{1} {2}\n(SU: {3})",
                 corpse.GetName(NameStyle.Full),
-                predictedLv,
+                revivedLv,
                 L("の従者として蓋らせる", "servant", "的仆从"),
                 totalSU);
 
@@ -256,6 +268,36 @@ namespace Elin_ArsMoriendi
                     LangHelper.Say("ritualFailed");
                 }
             });
+        }
+
+        private static void DrawRitualFormulaDetail(int totalSU, int levelCap, int revivedLv)
+        {
+            int deepest = EClass.player?.stats?.deepest ?? 1;
+            double ratio = Math.Min(1.0, (double)totalSU / NecromancyCalculations.MaxResurrectionSU);
+            double recoveryRate = NecromancyCalculations.BaseRecoveryRate
+                + (1.0 - NecromancyCalculations.BaseRecoveryRate) * Math.Sqrt(ratio);
+            int corpseLv = _selectedCorpse != null ? GetCorpseLv(_selectedCorpse) : 0;
+
+            GUILayout.Space(4);
+            GUILayout.Label(
+                L("  深さで上限、魂で到達率を決めます。", "  Depth sets the cap; souls set how much of it you reach.", "  深度决定上限，灵魂决定你能到达几成。"),
+                _summaryLabelStyle);
+            GUILayout.Label(
+                $"  {L("上限Lv", "Cap", "上限Lv")} = floor({L("最深階層", "Deepest", "最深层")} x 1.5) = floor({deepest} x 1.5) = {levelCap}",
+                _descStyle);
+            GUILayout.Label(
+                $"  SU = {totalSU}    /    {L("到達率", "Reach", "到达率")} = 5% + 95% x sqrt(min(1, SU / {NecromancyCalculations.MaxResurrectionSU})) = {recoveryRate:P1}",
+                _descStyle);
+            GUILayout.Label(
+                $"  {L("蘇生後Lv", "Raised Lv", "复苏后Lv")} = floor({levelCap} x {recoveryRate:F3}) = {revivedLv}",
+                revivedLv >= levelCap && totalSU > 0 ? _warningStyle : _descStyle);
+            GUILayout.Label(
+                $"  {L("注", "Note", "注")}: {L("死体Lvは儀式Lv計算に使いません", "Corpse Lv is not used in ritual level calculation", "尸体Lv不参与仪式等级计算")}"
+                + (_selectedCorpse != null ? $" ({L("選択死体Lv", "Selected corpse Lv", "所选尸体Lv")}: {corpseLv})" : string.Empty),
+                _descStyle);
+            GUILayout.Label(
+                $"  {L("補足", "Tip", "补充")}: {NecromancyCalculations.MaxResurrectionSU} SU = 100% {L("到達", "reach", "到达")} ({ratio:P1})",
+                _descStyle);
         }
     }
 }

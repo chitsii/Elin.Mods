@@ -20,13 +20,17 @@ namespace Elin_ArsMoriendi
             double attrRate = Math.Min(0.40, 0.16 + power / 7000.0);
             double speedRate = Math.Min(0.30, 0.10 + power / 9000.0);
 
+            // _owner.Speed triggers RefreshSpeed -> currentZone -> NullRef
+            // during deserialization. Use Evalue(79) as a safe approximation.
+            int speed = onDeserialize ? _owner.Evalue(ELE_SPD) : _owner.Speed;
+
             int endRaw = Math.Max(attrFlatDebuff, (int)Math.Floor(_owner.END * attrRate));
             int perRaw = Math.Max(attrFlatDebuff, (int)Math.Floor(_owner.PER * attrRate));
-            int speedRaw = Math.Max(speedFlatDebuff, (int)Math.Floor(_owner.Speed * speedRate));
+            int speedRaw = Math.Max(speedFlatDebuff, (int)Math.Floor(speed * speedRate));
 
             int endCap = Math.Max(1, (int)Math.Floor(_owner.END * 0.50));
             int perCap = Math.Max(1, (int)Math.Floor(_owner.PER * 0.50));
-            int speedCap = Math.Max(1, (int)Math.Floor(_owner.Speed * 0.40));
+            int speedCap = Math.Max(1, (int)Math.Floor(speed * 0.40));
 
             int endDebuff = Math.Min(endRaw, endCap);
             int perDebuff = Math.Min(perRaw, perCap);

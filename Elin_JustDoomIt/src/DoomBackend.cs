@@ -697,6 +697,7 @@ namespace Elin_JustDoomIt
                 playerState == PlayerState.Live &&
                 (mapChanged || _lastGameState != GameState.Level || !_hasLastPlayerState || _lastPlayerState != PlayerState.Live))
             {
+                EnsureInfiniteBfgAccess(player);
                 EnqueueMapStartEvent(episode, map, skill, world.Map?.Title ?? string.Empty);
             }
 
@@ -800,6 +801,7 @@ namespace Elin_JustDoomIt
             _input?.SetObservedWeapon(player.ReadyWeapon);
             _weaponCyclePlanner.SyncActualReady(ToWeaponSlot(player.ReadyWeapon));
             ApplyInvincibility(player);
+            EnsureInfiniteBfgAccess(player);
 
             var episode = game.Options?.Episode ?? 1;
             var map = game.Options?.Map ?? 1;
@@ -884,6 +886,16 @@ namespace Elin_JustDoomIt
             {
                 player.Cheats &= ~CheatFlags.GodMode;
             }
+        }
+
+        private static void EnsureInfiniteBfgAccess(DoomPlayer player)
+        {
+            if (player == null || !ModConfig.IsInfiniteBfgShotsEnabled())
+            {
+                return;
+            }
+
+            player.WeaponOwned[(int)WeaponType.Bfg] = true;
         }
 
         private static bool IsBossMap(int map)

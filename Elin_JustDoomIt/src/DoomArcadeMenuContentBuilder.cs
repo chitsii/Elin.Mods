@@ -18,16 +18,10 @@ namespace Elin_JustDoomIt
                     switch (tag)
                     {
                         case DoomArcadeMenuUI.RowTag.Continue:
-                            var continueHelp = localize(
+                            return localize(
                                 "保存済みのDOOM進行を再開します。固定参加費はCONTINUE時に1回だけ支払い、その後はマップごとに追加徴収されません。",
                                 "Resume the saved DOOM progress. The fixed entry fee is charged once on CONTINUE, with no extra charge on later maps.",
                                 "继续已保存的DOOM进度。固定入场费只会在CONTINUE时支付一次，之后的地图不会重复收费。");
-                            if (hasSaveSummary)
-                            {
-                                continueHelp += "\n" + BuildSaveSummaryLine(saveSummary, localize);
-                            }
-
-                            return continueHelp;
                         case DoomArcadeMenuUI.RowTag.NewRun:
                             return localize(
                                 "最初のマップから開始します。現在のIWAD / MOD / 難易度設定を使います。",
@@ -73,11 +67,36 @@ namespace Elin_JustDoomIt
                                 "DOOM画面の明るさを調整します。暗いWADや見づらいマップ向けです。",
                                 "Adjust the DOOM screen brightness. Useful for dark WADs or low-visibility maps.",
                                 "调整DOOM画面亮度，适合较暗的WAD或能见度差的地图。");
+                        case DoomArcadeMenuUI.RowTag.Cheats:
+                            return localize(
+                                "無敵やBFG無限など、プレイ補助用の設定を開きます。",
+                                "Open play-assist toggles such as invincibility and infinite BFG.",
+                                "打开无敌和BFG无限等辅助游玩设置。");
                         default:
                             return localize(
                                 "普段の遊びやすさに直結する設定です。よく変える項目だけをここにまとめています。",
                                 "These settings shape the day-to-day feel of the arcade flow. Only the most frequently changed items live here.",
                                 "这些设置会直接影响日常游玩体验，这里只放最常调整的项目。");
+                    }
+
+                case DoomArcadeMenuUI.MenuState.CheatSettings:
+                    switch (tag)
+                    {
+                        case DoomArcadeMenuUI.RowTag.Invincible:
+                            return localize(
+                                "DOOM中の被ダメージを無効化します。",
+                                "Prevents the player from taking damage during DOOM.",
+                                "使玩家在DOOM中不会受到伤害。");
+                        case DoomArcadeMenuUI.RowTag.InfiniteBfg:
+                            return localize(
+                                "BFGの発射でセルを消費しなくなります。起動時とマップ開始時に未取得でも使えるよう補正します。",
+                                "Makes the BFG stop consuming cells and grants access on launch and map start even if it was not picked up.",
+                                "让BFG发射时不再消耗电池，并在启动和地图开始时补正为可用，即使尚未拾取。");
+                        default:
+                            return localize(
+                                "プレイ補助や検証向けの設定です。通常プレイ向けではありません。",
+                                "These are assistance/debug options intended for testing or casual experimentation.",
+                                "这些是辅助/调试选项，主要用于测试或轻松体验。");
                     }
 
                 case DoomArcadeMenuUI.MenuState.RewardRatePicker:
@@ -155,6 +174,14 @@ namespace Elin_JustDoomIt
                 "報酬      " + summary,
                 "REWARD   " + summary,
                 "奖励      " + summary);
+        }
+
+        public static string BuildTotalPlaytimeSummary(int totalSeconds, Func<string, string, string, string> localize)
+        {
+            return localize(
+                FormatDuration(totalSeconds),
+                FormatDuration(totalSeconds),
+                FormatDuration(totalSeconds));
         }
 
         public static string BuildSkillOptionLabel(string[] skillNames, int skill, Func<string, string, string, string> localize)

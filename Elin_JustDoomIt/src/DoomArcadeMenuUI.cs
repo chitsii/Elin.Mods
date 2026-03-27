@@ -11,7 +11,7 @@ namespace Elin_JustDoomIt
 {
     public sealed class DoomArcadeMenuUI : MonoBehaviour
     {
-        internal enum MenuState { Main, IwadPicker, PwadPicker, SkillPicker, GeneralSettings, RewardRatePicker, ResolutionPicker, BrightnessPicker, ModSetup, ResetSetupConfirm, ExitConfirm }
+        internal enum MenuState { Main, IwadPicker, PwadPicker, SkillPicker, GeneralSettings, CheatSettings, RewardRatePicker, ResolutionPicker, BrightnessPicker, ModSetup, ResetSetupConfirm, ExitConfirm }
         private enum RowKind { Setting, Action, Separator }
         internal enum RowTag
         {
@@ -22,6 +22,9 @@ namespace Elin_JustDoomIt
             Iwad,
             Resolution,
             Brightness,
+            Cheats,
+            Invincible,
+            InfiniteBfg,
             RewardRate,
             Mods,
             GeneralSettings,
@@ -45,6 +48,7 @@ namespace Elin_JustDoomIt
         private struct RowEntry
         {
             public GameObject Go;
+            public Image Background;
             public Text CursorText;
             public Text LabelText;
             public RowKind Kind;
@@ -69,6 +73,7 @@ namespace Elin_JustDoomIt
         private static readonly Color ColNormal = new Color(0.87f, 0.87f, 0.87f); // #DDDDDD
         private static readonly Color ColSelected = Color.white;
         private static readonly Color ColCursor = new Color(1f, 0.40f, 0f); // #FF6600
+        private static readonly Color ColCursorIdle = new Color(1f, 0.40f, 0f, 0.22f);
         private static readonly Color ColDisabled = new Color(0.33f, 0.33f, 0.33f); // #555555
         private static readonly Color ColModOn = new Color(0.27f, 1f, 0.53f); // #44FF88
         private static readonly Color ColModOff = new Color(0.67f, 0.67f, 0.67f); // #AAAAAA
@@ -84,6 +89,8 @@ namespace Elin_JustDoomIt
         private static readonly Color ColSummaryValue = new Color(1f, 0.72f, 0f); // #FFB800
         private static readonly Color ColHelpText = new Color(0.82f, 0.88f, 0.92f); // #D0E0EC
         private static readonly Color ColSettingRow = new Color(0.60f, 0.60f, 0.60f); // #999999
+        private static readonly Color ColRowHighlight = new Color(1f, 0.27f, 0f, 0.14f);
+        private static readonly Color ColRowIdle = new Color(1f, 0.27f, 0f, 0f);
 
         private const float PanelWidth = 760f;
         private const float PanelHeight = 560f;
@@ -131,6 +138,7 @@ namespace Elin_JustDoomIt
         private SummaryRowUi _summaryModRow;
         private SummaryRowUi _summarySkillRow;
         private SummaryRowUi _summaryRateRow;
+        private SummaryRowUi _summaryPlaytimeRow;
         private Image _helpBoxBg;
         private Text _helpText;
         private Text _footerText;
@@ -165,6 +173,7 @@ namespace Elin_JustDoomIt
         {
             "BGM/doom_themed_alien",
             "BGM/doom_themed_boss",
+            "BGM/doom_themed_moongate",
             "BGM/doom_themed_hell",
             "BGM/doom_themed_industrial",
             "BGM/doom_themed_labo"
@@ -503,14 +512,15 @@ namespace Elin_JustDoomIt
             rootRt.anchorMin = new Vector2(0, 1);
             rootRt.anchorMax = new Vector2(1, 1);
             rootRt.pivot = new Vector2(0f, 1f);
-            rootRt.anchoredPosition = new Vector2(0, -58);
-            rootRt.sizeDelta = new Vector2(0f, 80f);
+            rootRt.anchoredPosition = new Vector2(0, -68);
+            rootRt.sizeDelta = new Vector2(0f, 104f);
 
-            const float rowH = 20f;
+            const float rowH = 21f;
             _summaryIwadRow = CreateSummaryRow(_mainSummaryRoot.transform, "IwadRow", 0 * rowH);
             _summaryModRow = CreateSummaryRow(_mainSummaryRoot.transform, "ModRow", 1 * rowH);
             _summarySkillRow = CreateSummaryRow(_mainSummaryRoot.transform, "SkillRow", 2 * rowH);
             _summaryRateRow = CreateSummaryRow(_mainSummaryRoot.transform, "RateRow", 3 * rowH);
+            _summaryPlaytimeRow = CreateSummaryRow(_mainSummaryRoot.transform, "PlaytimeRow", 4 * rowH);
             _mainSummaryRoot.SetActive(false);
         }
 
@@ -523,7 +533,7 @@ namespace Elin_JustDoomIt
             rt.anchorMax = new Vector2(1, 1);
             rt.pivot = new Vector2(0f, 1f);
             rt.anchoredPosition = new Vector2(0, -yOffset);
-            rt.sizeDelta = new Vector2(0, 20f);
+            rt.sizeDelta = new Vector2(0, 21f);
 
             var label = MakeText(go.transform, "Label", 14, FontStyle.Bold, ColSummaryLabel);
             label.alignment = TextAnchor.MiddleLeft;
@@ -531,8 +541,8 @@ namespace Elin_JustDoomIt
             labelRt.anchorMin = new Vector2(0, 0);
             labelRt.anchorMax = new Vector2(0, 1);
             labelRt.pivot = new Vector2(0f, 0.5f);
-            labelRt.anchoredPosition = new Vector2(30f, 0f);
-            labelRt.sizeDelta = new Vector2(80f, 0f);
+            labelRt.anchoredPosition = new Vector2(34f, 0f);
+            labelRt.sizeDelta = new Vector2(92f, 0f);
 
             var value = MakeText(go.transform, "Value", 15, FontStyle.Normal, ColSummaryValue);
             value.alignment = TextAnchor.MiddleLeft;
@@ -541,8 +551,8 @@ namespace Elin_JustDoomIt
             valueRt.anchorMin = new Vector2(0, 0);
             valueRt.anchorMax = new Vector2(1, 1);
             valueRt.pivot = new Vector2(0f, 0.5f);
-            valueRt.anchoredPosition = new Vector2(100f, 0f);
-            valueRt.sizeDelta = new Vector2(-130f, 0f);
+            valueRt.anchoredPosition = new Vector2(122f, 0f);
+            valueRt.sizeDelta = new Vector2(-156f, 0f);
 
             return new SummaryRowUi
             {
@@ -571,8 +581,8 @@ namespace Elin_JustDoomIt
             hrt.anchorMin = new Vector2(0, 0);
             hrt.anchorMax = new Vector2(1, 0);
             hrt.pivot = new Vector2(0.5f, 0f);
-            hrt.anchoredPosition = new Vector2(0, 74);
-            hrt.sizeDelta = new Vector2(-60, 72);
+            hrt.anchoredPosition = new Vector2(0, 58);
+            hrt.sizeDelta = new Vector2(-72, 76);
 
             // Left accent bar
             var accentBar = new GameObject("HelpAccentBar");
@@ -587,16 +597,16 @@ namespace Elin_JustDoomIt
             abrt.anchoredPosition = Vector2.zero;
             abrt.sizeDelta = new Vector2(3f, 0f);
 
-            _helpText = MakeText(panelTr, "HelpText", 14, FontStyle.Normal, ColHelpText);
+            _helpText = MakeText(helpBgGo.transform, "HelpText", 14, FontStyle.Normal, ColHelpText);
             _helpText.horizontalOverflow = HorizontalWrapMode.Wrap;
             _helpText.verticalOverflow = VerticalWrapMode.Overflow;
             _helpText.alignment = TextAnchor.UpperLeft;
             var htrt = _helpText.GetComponent<RectTransform>();
             htrt.anchorMin = new Vector2(0, 0);
-            htrt.anchorMax = new Vector2(1, 0);
-            htrt.pivot = new Vector2(0.5f, 0f);
-            htrt.anchoredPosition = new Vector2(4, 82);
-            htrt.sizeDelta = new Vector2(-88, 56);
+            htrt.anchorMax = new Vector2(1, 1);
+            htrt.pivot = new Vector2(0.5f, 0.5f);
+            htrt.offsetMin = new Vector2(16f, 10f);
+            htrt.offsetMax = new Vector2(-16f, -10f);
             _helpText.text = string.Empty;
         }
 
@@ -774,6 +784,9 @@ namespace Elin_JustDoomIt
                 case MenuState.GeneralSettings:
                     RefreshGeneralSettings();
                     break;
+                case MenuState.CheatSettings:
+                    RefreshCheatSettings();
+                    break;
                 case MenuState.RewardRatePicker:
                     RefreshRewardRatePicker();
                     break;
@@ -827,8 +840,6 @@ namespace Elin_JustDoomIt
             }
 
             AddRow(L("最初から", "START OVER", "从头开始"), RowKind.Action, _hasSave ? ColNormal : ColAccent, tag: RowTag.NewRun, fontSizeOverride: 22);
-
-            AddRow("", RowKind.Separator, ColDisabled, false);
 
             AddRow(L("ゲーム切替", "CHANGE GAME", "切换游戏"), RowKind.Action, ColSettingRow, tag: RowTag.Iwad, fontSizeOverride: 16);
             AddRow(L("難易度変更", "DIFFICULTY", "难度"), RowKind.Action, ColSettingRow, tag: RowTag.Skill, fontSizeOverride: 16);
@@ -1048,6 +1059,9 @@ namespace Elin_JustDoomIt
             rt.anchoredPosition = new Vector2(0, y);
             rt.sizeDelta = new Vector2(0, rowHeight);
 
+            var bg = go.AddComponent<Image>();
+            bg.color = ColRowIdle;
+
             // Cursor ">"
             var curText = MakeText(go.transform, "Cursor", fontSize, FontStyle.Bold, ColCursor);
             var crt = curText.GetComponent<RectTransform>();
@@ -1055,9 +1069,10 @@ namespace Elin_JustDoomIt
             crt.anchorMax = new Vector2(0, 1);
             crt.pivot = new Vector2(0f, 0.5f);
             crt.anchoredPosition = new Vector2(0, 0);
-            crt.sizeDelta = new Vector2(20, 0);
+            crt.sizeDelta = new Vector2(0, 0);
             curText.alignment = TextAnchor.MiddleLeft;
-            curText.text = "";
+            curText.text = string.Empty;
+            curText.color = kind == RowKind.Separator || !enabled ? ColCursor : ColCursorIdle;
 
             // Label
             var labelText = MakeText(go.transform, "Label", fontSize, FontStyle.Normal, color);
@@ -1065,8 +1080,8 @@ namespace Elin_JustDoomIt
             lrt.anchorMin = new Vector2(0, 0);
             lrt.anchorMax = new Vector2(1, 1);
             lrt.pivot = new Vector2(0f, wrapText ? 1f : 0.5f);
-            lrt.anchoredPosition = new Vector2(22, wrapText ? -2f : 0f);
-            lrt.sizeDelta = new Vector2(-22, 0);
+            lrt.anchoredPosition = new Vector2(14, wrapText ? -2f : 0f);
+            lrt.sizeDelta = new Vector2(-14, 0);
             labelText.alignment = wrapText ? TextAnchor.UpperLeft : TextAnchor.MiddleLeft;
             labelText.horizontalOverflow = wrapText ? HorizontalWrapMode.Wrap : HorizontalWrapMode.Overflow;
             labelText.verticalOverflow = VerticalWrapMode.Overflow;
@@ -1082,6 +1097,7 @@ namespace Elin_JustDoomIt
             _rows.Add(new RowEntry
             {
                 Go = go,
+                Background = bg,
                 CursorText = curText,
                 LabelText = labelText,
                 Kind = kind,
@@ -1133,7 +1149,12 @@ namespace Elin_JustDoomIt
             {
                 for (var i = 0; i < _rows.Count; i++)
                 {
-                    _rows[i].CursorText.text = "";
+                    _rows[i].CursorText.text = string.Empty;
+                    _rows[i].CursorText.color = _rows[i].Kind == RowKind.Separator || !_rows[i].Enabled ? ColCursor : ColCursorIdle;
+                    if (_rows[i].Background != null)
+                    {
+                        _rows[i].Background.color = ColRowIdle;
+                    }
                     if (_rows[i].Kind != RowKind.Separator)
                     {
                         _rows[i].LabelText.fontStyle = GetRowFontStyle(false, _rows[i].Tag);
@@ -1162,7 +1183,14 @@ namespace Elin_JustDoomIt
             for (var i = 0; i < _rows.Count; i++)
             {
                 var row = _rows[i];
-                row.CursorText.text = i == index ? ">" : "";
+                row.CursorText.text = string.Empty;
+                row.CursorText.color = ColCursorIdle;
+                if (row.Background != null)
+                {
+                    row.Background.color = i == index && row.Kind != RowKind.Separator && row.Enabled
+                        ? ColRowHighlight
+                        : ColRowIdle;
+                }
                 if (row.Kind != RowKind.Separator)
                 {
                     row.LabelText.fontStyle = GetRowFontStyle(i == index, row.Tag);
@@ -1279,12 +1307,12 @@ namespace Elin_JustDoomIt
                     "ENTER: 确认  ESC: 返回");
                 _statusLine.text = "";
             }
-            else if (_state == MenuState.IwadPicker || _state == MenuState.SkillPicker || _state == MenuState.RewardRatePicker || _state == MenuState.ResolutionPicker || _state == MenuState.BrightnessPicker || _state == MenuState.GeneralSettings)
+            else if (_state == MenuState.IwadPicker || _state == MenuState.SkillPicker || _state == MenuState.RewardRatePicker || _state == MenuState.ResolutionPicker || _state == MenuState.BrightnessPicker || _state == MenuState.GeneralSettings || _state == MenuState.CheatSettings)
             {
                 _footerText.text = L(
-                    "ENTER: 選択  ESC: 戻る",
-                    "ENTER: select  ESC: back",
-                    "ENTER: 选择  ESC: 返回");
+                    "ENTER: 選択/切替  ESC: 戻る",
+                    "ENTER: select/toggle  ESC: back",
+                    "ENTER: 选择/切换  ESC: 返回");
             }
             else if (_state == MenuState.ExitConfirm)
             {
@@ -1323,8 +1351,8 @@ namespace Elin_JustDoomIt
 
             if (isMain)
             {
-                _listRoot.anchoredPosition = new Vector2(30, -192);
-                _listRoot.sizeDelta = new Vector2(-60, 200);
+                _listRoot.anchoredPosition = new Vector2(30, -188);
+                _listRoot.sizeDelta = new Vector2(-60, 196);
             }
             else
             {
@@ -1345,6 +1373,7 @@ namespace Elin_JustDoomIt
             SetSummaryRow(_summaryModRow, L("MOD", "MOD", "MOD"), GetSelectedModSummary());
             SetSummaryRow(_summarySkillRow, L("SKILL", "SKILL", "难度"), GetSkillBadgeText());
             SetSummaryRow(_summaryRateRow, L("報酬", "REWARD", "奖励"), GetRewardRateModeSummary());
+            SetSummaryRow(_summaryPlaytimeRow, L("合計", "PLAYTIME", "时长"), DoomArcadeMenuContentBuilder.BuildTotalPlaytimeSummary(DoomGlobalStatsStore.GetTotalPlaySeconds(), L));
         }
 
         private static void SetSummaryRow(SummaryRowUi row, string label, string value)
@@ -1430,7 +1459,7 @@ namespace Elin_JustDoomIt
                 return;
             }
 
-            if (_state == MenuState.GeneralSettings)
+            if (_state == MenuState.GeneralSettings || _state == MenuState.CheatSettings)
             {
                 HandleGeneralSettingsInput();
                 return;
@@ -1476,7 +1505,7 @@ namespace Elin_JustDoomIt
             {
                 SE.Tab();
                 EInput.Consume(consumeAxis: true, _skipFrame: 1);
-                TransitionTo(MenuState.Main);
+                TransitionTo(_state == MenuState.CheatSettings ? MenuState.GeneralSettings : MenuState.Main);
                 return;
             }
 
@@ -1487,7 +1516,14 @@ namespace Elin_JustDoomIt
 
             if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.KeypadEnter))
             {
-                OnGeneralSettingsSelect();
+                if (_state == MenuState.CheatSettings)
+                {
+                    OnCheatSettingsSelect();
+                }
+                else
+                {
+                    OnGeneralSettingsSelect();
+                }
             }
         }
 
@@ -1569,6 +1605,10 @@ namespace Elin_JustDoomIt
                     SE.Tab();
                     TransitionTo(MenuState.BrightnessPicker);
                     break;
+                case RowTag.Cheats:
+                    SE.Tab();
+                    TransitionTo(MenuState.CheatSettings);
+                    break;
             }
         }
 
@@ -1581,6 +1621,40 @@ namespace Elin_JustDoomIt
 
             switch (_rows[_cursor].Tag)
             {
+                default:
+                    return _state == MenuState.CheatSettings && TryAdjustCheatSetting(direction);
+            }
+        }
+
+        private void OnCheatSettingsSelect()
+        {
+            if (_cursor < 0 || _cursor >= _rows.Count) return;
+
+            switch (_rows[_cursor].Tag)
+            {
+                case RowTag.Back:
+                    SE.Tab();
+                    TransitionTo(MenuState.GeneralSettings);
+                    break;
+                case RowTag.Invincible:
+                    ToggleInvincibleMode();
+                    break;
+                case RowTag.InfiniteBfg:
+                    ToggleInfiniteBfgShots();
+                    break;
+            }
+        }
+
+        private bool TryAdjustCheatSetting(int direction)
+        {
+            switch (_rows[_cursor].Tag)
+            {
+                case RowTag.Invincible:
+                    ToggleInvincibleMode();
+                    return true;
+                case RowTag.InfiniteBfg:
+                    ToggleInfiniteBfgShots();
+                    return true;
                 default:
                     return false;
             }
@@ -1715,8 +1789,38 @@ namespace Elin_JustDoomIt
             AddRow("", RowKind.Separator, ColDisabled, false);
             AddRow("VIDEO    " + DoomVideoSettings.FormatResolutionSummary(ModConfig.DoomWidth.Value, ModConfig.DoomHeight.Value), RowKind.Action, ColNormal, tag: RowTag.Resolution);
             AddRow("LIGHT    " + DoomVideoSettings.FormatBrightnessSummary(ModConfig.DoomBrightness.Value), RowKind.Action, ColNormal, tag: RowTag.Brightness);
+            AddRow("CHEATS   " + L("設定を開く", "OPEN", "打开"), RowKind.Action, ColAmber, tag: RowTag.Cheats);
 
             SetCursor(2);
+        }
+
+        private void RefreshCheatSettings()
+        {
+            ClearRows();
+            _sectionHeader.text = L("<< チート設定 >>", "<< CHEATS >>", "<< 作弊设置 >>");
+
+            AddRow(L("戻る", "BACK", "返回"), RowKind.Action, ColNormal, tag: RowTag.Back);
+            AddRow("", RowKind.Separator, ColDisabled, false);
+            AddRow("GOD MODE " + FormatToggleValue(ModConfig.IsInvincibleModeEnabled()), RowKind.Action, ColNormal, tag: RowTag.Invincible);
+            AddRow("BFG∞     " + FormatToggleValue(ModConfig.IsInfiniteBfgShotsEnabled()), RowKind.Action, ColNormal, tag: RowTag.InfiniteBfg);
+
+            SetCursor(2);
+        }
+
+        private void ToggleInvincibleMode()
+        {
+            ModConfig.SetInvincibleMode(!ModConfig.IsInvincibleModeEnabled());
+            SE.Click();
+            RefreshCheatSettings();
+            SetCursor(2);
+        }
+
+        private void ToggleInfiniteBfgShots()
+        {
+            ModConfig.SetInfiniteBfgShots(!ModConfig.IsInfiniteBfgShotsEnabled());
+            SE.Click();
+            RefreshCheatSettings();
+            SetCursor(3);
         }
 
         private void RefreshRewardRatePicker()
@@ -2291,6 +2395,8 @@ namespace Elin_JustDoomIt
                             OnMainSelect();
                         else if (_state == MenuState.GeneralSettings)
                             OnGeneralSettingsSelect();
+                        else if (_state == MenuState.CheatSettings)
+                            OnCheatSettingsSelect();
                         else if (_state == MenuState.IwadPicker)
                             OnIwadConfirm();
                         else if (_state == MenuState.SkillPicker)
@@ -2457,6 +2563,11 @@ namespace Elin_JustDoomIt
             return L("開始料 " + entry + " / 連キル +35", "Session Entry " + entry + " / Streak +35", "会话入场 " + entry + " / 连杀 +35");
         }
 
+        private static string FormatToggleValue(bool enabled)
+        {
+            return enabled ? "ON" : "OFF";
+        }
+
         private string GetRewardRateModeLabel(DoomRewardRateSelectionMode mode)
         {
             return DoomArcadeMenuContentBuilder.GetRewardRateModeLabel(mode, L);
@@ -2540,12 +2651,6 @@ namespace Elin_JustDoomIt
             var alpha = 0.4f + 0.6f * (0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 6f * Mathf.PI * 2f));
             var pulseColor = ColCursor;
             pulseColor.a = alpha;
-
-            // Main rows cursor
-            if (_cursor >= 0 && _cursor < _rows.Count)
-            {
-                _rows[_cursor].CursorText.color = pulseColor;
-            }
 
             // Overlay cursor
             if (_overlayPanel.activeSelf)

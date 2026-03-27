@@ -61,6 +61,7 @@ namespace Elin_JustDoomIt
         {
             "BGM/doom_themed_alien",
             "BGM/doom_themed_boss",
+            "BGM/doom_themed_moongate",
             "BGM/doom_themed_hell",
             "BGM/doom_themed_industrial",
             "BGM/doom_themed_labo"

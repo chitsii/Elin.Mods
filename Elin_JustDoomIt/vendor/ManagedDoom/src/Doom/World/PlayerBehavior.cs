@@ -145,7 +145,8 @@ namespace ManagedDoom
                 {
                     // Do not go to plasma or BFG in shareware, even if cheated.
                     if ((newWeapon != (int)WeaponType.Plasma && newWeapon != (int)WeaponType.Bfg) ||
-                        (world.Options.GameMode != GameMode.Shareware))
+                        (world.Options.GameMode != GameMode.Shareware) ||
+                        (newWeapon == (int)WeaponType.Bfg && Elin_JustDoomIt.ModConfig.IsInfiniteBfgShotsEnabled()))
                     {
                         player.PendingWeapon = (WeaponType)newWeapon;
                     }

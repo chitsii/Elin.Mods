@@ -104,6 +104,10 @@ namespace ManagedDoom
         private bool CheckAmmo(Player player)
         {
             var ammo = DoomInfo.WeaponInfos[(int)player.ReadyWeapon].Ammo;
+            if (player.ReadyWeapon == WeaponType.Bfg && Elin_JustDoomIt.ModConfig.IsInfiniteBfgShotsEnabled())
+            {
+                return true;
+            }
 
             // Minimal amount for one shot varies.
             int count;
@@ -650,7 +654,10 @@ namespace ManagedDoom
 
         public void FireBFG(Player player)
         {
-            player.Ammo[(int)DoomInfo.WeaponInfos[(int)player.ReadyWeapon].Ammo] -= DoomInfo.DeHackEdConst.BfgCellsPerShot;
+            if (!Elin_JustDoomIt.ModConfig.IsInfiniteBfgShotsEnabled())
+            {
+                player.Ammo[(int)DoomInfo.WeaponInfos[(int)player.ReadyWeapon].Ammo] -= DoomInfo.DeHackEdConst.BfgCellsPerShot;
+            }
 
             world.ThingAllocation.SpawnPlayerMissile(player.Mobj, MobjType.Bfg);
         }

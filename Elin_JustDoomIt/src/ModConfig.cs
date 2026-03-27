@@ -13,6 +13,7 @@ namespace Elin_JustDoomIt
         public static ConfigEntry<int> DoomSfxVolume;
         public static ConfigEntry<float> MouseTurnSensitivity;
         public static ConfigEntry<bool> InvincibleMode;
+        public static ConfigEntry<bool> InfiniteBfgShots;
         public static ConfigEntry<float> OverlayScale;
         public static ConfigEntry<float> BackdropAlpha;
         internal static DoomInputBindings InputBindings;
@@ -78,6 +79,11 @@ namespace Elin_JustDoomIt
                 "InvincibleMode",
                 false,
                 "Enable DOOM invincibility (God Mode).");
+            InfiniteBfgShots = config.Bind(
+                "DOOM",
+                "InfiniteBfgShots",
+                false,
+                "Allow the BFG to fire without consuming cells.");
             OverlayScale = config.Bind(
                 "Overlay",
                 "Scale",
@@ -129,6 +135,38 @@ namespace Elin_JustDoomIt
         {
             DoomBrightness.Value = brightness < 0 ? 0 : (brightness > 10 ? 10 : brightness);
             Save();
+        }
+
+        public static void SetInvincibleMode(bool enabled)
+        {
+            if (InvincibleMode == null)
+            {
+                return;
+            }
+
+            InvincibleMode.Value = enabled;
+            Save();
+        }
+
+        public static bool IsInvincibleModeEnabled()
+        {
+            return InvincibleMode != null && InvincibleMode.Value;
+        }
+
+        public static void SetInfiniteBfgShots(bool enabled)
+        {
+            if (InfiniteBfgShots == null)
+            {
+                return;
+            }
+
+            InfiniteBfgShots.Value = enabled;
+            Save();
+        }
+
+        public static bool IsInfiniteBfgShotsEnabled()
+        {
+            return InfiniteBfgShots != null && InfiniteBfgShots.Value;
         }
 
         public static void Save()

@@ -50,7 +50,6 @@ echo Build Successful!
 echo Copying to Package folder...
 
 xcopy "%~dp0_bin\Elin_JustDoomIt.dll" "%~dp0elin_link\Package\Elin_JustDoomIt\" /Y
-xcopy "%~dp0_bin\DoomNetFrameworkEngine.dll" "%~dp0elin_link\Package\Elin_JustDoomIt\" /Y
 xcopy "%~dp0package.xml" "%~dp0elin_link\Package\Elin_JustDoomIt\" /Y
 if exist "%~dp0preview.jpg" xcopy "%~dp0preview.jpg" "%~dp0elin_link\Package\Elin_JustDoomIt\" /Y
 if exist "%~dp0LICENSES" xcopy "%~dp0LICENSES" "%~dp0elin_link\Package\Elin_JustDoomIt\LICENSES\" /E /I /Y
@@ -74,7 +73,6 @@ set STEAM_PACKAGE_DIR="C:\Program Files (x86)\Steam\steamapps\common\Elin\Packag
 if not exist %STEAM_PACKAGE_DIR% mkdir %STEAM_PACKAGE_DIR%
 
 xcopy "%~dp0_bin\Elin_JustDoomIt.dll" %STEAM_PACKAGE_DIR% /Y
-xcopy "%~dp0_bin\DoomNetFrameworkEngine.dll" %STEAM_PACKAGE_DIR% /Y
 xcopy "%~dp0package.xml" %STEAM_PACKAGE_DIR% /Y
 if exist "%~dp0preview.jpg" xcopy "%~dp0preview.jpg" %STEAM_PACKAGE_DIR% /Y
 if exist "%~dp0LICENSES" xcopy "%~dp0LICENSES" %STEAM_PACKAGE_DIR%\LICENSES\ /E /I /Y

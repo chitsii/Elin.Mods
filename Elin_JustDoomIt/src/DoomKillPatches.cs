@@ -1,5 +1,5 @@
-﻿using DoomNetFrameworkEngine.DoomEntity.World;
 using HarmonyLib;
+using ManagedDoom;
 
 namespace Elin_JustDoomIt
 {
@@ -46,4 +46,3 @@ namespace Elin_JustDoomIt
         }
     }
 }
-

@@ -1,6 +1,6 @@
 # Build And Validation
 
-最終確認: 2026-03-07
+最終確認: 2026-03-28
 
 ## 通常手順
 
@@ -8,6 +8,7 @@
 2. `LangMod/*/Thing.tsv` から `Thing.xlsx` を再生成する。
 3. `dotnet build Elin_JustDoomIt.csproj -c Release` を実行する。
 4. 生成物を `elin_link/Package/Elin_JustDoomIt/` と Steam の `Package/Elin_JustDoomIt/` にコピーする。
+5. vendored `ManagedDoom` source は `Elin_JustDoomIt.dll` に内包されるため、追加の engine DLL は配布しない。
 
 ## build.bat が配布する主なフォルダ
 

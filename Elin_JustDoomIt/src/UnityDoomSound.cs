@@ -1,9 +1,9 @@
-﻿using System;
+using ManagedDoom;
+using ManagedDoom.Audio;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using DoomNetFrameworkEngine.Audio;
-using DoomNetFrameworkEngine.DoomEntity.World;
 using UnityEngine;
 
 namespace Elin_JustDoomIt
@@ -41,7 +41,6 @@ namespace Elin_JustDoomIt
                 _externalVolumeScale = Mathf.Clamp(value, 0f, 2f);
                 if (_source != null)
                 {
-                    // Use AudioSource.volume for immediate ducking effect.
                     _source.volume = _externalVolumeScale;
                 }
             }
@@ -123,6 +122,7 @@ namespace Elin_JustDoomIt
                     UnityEngine.Object.Destroy(kv.Value);
                 }
             }
+
             _clipCache.Clear();
 
             if (_audioGo != null)
@@ -156,7 +156,7 @@ namespace Elin_JustDoomIt
                 return cached;
             }
 
-            var lumpName = "DS" + sfx.ToString();
+            var lumpName = "DS" + sfx;
             if (!_lumps.TryGetValue(lumpName, out var entry))
             {
                 _clipCache[sfx] = null;
@@ -190,8 +190,8 @@ namespace Elin_JustDoomIt
                     var samples = new float[sampleCount];
                     for (var i = 0; i < sampleCount; i++)
                     {
-                        var s = ((raw[i] - 128f) / 128f) * DoomSfxSampleGain;
-                        samples[i] = Mathf.Clamp(s, -1f, 1f);
+                        var sample = ((raw[i] - 128f) / 128f) * DoomSfxSampleGain;
+                        samples[i] = Mathf.Clamp(sample, -1f, 1f);
                     }
 
                     var clip = AudioClip.Create("DOOM_" + sfx, sampleCount, 1, sampleRate, false);
@@ -251,4 +251,3 @@ namespace Elin_JustDoomIt
         }
     }
 }
-

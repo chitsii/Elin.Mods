@@ -1,4 +1,4 @@
-﻿using DoomNetFrameworkEngine.DoomEntity.World;
+using ManagedDoom;
 using System.Collections.Generic;
 
 namespace Elin_JustDoomIt
@@ -64,4 +64,3 @@ namespace Elin_JustDoomIt
         }
     }
 }
-

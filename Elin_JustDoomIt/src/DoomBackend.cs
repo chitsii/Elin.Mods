@@ -1,17 +1,15 @@
 ﻿using BepInEx.Logging;
-using DoomNetFrameworkEngine;
-using DoomNetFrameworkEngine.Audio;
-using DoomNetFrameworkEngine.DoomEntity;
-using DoomNetFrameworkEngine.DoomEntity.Game;
-using DoomNetFrameworkEngine.DoomEntity.MathUtils;
-using DoomNetFrameworkEngine.DoomEntity.World;
-using DoomNetFrameworkEngine.UserInput;
-using DoomNetFrameworkEngine.Video;
+using ManagedDoom;
+using ManagedDoom.Audio;
+using ManagedDoom.UserInput;
+using ManagedDoom.Video;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using UnityEngine;
+using DoomPlayer = ManagedDoom.Player;
+using DoomRenderer = ManagedDoom.Video.Renderer;
 
 namespace Elin_JustDoomIt
 {
@@ -871,7 +869,7 @@ namespace Elin_JustDoomIt
             };
         }
 
-        private static void ApplyInvincibility(DoomNetFrameworkEngine.DoomEntity.Game.Player player)
+        private static void ApplyInvincibility(DoomPlayer player)
         {
             if (player == null || ModConfig.InvincibleMode == null)
             {
@@ -919,12 +917,12 @@ namespace Elin_JustDoomIt
 
     internal sealed class ManagedDoomVideo : IVideo
     {
-        private readonly DoomNetFrameworkEngine.Video.Renderer _renderer;
+        private readonly DoomRenderer _renderer;
         private readonly byte[] _frameBytes;
 
         public ManagedDoomVideo(Config config, GameContent content)
         {
-            _renderer = new DoomNetFrameworkEngine.Video.Renderer(config, content);
+            _renderer = new DoomRenderer(config, content);
             _frameBytes = new byte[_renderer.Width * _renderer.Height * 4];
         }
 

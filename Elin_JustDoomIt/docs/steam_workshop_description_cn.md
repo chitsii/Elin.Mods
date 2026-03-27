@@ -2,11 +2,10 @@
 
 在Fortune Bell接待处旁边放了一台能玩DOOM的街机。
 
-每张地图开始时选择 `LOW / MID / HIGH` 的 RATE。
-`LOW` 偏稳定，`MID` 偏标准，`HIGH` 是适合长图无伤连胜的大倍率梦想档。
-击杀奖励不会立刻到账，而是累积进本地图专用的未兑现奖池；受伤会损失部分奖池并重置连杀加成，只有通关时才会 `CASH OUT`。
-发现秘密时，也会向同一个未兑现奖池固定追加 `+500`。
-死亡时会兑现本地图的未兑现奖池，而按 `ESC` 中断时仍会全部损失。
+每次 `START OVER` / `CONTINUE` 时只支付一次固定入场费 `100` 来开启奖励会话。
+击杀和秘密奖励会立刻到账；基础每杀奖励 `70` 会随着连杀每次 `+35` 递增。
+每杀奖励上限取决于难度；受伤不会扣已获得奖励，只会重置连杀奖励；通关额外 `+1000`。
+同一会话后续地图不会再次收费。死亡或按 `ESC` 中断时，也不会再额外结算或没收奖励。
 简单来说，这是一台杀气很重的老虎机。
 你可以去赌场玩，也可以把它偷回家，放牧场里、卧室里，随你。
 
@@ -34,20 +33,20 @@ A. 开过BFG之后再拿锄头，总觉得少了点什么。
 
 #### 技术组成
 
-- DOOM兼容引擎：[DoomNetFrameworkEngine](https://github.com/mahach666/DoomNetFrameworkEngine)
+- DOOM兼容引擎：[ManagedDoom](https://github.com/sinshu/managed-doom)
 - 游戏数据：[FreeDoom](https://freedoom.github.io/) 的 `freedoom1.wad`
 - 街机柜通过CWL（Custom Whatever Loader）作为自定义物品添加
 
 #### 许可协议
 
-- DoomNetFrameworkEngine：MIT 协议
+- ManagedDoom：GPLv2 或更高版本
 - FreeDoom (`freedoom1.wad`)：BSD 3-Clause 协议
 
 分发包内附带 `LICENSES/` 文件夹，包含以下文件：
 
 - LICENSES/FreeDoom-BSD-3-Clause.txt
 - LICENSES/FreeDoom-CREDITS.txt
-- DoomNetFrameworkEngine-MIT.txt
+- ManagedDoom-GPL-2.0.txt
 
 所有附带资源均在各自许可协议允许的范围内进行再分发。
 衷心感谢各项目的开发者和社区将这些优秀资产开源共享。

@@ -22,6 +22,7 @@
     <Compile Include="..\src\DoomModEntryCore.cs" Link="DoomModEntryCore.cs" />
     <Compile Include="..\src\DoomPendingWeaponInput.cs" Link="DoomPendingWeaponInput.cs" />
     <Compile Include="..\src\DoomLaunchPreferences.cs" Link="DoomLaunchPreferences.cs" />
+    <Compile Include="..\src\DoomRewardRoundController.cs" Link="DoomRewardRoundController.cs" />
     <Compile Include="..\src\DoomRewardRoundLogic.cs" Link="DoomRewardRoundLogic.cs" />
     <Compile Include="..\src\DoomWeaponCyclePlanner.cs" Link="DoomWeaponCyclePlanner.cs" />
     <Compile Include="..\src\DoomVideoSettings.cs" Link="DoomVideoSettings.cs" />

@@ -16,7 +16,7 @@ namespace Elin_JustDoomIt
         private const int MaxDoomTicksPerFrame = 8;
         private const float GlobalStatsFlushIntervalSeconds = 15f;
         private const string CasinoCoinId = "casino_coin";
-        private const int BossClearBonus = 10000;
+        private const int StageClearBonus = 1000;
 
         private struct KillVoiceRequest
         {
@@ -79,6 +79,7 @@ namespace Elin_JustDoomIt
         private bool _killVoiceLoaded;
         private int _nextDoomBgmIndex;
         private bool _doomBgmActive;
+        private bool _sessionTookOverWorldBgm;
         private float _nextDoomBgmRetryAt;
         private const float KillVoiceSampleGain = 2.6f;
         private int _nextKillVoiceIndex;
@@ -87,20 +88,16 @@ namespace Elin_JustDoomIt
         private int _processedBossClearEvents;
         private int _sessionCoinsEarned;
         private int _lastAnnouncedStreak;
-        private int _sessionSkill;
-        private DoomRewardRate _currentRate;
-        private int _currentPool;
-        private int _currentMultiplierStage;
-        private bool _roundActive;
-        private bool _rateSelectionOpen;
+        private readonly DoomRewardRoundController _roundController = new DoomRewardRoundController();
         private int _rateSelectionCursor;
-        private DoomRewardRateSelectionMode _rewardRateSelectionMode;
-        private string _currentMapCode = string.Empty;
-        private string _currentMapTitle = string.Empty;
         private bool _exitConfirmOpen;
+        private bool _sessionEntryFeeResolved;
+        private bool _sessionRewardsEnabled;
         private float _doomTickAccumulator;
         private float _globalPlaySecondsAccumulator;
         private float _nextGlobalStatsFlushAt;
+
+        private DoomRewardRoundState CurrentRoundState => _roundController.State;
 
         public static void Ensure(ManualLogSource logger)
         {
@@ -253,11 +250,11 @@ namespace Elin_JustDoomIt
             _processedBossClearEvents = 0;
             _sessionCoinsEarned = 0;
             _lastAnnouncedStreak = 0;
-            _sessionSkill = 3;
-            _rewardRateSelectionMode = launch.RewardRateSelectionMode;
             _doomTickAccumulator = 0f;
             _nextGlobalStatsFlushAt = Time.unscaledTime + GlobalStatsFlushIntervalSeconds;
-            ResetRoundState();
+            _sessionEntryFeeResolved = false;
+            _sessionRewardsEnabled = false;
+            _roundController.ResetSession();
             DoomKillFeed.Reset();
             EnsureKillVoiceSource();
             EnsureKillVoiceClipsLoaded();
@@ -271,7 +268,7 @@ namespace Elin_JustDoomIt
             }
 
             _active = true;
-            SetCursorCaptured(!_rateSelectionOpen);
+            SetCursorCaptured(!CurrentRoundState.RateSelectionOpen);
             RefreshHud();
 
             var modCount = launch.PwadPaths != null ? launch.PwadPaths.Count : 0;
@@ -317,7 +314,7 @@ namespace Elin_JustDoomIt
                     return;
                 }
 
-                if (_rateSelectionOpen)
+                if (CurrentRoundState.RateSelectionOpen)
                 {
                     HandleRateSelectionInput();
                     EInput.Consume(consumeAxis: true, _skipFrame: 1);
@@ -401,11 +398,12 @@ namespace Elin_JustDoomIt
             _sessionCoinsEarned = 0;
             _lastAnnouncedStreak = 0;
             _doomTickAccumulator = 0f;
+            _sessionEntryFeeResolved = false;
+            _sessionRewardsEnabled = false;
             _killVoiceQueue.Clear();
             DoomKillFeed.Reset();
             _exitConfirmOpen = false;
-            _rateSelectionOpen = false;
-            ResetRoundState();
+            _roundController.ResetSession();
             if (_killVoiceSource != null)
             {
                 _killVoiceSource.Stop();
@@ -423,11 +421,11 @@ namespace Elin_JustDoomIt
             _exitConfirmOpen = true;
             SetCursorCaptured(false);
             _overlay?.SetVisible(false);
-            var prompt = _currentPool > 0
+            var prompt = CurrentRoundState.RoundActive
                 ? Localize(
-                    "DOOMプレイを停止しますか？\n現在の未確定プールは失われます。",
-                    "Stop DOOM play?\nYour current unbanked pool will be lost.",
-                    "要停止DOOM游玩吗？\n当前未兑现奖池会全部损失。")
+                    "DOOMプレイを停止しますか？\n獲得済みの報酬はそのまま残ります。",
+                    "Stop DOOM play?\nRewards already earned will remain.",
+                    "要停止DOOM游玩吗？\n已获得的奖励会保留。")
                 : Localize(
                     "DOOMプレイを停止しますか？",
                     "Stop DOOM play?",
@@ -444,7 +442,7 @@ namespace Elin_JustDoomIt
                 {
                     _exitConfirmOpen = false;
                     _overlay?.SetVisible(true);
-                    SetCursorCaptured(!_rateSelectionOpen);
+                    SetCursorCaptured(!CurrentRoundState.RateSelectionOpen);
                     EInput.Consume(consumeAxis: true, _skipFrame: 1);
                 },
                 Localize("はい", "Yes", "是"),
@@ -584,155 +582,154 @@ namespace Elin_JustDoomIt
 
         private void HandleMapStart(DoomMapStartEvent mapEvent)
         {
-            _currentMapCode = mapEvent.MapCode ?? string.Empty;
-            _currentMapTitle = mapEvent.MapTitle ?? string.Empty;
-            _sessionSkill = Mathf.Clamp(mapEvent.Skill, 1, 5);
-            ResetRoundState();
-            var configuredRate = DoomLaunchPreferences.ResolveConfiguredRate(_rewardRateSelectionMode);
-            _rateSelectionCursor = RateToCursor(configuredRate == DoomRewardRate.None ? DoomRewardRate.Low : configuredRate);
-            if (configuredRate != DoomRewardRate.None && TryBeginRound(configuredRate, showInsufficientPopup: true))
+            _roundController.HandleMapStart(mapEvent.Skill, mapEvent.MapCode, mapEvent.MapTitle);
+            var state = CurrentRoundState;
+            var fixedRate = DoomRewardRoundLogic.GetFixedRate();
+            _rateSelectionCursor = RateToCursor(fixedRate);
+
+            if (!_sessionEntryFeeResolved)
             {
-                var fixedRateCode = DoomRewardRoundLogic.GetConfig(configuredRate).Code;
+                _sessionEntryFeeResolved = true;
+                if (TryBeginRound(fixedRate, showInsufficientPopup: false, chargeEntryFee: true))
+                {
+                    _sessionRewardsEnabled = true;
+                    var entryCost = DoomRewardRoundLogic.GetEntryCost(fixedRate);
+                    DoomDiagnostics.Info("[JustDoomIt] " + Localize(
+                        "セッション開始: " + BuildMapLabel(state.MapCode, state.MapTitle) + " から固定参加費 " + entryCost + " を支払って報酬を開始。",
+                        "Session start: rewards enabled from " + BuildMapLabel(state.MapCode, state.MapTitle) + " after paying fixed entry " + entryCost + ".",
+                        "会话开始：从 " + BuildMapLabel(state.MapCode, state.MapTitle) + " 起支付固定入场费 " + entryCost + " 并启用奖励。"));
+                    return;
+                }
+
+                _sessionRewardsEnabled = false;
+                SetCursorCaptured(true);
+                RefreshHud();
+                ShowProgressText(Localize("チップ不足: このセッションは報酬なし", "NOT ENOUGH CHIPS: NO REWARDS THIS SESSION", "筹码不足：本次会话无奖励"), FontColor.Bad);
                 DoomDiagnostics.Info("[JustDoomIt] " + Localize(
-                    "ラウンド開始: " + BuildMapLabel(_currentMapCode, _currentMapTitle) + " を固定RATE " + fixedRateCode + " で開始。",
-                    "Round start: auto-started " + BuildMapLabel(_currentMapCode, _currentMapTitle) + " with fixed rate " + fixedRateCode + ".",
-                    "回合开始：" + BuildMapLabel(_currentMapCode, _currentMapTitle) + " 已按固定RATE " + fixedRateCode + " 自动开始。"));
+                    "セッション開始: 固定参加費を払えないため " + BuildMapLabel(state.MapCode, state.MapTitle) + " からこのセッションは報酬なし。",
+                    "Session start: no rewards for this session from " + BuildMapLabel(state.MapCode, state.MapTitle) + " because the fixed entry fee could not be paid.",
+                    "会话开始：由于无法支付固定入场费，从 " + BuildMapLabel(state.MapCode, state.MapTitle) + " 起本次会话无奖励。"));
                 return;
             }
 
-            _rateSelectionOpen = true;
-            SetCursorCaptured(false);
-            RefreshRateSelectionOverlay();
+            if (!_sessionRewardsEnabled)
+            {
+                SetCursorCaptured(true);
+                RefreshHud();
+                DoomDiagnostics.Info("[JustDoomIt] " + Localize(
+                    "ラウンド開始: " + BuildMapLabel(state.MapCode, state.MapTitle) + " は報酬なしセッションのため報酬加算なしで進行。",
+                    "Round start: " + BuildMapLabel(state.MapCode, state.MapTitle) + " continues with no reward payouts because this session has no rewards.",
+                    "回合开始：" + BuildMapLabel(state.MapCode, state.MapTitle) + " 因本次会话无奖励，不启用奖励发放。"));
+                return;
+            }
+
+            if (TryBeginRound(fixedRate, showInsufficientPopup: false, chargeEntryFee: false))
+            {
+                var entryCost = DoomRewardRoundLogic.GetEntryCost(fixedRate);
+                DoomDiagnostics.Info("[JustDoomIt] " + Localize(
+                    "ラウンド開始: " + BuildMapLabel(state.MapCode, state.MapTitle) + " を追加参加費なしで開始。セッション参加費 " + entryCost + " は支払い済み。",
+                    "Round start: auto-started " + BuildMapLabel(state.MapCode, state.MapTitle) + " with no extra entry fee. Session entry " + entryCost + " was already paid.",
+                    "回合开始：" + BuildMapLabel(state.MapCode, state.MapTitle) + " 已自动开始且不再追加入场费。会话入场费 " + entryCost + " 已支付。"));
+                return;
+            }
+
+            SetCursorCaptured(true);
             RefreshHud();
             DoomDiagnostics.Info("[JustDoomIt] " + Localize(
-                "ラウンド開始: " + BuildMapLabel(_currentMapCode, _currentMapTitle) + " でレート選択待ち。",
-                "Round start: waiting for rate selection on " + BuildMapLabel(_currentMapCode, _currentMapTitle) + ".",
-                "回合开始：" + BuildMapLabel(_currentMapCode, _currentMapTitle) + "，等待选择RATE。"));
+                "ラウンド開始: " + BuildMapLabel(state.MapCode, state.MapTitle) + " の報酬ラウンド再開に失敗。",
+                "Round start: failed to re-open the reward round on " + BuildMapLabel(state.MapCode, state.MapTitle) + ".",
+                "回合开始：" + BuildMapLabel(state.MapCode, state.MapTitle) + " 的奖励回合重新开启失败。"));
         }
 
         private void HandleKill(DoomKillEvent killEvent)
         {
-            if (!_roundActive || _currentRate == DoomRewardRate.None)
+            var result = _roundController.HandleKill();
+            if (result.PoolDelta <= 0)
             {
                 return;
             }
 
-            var usedStage = _currentMultiplierStage;
-            var add = DoomRewardRoundLogic.CalculateKillPoolGain(_currentRate, _sessionSkill, usedStage);
-            if (add <= 0)
-            {
-                return;
-            }
-
-            _currentPool += add;
-            var multiText = DoomRewardRoundLogic.FormatMultiplier(_currentRate, usedStage);
-            var suffix = usedStage > 0 ? " " + multiText : string.Empty;
-            ShowChipDeltaText("+" + add + " KILL" + suffix, FontColor.Good);
-            LogKillCommentary(killEvent, add, multiText);
-            _currentMultiplierStage = DoomRewardRoundLogic.AdvanceMultiplierStage(_currentMultiplierStage);
+            GrantConfirmedReward(result.PoolDelta);
+            var state = CurrentRoundState;
+            var bonusText = DoomRewardRoundLogic.FormatKillBonus(state.Skill, result.UsedMultiplierStage);
+            var suffix = string.IsNullOrWhiteSpace(bonusText) ? string.Empty : " " + bonusText;
+            ShowChipDeltaText("+" + result.PoolDelta + " KILL" + suffix, FontColor.Good);
+            LogKillCommentary(killEvent, result.PoolDelta, bonusText);
             RefreshHud();
         }
 
         private void HandleSecret(DoomSecretEvent secretEvent)
         {
-            if (!_roundActive || _currentRate == DoomRewardRate.None)
+            var count = Mathf.Max(1, secretEvent.Count);
+            var result = _roundController.HandleSecret(count);
+            if (result.PoolDelta <= 0)
             {
                 return;
             }
 
-            var count = Mathf.Max(1, secretEvent.Count);
-            var add = DoomRewardRoundLogic.GetSecretPoolGain() * count;
-            _currentPool += add;
+            GrantConfirmedReward(result.PoolDelta);
             var suffix = count > 1 ? " x" + count : string.Empty;
-            ShowChipDeltaText("+" + add + " SECRET" + suffix, FontColor.Great);
+            ShowChipDeltaText("+" + result.PoolDelta + " SECRET" + suffix, FontColor.Great);
             DoomDiagnostics.Info("[JustDoomIt] " + Localize(
-                BuildMapLabel(secretEvent.MapCode, secretEvent.MapTitle) + " でシークレット発見 +" + add + suffix + " (" + secretEvent.SecretCount + "/" + secretEvent.TotalSecrets + ")",
-                "Secret found on " + BuildMapLabel(secretEvent.MapCode, secretEvent.MapTitle) + ": +" + add + suffix + " (" + secretEvent.SecretCount + "/" + secretEvent.TotalSecrets + ")",
-                "在 " + BuildMapLabel(secretEvent.MapCode, secretEvent.MapTitle) + " 发现秘密：+" + add + suffix + " (" + secretEvent.SecretCount + "/" + secretEvent.TotalSecrets + ")"));
+                BuildMapLabel(secretEvent.MapCode, secretEvent.MapTitle) + " でシークレット発見 +" + result.PoolDelta + suffix + " (" + secretEvent.SecretCount + "/" + secretEvent.TotalSecrets + ")",
+                "Secret found on " + BuildMapLabel(secretEvent.MapCode, secretEvent.MapTitle) + ": +" + result.PoolDelta + suffix + " (" + secretEvent.SecretCount + "/" + secretEvent.TotalSecrets + ")",
+                "在 " + BuildMapLabel(secretEvent.MapCode, secretEvent.MapTitle) + " 发现秘密：+" + result.PoolDelta + suffix + " (" + secretEvent.SecretCount + "/" + secretEvent.TotalSecrets + ")"));
             RefreshHud();
         }
 
         private void HandleDamage(DoomDamageEvent damageEvent)
         {
-            if (!_roundActive || _currentRate == DoomRewardRate.None)
+            var result = _roundController.HandleDamage();
+            if (!result.BonusReset)
             {
                 return;
             }
 
-            var loss = DoomRewardRoundLogic.CalculateHitLoss(_currentRate, _currentPool);
-            var lossPercent = DoomRewardRoundLogic.GetHitLossPercent(_currentRate);
-            if (loss > 0)
-            {
-                _currentPool = Mathf.Max(0, _currentPool - loss);
-                ShowChipDeltaText("-" + loss + " HIT LOSS (" + lossPercent + "%)", FontColor.Bad);
-            }
-
-            if (_currentMultiplierStage > 0)
+            if (result.BonusReset)
             {
                 ShowProgressText(Localize("連続ボーナス リセット", "KILL BONUS RESET", "连杀加成重置"), FontColor.Bad);
             }
 
-            _currentMultiplierStage = DoomRewardRoundLogic.ResetMultiplierStage();
             RefreshHud();
         }
 
         private void HandleMapClear(bool isBossClear)
         {
-            var cashOut = _currentPool;
-            var mapLabel = BuildMapLabel(_currentMapCode, _currentMapTitle);
-            ResetRoundState();
+            var state = CurrentRoundState;
+            var mapLabel = BuildMapLabel(state.MapCode, state.MapTitle);
+            var result = _roundController.HandleClear(StageClearBonus);
             RefreshHud();
 
-            if (cashOut > 0)
+            if (result.BonusAmount > 0)
             {
-                GrantConfirmedReward(cashOut);
-                ShowProgressText("CASH OUT +" + cashOut, FontColor.Good);
-            }
-
-            if (isBossClear)
-            {
-                GrantConfirmedReward(BossClearBonus);
-                ShowProgressText("BOSS BONUS +" + BossClearBonus, FontColor.Great);
+                GrantConfirmedReward(result.BonusAmount);
+                ShowProgressText("CLEAR BONUS +" + result.BonusAmount, FontColor.Great);
             }
 
             _backend?.SavePersistentNow();
             DoomDiagnostics.Info("[JustDoomIt] " + Localize(
-                BuildMapLabel(_currentMapCode, _currentMapTitle) + " をクリア。精算 +" + cashOut + (isBossClear ? " / boss +" + BossClearBonus : string.Empty),
-                "Cleared " + mapLabel + ". Cash out +" + cashOut + (isBossClear ? " / boss +" + BossClearBonus : string.Empty),
-                "已通关 " + mapLabel + "。兑现 +" + cashOut + (isBossClear ? " / boss +" + BossClearBonus : string.Empty)));
+                BuildMapLabel(state.MapCode, state.MapTitle) + " をクリア。マップ獲得 +" + state.CurrentPool + (result.BonusAmount > 0 ? " / clear +" + result.BonusAmount : string.Empty),
+                "Cleared " + mapLabel + ". Map earned +" + state.CurrentPool + (result.BonusAmount > 0 ? " / clear +" + result.BonusAmount : string.Empty),
+                "已通关 " + mapLabel + "。本图获得 +" + state.CurrentPool + (result.BonusAmount > 0 ? " / clear +" + result.BonusAmount : string.Empty)));
         }
 
         private void HandleDeath(DoomDeathEvent deathEvent)
         {
-            var cashOut = _currentPool;
-            ResetRoundState();
+            var state = CurrentRoundState;
+            var result = _roundController.HandleDeath();
             RefreshHud();
-
-            if (cashOut > 0)
-            {
-                GrantConfirmedReward(cashOut);
-                ShowProgressText(
-                    Localize("死亡精算 +" + cashOut, "DEATH CASH OUT +" + cashOut, "死亡兑现 +" + cashOut),
-                    FontColor.Good);
-                _backend?.SavePersistentNow();
-            }
+            _backend?.SavePersistentNow();
 
             DoomDiagnostics.Info("[JustDoomIt] " + Localize(
-                cashOut > 0
-                    ? "死亡により未精算チップを精算 +" + cashOut + "。"
-                    : "死亡時に精算できる未精算チップはありませんでした。",
-                cashOut > 0
-                    ? "Death cashed out uncashed chips +" + cashOut + "."
-                    : "No uncashed chips were available to cash out on death.",
-                cashOut > 0
-                    ? "死亡时已兑现未结算筹码 +" + cashOut + "。"
-                    : "死亡时没有可兑现的未结算筹码。"));
+                "死亡。マップ獲得分 +" + state.CurrentPool + " はすでに支払い済み。",
+                "Death. Map earnings +" + state.CurrentPool + " were already paid instantly.",
+                "死亡。本图获得的 +" + state.CurrentPool + " 已即时发放。"));
             RefreshHud();
         }
 
         private void HandleRateSelectionInput()
         {
-            if (!_rateSelectionOpen)
+            if (!CurrentRoundState.RateSelectionOpen)
             {
                 return;
             }
@@ -803,38 +800,42 @@ namespace Elin_JustDoomIt
             }
         }
 
-        private bool TryBeginRound(DoomRewardRate rate, bool showInsufficientPopup)
+        private bool TryBeginRound(DoomRewardRate rate, bool showInsufficientPopup, bool chargeEntryFee = true)
         {
-            var entryCost = DoomRewardRoundLogic.GetEntryCost(rate);
-            if (!TrySpendCasinoCoins(entryCost))
+            var entryCost = chargeEntryFee ? DoomRewardRoundLogic.GetEntryCost(rate) : 0;
+            var result = _roundController.TryBeginRound(rate, CanSpendCasinoCoins(entryCost), chargeEntryFee);
+            if (result.InsufficientFunds)
             {
                 if (showInsufficientPopup)
                 {
                     ShowProgressText(Localize("チップ不足", "NOT ENOUGH CHIPS", "筹码不足"), FontColor.Bad);
                 }
 
+                RefreshHud();
                 return false;
             }
 
-            _currentRate = rate;
-            _currentPool = 0;
-            _currentMultiplierStage = DoomRewardRoundLogic.ResetMultiplierStage();
-            _roundActive = true;
-            _rateSelectionOpen = false;
+            if (!TrySpendCasinoCoins(result.EntryCost))
+            {
+                if (showInsufficientPopup)
+                {
+                    ShowProgressText(Localize("チップ不足", "NOT ENOUGH CHIPS", "筹码不足"), FontColor.Bad);
+                }
+
+                _roundController.HandleMapStart(CurrentRoundState.Skill, CurrentRoundState.MapCode, CurrentRoundState.MapTitle);
+                RefreshHud();
+                return false;
+            }
+
             _active = true;
             _overlay?.HideRateSelection();
             SetCursorCaptured(true);
-            ShowProgressText(Localize("賭け: ", "Wager: ", "赌法：") + GetRewardRateDisplayName(rate), FontColor.Great);
+            if (result.EntryCost > 0)
+            {
+                ShowProgressText(Localize("開始料 ", "SESSION ENTRY ", "会话入场 ") + result.EntryCost, FontColor.Great);
+            }
             RefreshHud();
             return true;
-        }
-
-        private void ResetRoundState()
-        {
-            _currentRate = DoomRewardRate.None;
-            _currentPool = 0;
-            _currentMultiplierStage = DoomRewardRoundLogic.ResetMultiplierStage();
-            _roundActive = false;
         }
 
         private void RefreshHud()
@@ -844,40 +845,7 @@ namespace Elin_JustDoomIt
                 return;
             }
 
-            string betText;
-            string rewardText;
-            string poolLabelText;
-            string poolText;
-            var poolValue = 0;
-            var riskLoss = 0;
-            var roundActive = false;
-
-            if (_roundActive && _currentRate != DoomRewardRate.None)
-            {
-                betText = Localize("賭け: ", "Wager: ", "赌法：") + GetRewardRateDisplayName(_currentRate);
-                rewardText = BuildKillRewardDisplay(_currentRate, _sessionSkill, _currentMultiplierStage);
-                poolLabelText = Localize("未精算チップ", "Uncashed Chips", "未结算筹码");
-                poolText = _currentPool.ToString();
-                poolValue = _currentPool;
-                riskLoss = DoomRewardRoundLogic.CalculateHitLoss(_currentRate, _currentPool);
-                roundActive = true;
-            }
-            else if (_rateSelectionOpen)
-            {
-                betText = Localize("賭けを選択", "SELECT WAGER", "选择赌法");
-                rewardText = Localize("1キル報酬 -", "Per-Kill Payout -", "每杀奖励 -");
-                poolLabelText = Localize("未精算チップ", "Uncashed Chips", "未结算筹码");
-                poolText = "-";
-            }
-            else
-            {
-                betText = Localize("賭け: -", "Wager: -", "赌法：-");
-                rewardText = Localize("1キル報酬 -", "Per-Kill Payout -", "每杀奖励 -");
-                poolLabelText = Localize("未精算チップ", "Uncashed Chips", "未结算筹码");
-                poolText = "-";
-            }
-
-            _overlay.SetHud(betText, rewardText, poolLabelText, poolText, poolValue, riskLoss, roundActive);
+            _overlay.SetHud(BuildHudViewModel());
         }
 
         private void RefreshRateSelectionOverlay()
@@ -887,88 +855,21 @@ namespace Elin_JustDoomIt
                 return;
             }
 
-            var rate = CursorToRate(_rateSelectionCursor);
-            var config = DoomRewardRoundLogic.GetConfig(rate);
-            var bonusCap = Mathf.RoundToInt(DoomRewardRoundLogic.GetKillBonusCapPercent(rate));
-            var difficultyMultiplier = DoomRewardRoundLogic.GetDifficultyMultiplier(_sessionSkill);
-            var options = BuildRateSelectionOptions();
-            var helper = Localize(
-                "現在難易度補正 x" + difficultyMultiplier.ToString("0.00") + "。参加 " + config.EntryCost + " を払って開始。連続キルによる報酬ブーストは最大 +" + bonusCap + "%。未精算チップを育ててクリアか死亡で精算。",
-                "Current difficulty modifier x" + difficultyMultiplier.ToString("0.00") + ". Pay " + config.EntryCost + " to start. The streak reward boost reaches up to +" + bonusCap + "%. Build up uncashed chips and cash out on clear or death.",
-                "当前难度补正 x" + difficultyMultiplier.ToString("0.00") + "。支付 " + config.EntryCost + " 开始。连杀带来的奖励加成最高可达 +" + bonusCap + "%。积累未结算筹码并在通关或死亡时兑现。");
-
-            _overlay.ShowRateSelection(Localize("賭けを選択", "SELECT WAGER", "选择赌法"), helper, options, _rateSelectionCursor);
+            _overlay.ShowRateSelection(BuildRateSelectionViewModel());
         }
 
-        private string[] BuildRateSelectionOptions()
+        private DoomHudViewModel BuildHudViewModel()
         {
-            var chips = EClass.pc?.GetCurrency(CasinoCoinId) ?? 0;
-            var rates = new[] { DoomRewardRate.Low, DoomRewardRate.Mid, DoomRewardRate.High };
-            var options = new string[rates.Length];
-            for (var i = 0; i < rates.Length; i++)
-            {
-                var config = DoomRewardRoundLogic.GetConfig(rates[i]);
-                var bonusCap = Mathf.RoundToInt(DoomRewardRoundLogic.GetKillBonusCapPercent(rates[i]));
-                var option = Localize(
-                    GetRewardRateDisplayName(rates[i]) + "\n<size=18>参加 " + config.EntryCost +
-                    "   1キル " + config.BaseReward +
-                    "   最大 +" + bonusCap + "%" +
-                    "   被弾 -" + config.HitLossPercent + "%</size>",
-                    GetRewardRateDisplayName(rates[i]) + "\n<size=18>ENTRY " + config.EntryCost +
-                    "   PAYOUT " + config.BaseReward +
-                    "   MAX +" + bonusCap + "%" +
-                    "   HIT -" + config.HitLossPercent + "%</size>",
-                    GetRewardRateDisplayName(rates[i]) + "\n<size=18>入场 " + config.EntryCost +
-                    "   每杀 " + config.BaseReward +
-                    "   最大 +" + bonusCap + "%" +
-                    "   受击 -" + config.HitLossPercent + "%</size>");
-                if (chips < config.EntryCost)
-                {
-                    option += Localize("  <size=18>  不足</size>", "  <size=18>  LOCK</size>", "  <size=18>  不足</size>");
-                }
-
-                options[i] = option;
-            }
-
-            return options;
+            return DoomRewardPresentationBuilder.BuildHudViewModel(CurrentRoundState, Localize);
         }
 
-        private static string GetRewardRateDisplayName(DoomRewardRate rate)
+        private DoomRateSelectionViewModel BuildRateSelectionViewModel()
         {
-            switch (rate)
-            {
-                case DoomRewardRate.Low:
-                    return Localize("安全重視", "Safe Play", "稳扎稳打");
-                case DoomRewardRate.Mid:
-                    return Localize("標準勝負", "Standard Play", "标准胜负");
-                case DoomRewardRate.High:
-                    return Localize("大勝負", "High Stakes", "放手一搏");
-                default:
-                    return "-";
-            }
-        }
-
-        private static string BuildKillRewardDisplay(DoomRewardRate rate, int skill, int multiplierStage)
-        {
-            if (rate == DoomRewardRate.None)
-            {
-                return Localize("1キル報酬 -", "Per-Kill Payout -", "每杀奖励 -");
-            }
-
-            var reward = DoomRewardRoundLogic.CalculateKillPoolGain(rate, skill, multiplierStage);
-            var bonusPercent = DoomRewardRoundLogic.GetDisplayedKillBonusPercent(rate, multiplierStage);
-            if (bonusPercent <= 0)
-            {
-                return Localize(
-                    "1キル報酬 " + reward,
-                    "Per-Kill Payout " + reward,
-                    "每杀奖励 " + reward);
-            }
-
-            return Localize(
-                "1キル報酬 " + reward + " (+" + bonusPercent + "%)",
-                "Per-Kill Payout " + reward + " (+" + bonusPercent + "%)",
-                "每杀奖励 " + reward + " (+" + bonusPercent + "%)");
+            return DoomRewardPresentationBuilder.BuildRateSelectionViewModel(
+                CurrentRoundState,
+                _rateSelectionCursor,
+                EClass.pc?.GetCurrency(CasinoCoinId) ?? 0,
+                Localize);
         }
 
         private static DoomRewardRate CursorToRate(int cursor)
@@ -1010,18 +911,26 @@ namespace Elin_JustDoomIt
             return true;
         }
 
+        private static bool CanSpendCasinoCoins(int amount)
+        {
+            if (amount <= 0)
+            {
+                return true;
+            }
+
+            return EClass.pc != null && EClass.pc.GetCurrency(CasinoCoinId) >= amount;
+        }
+
         private void AbandonCurrentRound(bool showPopup)
         {
-            var lost = _currentPool;
-            var hadRoundState = _currentRate != DoomRewardRate.None || _currentPool > 0 || _roundActive;
-            ResetRoundState();
+            var state = CurrentRoundState;
+            _roundController.HandleAbort();
+            var hadRoundState = state.CurrentRate != DoomRewardRate.None || state.CurrentPool > 0 || state.RoundActive;
             RefreshHud();
             if (showPopup && hadRoundState)
             {
                 ShowProgressText(
-                    lost > 0
-                        ? Localize("未精算チップ喪失 " + lost, "UNCASHED CHIPS LOST " + lost, "未结算筹码损失 " + lost)
-                        : Localize("未精算チップ喪失", "UNCASHED CHIPS LOST", "未结算筹码损失"),
+                    Localize("ラウンド終了", "ROUND ENDED", "回合结束"),
                     FontColor.Bad);
             }
         }
@@ -1057,9 +966,9 @@ namespace Elin_JustDoomIt
             var weapon = LocalizeWeapon(e.Weapon);
             var enemy = LocalizeEnemy(e.Enemy);
             var rewardPart = Localize(
-                "+" + poolAdd + " 未精算",
-                "+" + poolAdd + " UNCASHED",
-                "+" + poolAdd + " 未结算") + (string.IsNullOrWhiteSpace(multiplierText) ? string.Empty : " " + multiplierText);
+                "+" + poolAdd + " チップ",
+                "+" + poolAdd + " CHIPS",
+                "+" + poolAdd + " 筹码") + (string.IsNullOrWhiteSpace(multiplierText) ? string.Empty : " " + multiplierText);
 
             var line = Localize(
                 "【DOOM " + mapPart + "】" + enemy + "に" + weapon + "を向けた！ " + enemy + "をミンチにした！ キルストリーク" + streakPart + "！ " + rewardPart,
@@ -1257,12 +1166,13 @@ namespace Elin_JustDoomIt
         {
             try
             {
+                _sessionTookOverWorldBgm = true;
                 _doomBgmActive = true;
                 _nextDoomBgmIndex = 0;
                 _nextDoomBgmRetryAt = 0f;
-                EClass.Sound?.StopBGM();
+                DoomBgmRuntime.TryStopCurrentBgm("[JustDoomIt] Failed to stop existing BGM before DOOM session: ");
                 PlayNextDoomBgm();
-                DoomDiagnostics.Info("[JustDoomIt] DOOM BGM sequence started.");
+                DoomDiagnostics.Info("[JustDoomIt] DOOM session music: custom soundtrack.");
             }
             catch (System.Exception ex)
             {
@@ -1272,22 +1182,36 @@ namespace Elin_JustDoomIt
 
         private void StopDoomBgm()
         {
-            try
+            var restoreWorldBgm = _sessionTookOverWorldBgm;
+            _sessionTookOverWorldBgm = false;
+            if (!_doomBgmActive && !restoreWorldBgm)
+            {
+                return;
+            }
+
+            if (_doomBgmActive)
             {
                 _doomBgmActive = false;
-                EClass.Sound?.StopBGM();
-                EClass._zone?.RefreshBGM();
-                DoomDiagnostics.Info("[JustDoomIt] DOOM BGM sequence stopped.");
+                DoomBgmRuntime.TryStopCurrentBgm("[JustDoomIt] Failed to stop DOOM BGM playback: ");
             }
-            catch (System.Exception ex)
+
+            if (restoreWorldBgm)
             {
-                DoomDiagnostics.Warn("[JustDoomIt] Failed to stop DOOM BGM sequence: " + ex.Message);
+                DoomBgmRuntime.TryRefreshZoneBgm("[JustDoomIt] Failed to restore zone BGM after DOOM session: ");
             }
+
+            DoomDiagnostics.Info("[JustDoomIt] DOOM session music stopped.");
         }
 
         private void UpdateDoomBgmPlayback()
         {
-            if (!_active || !_doomBgmActive || EClass.Sound == null)
+            if (!_active || (!_doomBgmActive && !_sessionTookOverWorldBgm))
+            {
+                return;
+            }
+
+            var sound = DoomBgmRuntime.TryGetSoundManager();
+            if (sound == null)
             {
                 return;
             }
@@ -1297,11 +1221,11 @@ namespace Elin_JustDoomIt
                 return;
             }
 
-            var hasPlayingBgm = EClass.Sound.sourceBGM != null && EClass.Sound.sourceBGM.isPlaying;
-            var currentId = EClass.Sound.currentBGM != null ? EClass.Sound.currentBGM.id : string.Empty;
+            var hasPlayingBgm = sound.sourceBGM != null && sound.sourceBGM.isPlaying;
+            var currentId = sound.currentBGM != null ? sound.currentBGM.id : string.Empty;
             var isDoomBgm = IsDoomBgmId(currentId);
 
-            if (hasPlayingBgm && isDoomBgm)
+            if (_doomBgmActive && hasPlayingBgm && isDoomBgm)
             {
                 return;
             }
@@ -1316,14 +1240,15 @@ namespace Elin_JustDoomIt
 
         private void PlayNextDoomBgm()
         {
-            if (!_doomBgmActive || EClass.Sound == null || DoomBgmIds.Length == 0)
+            var sound = DoomBgmRuntime.TryGetSoundManager();
+            if (!_doomBgmActive || sound == null || DoomBgmIds.Length == 0)
             {
                 return;
             }
 
             var id = DoomBgmIds[_nextDoomBgmIndex % DoomBgmIds.Length];
             _nextDoomBgmIndex = (_nextDoomBgmIndex + 1) % DoomBgmIds.Length;
-            var bgm = EClass.Sound.PlayBGM(id);
+            var bgm = sound.PlayBGM(id);
             if (bgm == null)
             {
                 DoomDiagnostics.Warn("[JustDoomIt] PlayBGM failed for id: " + id);
@@ -1456,10 +1381,11 @@ namespace Elin_JustDoomIt
 
         private static void LogRewardRules()
         {
+            var entry = DoomRewardRoundLogic.GetEntryCost(DoomRewardRoundLogic.GetFixedRate());
             DoomDiagnostics.Info("[JustDoomIt] " + Localize(
-                "報酬ルール: 安全重視は堅実、標準勝負は基準、大勝負は夢枠。各マップ開始時に賭けを選択。撃破報酬とシークレット発見は未精算チップへ、被弾でチップ減少+連続ボーナスリセット、クリア時または死亡時に精算、ESCで全損。連続ボーナス上限は安全重視+400%、標準勝負+600%、大勝負+999%。シークレットは固定+500、ボスは追加+10000。",
-                "Reward rules: Safe Play is the steady lane, Standard Play is the baseline, and High Stakes is the dream lane. Pick a wager at each map start. Kills and secret finds add to uncashed chips, hits shave the chips and reset the kill bonus, clears and deaths cash out, and ESC loses the lot. Kill-bonus caps are +400% for Safe Play, +600% for Standard Play, and +999% for High Stakes. Secrets are a flat +500, and boss clears add +10000.",
-                "奖励规则：稳扎稳打偏稳健，标准胜负是基准，放手一搏是梦想档。每张地图开始时选择赌法。击杀与秘密发现都会累积到未结算筹码，受伤会扣筹码并重置连杀加成，通关或死亡时兑现，ESC会全部损失。连杀加成上限分别为稳扎稳打+400%、标准胜负+600%、放手一搏+999%。秘密固定+500，Boss通关额外+10000。"));
+                "報酬ルール: 新規開始またはCONTINUE時に固定参加費 " + entry + " を1回だけ支払う。撃破報酬とシークレット報酬は即時支給され、連続キルごとに +35 ずつ伸び、上限は難易度で決まる。被弾すると連キルボーナスだけがリセットされ、クリア時は追加+1000。死亡やESCでの追加精算や没収はない。",
+                "Reward rules: START OVER and CONTINUE pay the fixed entry fee of " + entry + " once per session. Kill and secret rewards are paid instantly, growing by +35 per consecutive kill up to a difficulty-based cap. Taking damage only resets the kill-streak bonus, and clears add +1000. Death and ESC do not trigger extra cash-out or loss.",
+                "奖励规则：每次新开或CONTINUE时只支付一次固定入场费 " + entry + "。击杀和秘密奖励会即时发放，每次连杀额外 +35，上限取决于难度。受伤只会重置连杀奖励，通关额外 +1000。死亡或ESC都不会再结算或没收额外奖励。"));
         }
 
         private void ShowProgressText(string text, FontColor color)

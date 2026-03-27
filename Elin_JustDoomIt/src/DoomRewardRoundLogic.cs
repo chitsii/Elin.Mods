@@ -29,64 +29,52 @@ namespace Elin_JustDoomIt
     public static class DoomRewardRoundLogic
     {
         private const int SecretPoolGain = 500;
-        private const float KillBonusGrowthDivisor = 10f;
-        private static readonly float[] DifficultyMultipliers = { 0.50f, 0.75f, 1.00f, 1.25f, 1.50f };
+        private const int FixedEntryCost = 100;
+        private const int FixedBaseReward = 70;
+        private const int KillStreakIncrement = 35;
+        private static readonly int[] DifficultyRewardCaps = { 140, 175, 210, 280, 350 };
+
+        public static DoomRewardRate GetFixedRate()
+        {
+            return DoomRewardRate.Mid;
+        }
 
         public static DoomRewardRateConfig GetConfig(DoomRewardRate rate)
         {
-            switch (rate)
+            if (rate == DoomRewardRate.None)
             {
-                case DoomRewardRate.Low:
-                    return new DoomRewardRateConfig("LOW", 100, 30, 18);
-                case DoomRewardRate.Mid:
-                    return new DoomRewardRateConfig("MID", 500, 70, 24);
-                case DoomRewardRate.High:
-                    return new DoomRewardRateConfig("HIGH", 1000, 110, 30);
-                default:
-                    return new DoomRewardRateConfig("-", 0, 0, 0);
+                return new DoomRewardRateConfig("-", 0, 0, 0);
             }
+
+            return new DoomRewardRateConfig("FIXED", FixedEntryCost, FixedBaseReward, 0);
         }
 
-        public static float GetDifficultyMultiplier(int skill)
+        public static int GetDifficultyRewardCap(int skill)
         {
             var index = Math.Max(1, Math.Min(5, skill)) - 1;
-            return DifficultyMultipliers[index];
+            return DifficultyRewardCaps[index];
         }
 
-        public static float GetKillBonusCapPercent(DoomRewardRate rate)
+        public static int GetKillRewardBonus(int skill, int stageIndex)
         {
-            switch (rate)
-            {
-                case DoomRewardRate.Low:
-                    return 400f;
-                case DoomRewardRate.Mid:
-                    return 600f;
-                case DoomRewardRate.High:
-                    return 999f;
-                default:
-                    return 0f;
-            }
+            var reward = CalculateKillPoolGain(skill, stageIndex);
+            return Math.Max(0, reward - FixedBaseReward);
         }
 
-        private static float GetKillBonusProgress(int stageIndex)
+        public static int GetDisplayedKillBonusPercent(int skill, int stageIndex)
+        {
+            return Math.Max(0, RoundToInt((GetKillRewardBonus(skill, stageIndex) / (float)FixedBaseReward) * 100f));
+        }
+
+        public static int GetKillReward(int skill, int stageIndex)
         {
             if (stageIndex <= 0)
             {
-                return 0f;
+                return FixedBaseReward;
             }
 
-            return stageIndex / (stageIndex + KillBonusGrowthDivisor);
-        }
-
-        public static float GetKillMultiplier(DoomRewardRate rate, int stageIndex)
-        {
-            var bonusPercent = GetKillBonusCapPercent(rate) * GetKillBonusProgress(stageIndex);
-            return 1f + (bonusPercent / 100f);
-        }
-
-        public static int GetDisplayedKillBonusPercent(DoomRewardRate rate, int stageIndex)
-        {
-            return Math.Max(0, RoundToInt((GetKillMultiplier(rate, stageIndex) - 1f) * 100f));
+            var unclamped = FixedBaseReward + Math.Max(0, stageIndex) * KillStreakIncrement;
+            return Math.Min(GetDifficultyRewardCap(skill), unclamped);
         }
 
         public static int ResetMultiplierStage()
@@ -99,38 +87,26 @@ namespace Elin_JustDoomIt
             return Math.Max(0, Math.Min(int.MaxValue - 1, stageIndex + 1));
         }
 
-        public static string FormatMultiplier(DoomRewardRate rate, int stageIndex)
+        public static string FormatKillBonus(int skill, int stageIndex)
         {
-            return "x" + GetKillMultiplier(rate, stageIndex).ToString("0.0");
+            var bonus = GetKillRewardBonus(skill, stageIndex);
+            return bonus > 0 ? "+" + bonus : string.Empty;
         }
 
-        public static int CalculateKillPoolGain(DoomRewardRate rate, int skill, int multiplierStage)
+        public static int CalculateKillPoolGain(int skill, int multiplierStage)
         {
-            var config = GetConfig(rate);
+            var config = GetConfig(GetFixedRate());
             if (config.BaseReward <= 0)
             {
                 return 0;
             }
 
-            var reward = config.BaseReward * GetDifficultyMultiplier(skill) * GetKillMultiplier(rate, multiplierStage);
-            return Math.Max(0, RoundToInt(reward));
+            return Math.Max(0, GetKillReward(skill, multiplierStage));
         }
 
         public static int CalculateHitLoss(DoomRewardRate rate, int pool)
         {
-            if (pool <= 0)
-            {
-                return 0;
-            }
-
-            var config = GetConfig(rate);
-            if (config.HitLossPercent <= 0)
-            {
-                return 0;
-            }
-
-            var loss = pool * (config.HitLossPercent / 100f);
-            return Math.Max(0, Math.Min(pool, RoundToInt(loss)));
+            return 0;
         }
 
         public static int CalculateRunNet(DoomRewardRate rate, int pool)

@@ -19,7 +19,7 @@ namespace Elin_JustDoomIt
         public string selectedIwadFile = "freedoom1.wad";
         public string selectedModId = string.Empty;
         public int selectedSkill = 3;
-        public string selectedRewardRateMode = DoomLaunchPreferences.RewardRateAskEveryMap;
+        public string selectedRewardRateMode = DoomLaunchPreferences.RewardRateFixedMid;
 
         // Legacy in-memory carry-over only. Do not persist in new format.
         public List<string> enabledModFiles = new List<string>();
@@ -195,7 +195,7 @@ namespace Elin_JustDoomIt
                 "selected_iwad=" + sanitized.selectedIwadFile,
                 "selected_mod_id=" + (sanitized.selectedModId ?? string.Empty),
                 "selected_skill=" + sanitized.selectedSkill,
-                "selected_reward_rate_mode=" + (sanitized.selectedRewardRateMode ?? DoomLaunchPreferences.RewardRateAskEveryMap)
+                "selected_reward_rate_mode=" + (sanitized.selectedRewardRateMode ?? DoomLaunchPreferences.RewardRateFixedMid)
             };
             File.WriteAllLines(path, lines);
         }
@@ -428,8 +428,7 @@ namespace Elin_JustDoomIt
             }
 
             loadout.selectedSkill = Mathf.Clamp(loadout.selectedSkill, 1, 5);
-            loadout.selectedRewardRateMode = DoomLaunchPreferences.SerializeRewardRateSelectionMode(
-                DoomLaunchPreferences.ParseRewardRateSelectionMode(loadout.selectedRewardRateMode));
+            loadout.selectedRewardRateMode = DoomLaunchPreferences.RewardRateFixedMid;
             return loadout;
         }
 

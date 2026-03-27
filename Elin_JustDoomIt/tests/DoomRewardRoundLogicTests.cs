@@ -5,36 +5,36 @@ namespace Elin_JustDoomIt.Tests;
 public sealed class DoomRewardRoundLogicTests
 {
     [Fact]
-    public void GetConfig_HighRate_UsesPlanCValues()
+    public void GetConfig_AnyRate_UsesFixedValues()
     {
         var config = DoomRewardRoundLogic.GetConfig(DoomRewardRate.High);
 
-        Assert.Equal("HIGH", config.Code);
-        Assert.Equal(1000, config.EntryCost);
-        Assert.Equal(110, config.BaseReward);
-        Assert.Equal(30, config.HitLossPercent);
+        Assert.Equal("FIXED", config.Code);
+        Assert.Equal(100, config.EntryCost);
+        Assert.Equal(70, config.BaseReward);
+        Assert.Equal(0, config.HitLossPercent);
     }
 
     [Fact]
-    public void CalculateKillPoolGain_UsesDifficultyAndMultiplier()
+    public void CalculateKillPoolGain_UsesKillStreakMultiplier()
     {
-        var reward = DoomRewardRoundLogic.CalculateKillPoolGain(DoomRewardRate.Mid, 4, 2);
+        var reward = DoomRewardRoundLogic.CalculateKillPoolGain(4, 2);
 
-        Assert.Equal(175, reward);
+        Assert.Equal(140, reward);
     }
 
     [Fact]
-    public void CalculateHitLoss_RoundsAndClampsToPool()
+    public void CalculateHitLoss_IsDisabled()
     {
         var loss = DoomRewardRoundLogic.CalculateHitLoss(DoomRewardRate.Mid, 1267);
 
-        Assert.Equal(304, loss);
+        Assert.Equal(0, loss);
     }
 
     [Fact]
-    public void CalculateRunNet_IncludesEntryCost()
+    public void CalculateRunNet_UsesFixedEntryCost()
     {
-        var runNet = DoomRewardRoundLogic.CalculateRunNet(DoomRewardRate.Low, 740);
+        var runNet = DoomRewardRoundLogic.CalculateRunNet(DoomRewardRoundLogic.GetFixedRate(), 740);
 
         Assert.Equal(640, runNet);
     }
@@ -46,13 +46,13 @@ public sealed class DoomRewardRoundLogicTests
     }
 
     [Fact]
-    public void CalculateKillPoolGain_HighRateOnSkillOne_UsesDreamLaneValues()
+    public void CalculateKillPoolGain_GrowsByFixedIncrementsAndCapsByDifficulty()
     {
-        Assert.Equal(55, DoomRewardRoundLogic.CalculateKillPoolGain(DoomRewardRate.High, 1, 0));
-        Assert.Equal(105, DoomRewardRoundLogic.CalculateKillPoolGain(DoomRewardRate.High, 1, 1));
-        Assert.Equal(147, DoomRewardRoundLogic.CalculateKillPoolGain(DoomRewardRate.High, 1, 2));
-        Assert.Equal(182, DoomRewardRoundLogic.CalculateKillPoolGain(DoomRewardRate.High, 1, 3));
-        Assert.Equal(212, DoomRewardRoundLogic.CalculateKillPoolGain(DoomRewardRate.High, 1, 4));
+        Assert.Equal(70, DoomRewardRoundLogic.CalculateKillPoolGain(1, 0));
+        Assert.Equal(105, DoomRewardRoundLogic.CalculateKillPoolGain(1, 1));
+        Assert.Equal(140, DoomRewardRoundLogic.CalculateKillPoolGain(1, 2));
+        Assert.Equal(140, DoomRewardRoundLogic.CalculateKillPoolGain(1, 3));
+        Assert.Equal(140, DoomRewardRoundLogic.CalculateKillPoolGain(1, 4));
     }
 
     [Fact]
@@ -65,25 +65,25 @@ public sealed class DoomRewardRoundLogicTests
         }
 
         Assert.Equal(10, stage);
-        Assert.Equal("x4.0", DoomRewardRoundLogic.FormatMultiplier(DoomRewardRate.Mid, stage));
+        Assert.Equal("+280", DoomRewardRoundLogic.FormatKillBonus(5, stage));
     }
 
     [Fact]
-    public void GetDisplayedKillBonusPercent_UsesRateSpecificCaps()
+    public void GetDisplayedKillBonusPercent_UsesDifficultyCaps()
     {
-        Assert.Equal(200, DoomRewardRoundLogic.GetDisplayedKillBonusPercent(DoomRewardRate.Low, 10));
-        Assert.Equal(300, DoomRewardRoundLogic.GetDisplayedKillBonusPercent(DoomRewardRate.Mid, 10));
-        Assert.Equal(500, DoomRewardRoundLogic.GetDisplayedKillBonusPercent(DoomRewardRate.High, 10));
+        Assert.Equal(100, DoomRewardRoundLogic.GetDisplayedKillBonusPercent(1, 10));
+        Assert.Equal(200, DoomRewardRoundLogic.GetDisplayedKillBonusPercent(3, 10));
+        Assert.Equal(400, DoomRewardRoundLogic.GetDisplayedKillBonusPercent(5, 10));
     }
 
     [Fact]
-    public void HigherRates_StayAboveLowerRates_AtTheSameStage()
+    public void HigherDifficultyCaps_StayAboveLowerDifficultyCaps()
     {
         const int stage = 25;
 
-        var low = DoomRewardRoundLogic.CalculateKillPoolGain(DoomRewardRate.Low, 3, stage);
-        var mid = DoomRewardRoundLogic.CalculateKillPoolGain(DoomRewardRate.Mid, 3, stage);
-        var high = DoomRewardRoundLogic.CalculateKillPoolGain(DoomRewardRate.High, 3, stage);
+        var low = DoomRewardRoundLogic.CalculateKillPoolGain(1, stage);
+        var mid = DoomRewardRoundLogic.CalculateKillPoolGain(3, stage);
+        var high = DoomRewardRoundLogic.CalculateKillPoolGain(5, stage);
 
         Assert.True(low < mid);
         Assert.True(mid < high);

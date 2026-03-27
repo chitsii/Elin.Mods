@@ -2,11 +2,10 @@
 
 Adds a playable DOOM arcade cabinet next to the Fortune Bell reception desk.
 
-Choose a `LOW / MID / HIGH` RATE at the start of each map.
-`LOW` is the safe lane, `MID` is the standard lane, and `HIGH` is the dream lane for long clean maps.
-Kills build an unbanked pool for that map, hits shave part of the pool and reset the kill bonus, and only a clear lets you `CASH OUT`.
-Each secret found also adds a flat `+500` to the same unbanked pool.
-Death cashes out the current map's unbanked pool, while `ESC` exits still wipe it.
+Each `START OVER` / `CONTINUE` pays the fixed entry fee of `100` once to start a reward session.
+Kill and secret rewards are paid instantly, and the base kill payout `70` grows by `+35` on each consecutive kill.
+The per-kill cap depends on difficulty, taking hits only resets the kill-streak bonus, and clears add `+1000`.
+Later maps in the same session do not charge again. Death and `ESC` do not trigger extra cash-out or loss.
 It's basically the world's most violent slot machine.
 
 Play it at the casino, steal it, put it in your barn — your call.
@@ -35,20 +34,20 @@ A. After firing a BFG, picking up a hoe feels... underwhelming.
 
 #### Components
 
-- DOOM-compatible engine: [DoomNetFrameworkEngine](https://github.com/mahach666/DoomNetFrameworkEngine)
+- DOOM-compatible engine: [ManagedDoom](https://github.com/sinshu/managed-doom)
 - Game data: `freedoom1.wad` from [FreeDoom](https://freedoom.github.io/)
 - The cabinet is a custom item added via CWL (Custom Whatever Loader)
 
 #### Licensing
 
-- DoomNetFrameworkEngine: MIT License.
+- ManagedDoom: GPLv2 or later.
 - FreeDoom (`freedoom1.wad`): BSD 3-Clause License.
 
 The distribution includes a `LICENSES/` folder containing:
 
 - LICENSES/FreeDoom-BSD-3-Clause.txt
 - LICENSES/FreeDoom-CREDITS.txt
-- DoomNetFrameworkEngine-MIT.txt
+- ManagedDoom-GPL-2.0.txt
 
 All bundled assets are redistributed within the terms of their respective licenses.
 Huge thanks to the developers and communities behind these projects for making their work available.

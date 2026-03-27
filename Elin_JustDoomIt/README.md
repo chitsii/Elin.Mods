@@ -17,8 +17,9 @@ Elin のカスタムアーケード筐体（CWLで追加）から、オーバー
 
 - Original DOOM game concept and IP: id Software
 - DOOM-compatible engine library used by this mod:
-  - `DoomNetFrameworkEngine` (author: `mahach`)
-  - Repository: <https://github.com/mahach666/DoomNetFrameworkEngine>
+  - `ManagedDoom` (author: `Nobuaki Tanaka`)
+  - Repository: <https://github.com/sinshu/managed-doom>
+  - Vendored source: `vendor/ManagedDoom/src` (commit `9365696eb44326a3aab72c4bab217f7db8a87c96`)
 - Game data (IWAD) used by this mod:
   - `FreeDoom` project (`freedoom1.wad`)
   - Project site: <https://freedoom.github.io/>
@@ -27,13 +28,14 @@ Elin のカスタムアーケード筐体（CWLで追加）から、オーバー
 
 この Mod の再配布時は、以下のライセンス条件を満たしてください。
 
-### 1) DoomNetFrameworkEngine (binary dependency)
+### 1) ManagedDoom (vendored source dependency)
 
-- License: `MIT`
-- Source: `_ext/DoomNetFrameworkEngine/DoomNetFrameworkEngine.nuspec`
-- License URL: <https://licenses.nuget.org/MIT>
+- License: `GPLv2 or later`
+- Source repository: <https://github.com/sinshu/managed-doom>
+- Vendored source path: `vendor/ManagedDoom/src`
+- Distributed license text: `LICENSES/ManagedDoom-GPL-2.0.txt`
 
-再配布時は MIT ライセンスの条件（著作権表示とライセンス文の保持）を遵守してください。
+本 Mod は `ManagedDoom` ソースを同梱してビルドします。再配布時は GPL の条件に従い、対応するソースとライセンス文を提供してください。
 
 ### 2) FreeDoom WAD (game data)
 
@@ -59,8 +61,9 @@ Elin のカスタムアーケード筐体（CWLで追加）から、オーバー
 
 - この Mod は Elin 本体、BepInEx、および上記サードパーティ資産に依存します。
 - ライセンスの最終判断は各プロジェクトの原文ライセンスに従ってください。
+- `ManagedDoom` は `net48` / Unity 向けの互換パッチを加えた vendored source を使用しています。
 - DOOMモード中のBGMは `Sound/BGM/*.ogg` を順番に再生します（ファイル名昇順）。
-- FreeDoom 由来の音源（OGG化済み）を `Sound/BGM` に配置してください。
+- FreeDoom 由来のカスタム音源（OGG化済み）を使う場合は `Sound/BGM` に配置してください。
 
 ## 操作方法
 
@@ -77,19 +80,17 @@ Elin のカスタムアーケード筐体（CWLで追加）から、オーバー
 
 ## 報酬ルール
 
-- 1マップごとに `LOW / MID / HIGH` の RATE を使い、参加コストとしてカジノチップを支払います。
-- `LOW` は安定、`MID` は標準、`HIGH` は長マップ無被弾で大きく狙う夢枠です。
-- 現在の RATE 値は `LOW: entry 100 / base 30 / hit loss 18%`、`MID: entry 500 / base 70 / hit loss 24%`、`HIGH: entry 1000 / base 110 / hit loss 30%` です。
-- `GENERAL SETTINGS` で `RATE` を `ASK EVERY MAP / FIX LOW / FIX MID / FIX HIGH` から選べます。
-- `FIX *` を選んだ場合は毎マップの `SELECT RATE` を省略し、設定した RATE で自動参加します。チップ不足時だけ手動選択に戻ります。
-- 撃破報酬は即時支給されず、そのマップ専用の未確定プールへ加算されます。
-- シークレット発見でも、そのマップの未確定プールへ固定 `+500` が加算されます。
-- 連続ボーナスは `LOW +400% / MID +600% / HIGH +999%` まで伸び、被弾で初期値に戻ります。
-- 被弾するとプールの一部を失い、連続ボーナスは初期値に戻ります。
-- マップクリア時または死亡時に `CASH OUT` され、未確定プールがカジノチップに変換されます。
-- `ESC` 退出では、そのマップの未確定プールを失います。
-- ボスマップクリアの追加 `+10000` は初版で維持しています。
-- HUD は `賭け / 未精算チップ / 1キル報酬` を表示し、未精算チップは増減が分かるゲージで見せます。
+- `START OVER` または `CONTINUE` ごとに、固定参加費 `100` を1回だけ払って報酬セッションを開始します。
+- 基本の 1キル報酬は `70` です。
+- 連続キルのたびに、その時点の 1キル報酬が `+35` ずつ伸びます。
+- 1キル報酬の上限は難易度依存で、`ITYTD 140 / HNTR 175 / HMP 210 / UV 280 / NM 350` です。
+- 撃破報酬とシークレット報酬は、その場で即時にカジノチップへ支払われます。
+- 被弾しても既に得た報酬は減らず、連キルボーナスだけが初期値に戻ります。
+- マップクリア時は追加で固定 `+1000` を獲得します。
+- 同じセッション中の後続マップでは、追加の参加費は発生しません。
+- 死亡や `ESC` 退出で追加精算や没収は発生しません。
+- 固定参加費を払えない場合、そのセッションは報酬なしで進行します。
+- HUD は `開始料 / 獲得チップ / 1キル報酬` を表示し、そのマップで得た報酬合計を確認できます。
 
 ## Notes
 

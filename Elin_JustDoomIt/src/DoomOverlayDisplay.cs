@@ -136,30 +136,30 @@ namespace Elin_JustDoomIt
             StartHudDeltaText(text, color);
         }
 
-        public void SetHud(string betText, string rewardText, string poolLabelText, string poolText, int poolValue, int riskLoss, bool roundActive)
+        public void SetHud(DoomHudViewModel model)
         {
             if (_hudBetText != null)
             {
-                _hudBetText.text = betText ?? string.Empty;
+                _hudBetText.text = model.WagerText;
             }
 
             if (_hudMultiText != null)
             {
-                _hudMultiText.text = rewardText ?? string.Empty;
+                _hudMultiText.text = model.PerKillPayoutText;
             }
 
             if (_hudPoolValueText != null)
             {
-                _hudPoolValueText.text = poolText ?? string.Empty;
+                _hudPoolValueText.text = model.PoolValueText;
             }
 
             if (_hudPoolLabelText != null)
             {
-                _hudPoolLabelText.text = poolLabelText ?? string.Empty;
+                _hudPoolLabelText.text = model.PoolLabelText;
             }
 
-            var clampedPool = Mathf.Max(0, poolValue);
-            var clampedRisk = Mathf.Max(0, riskLoss);
+            var clampedPool = Mathf.Max(0, model.PoolValue);
+            var clampedRisk = Mathf.Max(0, model.RiskLoss);
             if (clampedPool > _hudCommittedPool)
             {
                 BeginGainPreview(clampedPool);
@@ -173,9 +173,9 @@ namespace Elin_JustDoomIt
                 _hudTargetPool = clampedPool;
             }
 
-            _hudRiskLoss = roundActive ? Mathf.Min(Mathf.Max(clampedPool, _hudCommittedPool), clampedRisk) : 0f;
-            _hudRoundActive = roundActive;
-            if (!roundActive)
+            _hudRiskLoss = model.RoundActive ? Mathf.Min(Mathf.Max(clampedPool, _hudCommittedPool), clampedRisk) : 0f;
+            _hudRoundActive = model.RoundActive;
+            if (!model.RoundActive)
             {
                 ResetHudPoolState();
             }
@@ -264,7 +264,7 @@ namespace Elin_JustDoomIt
             _hudDeltaText.enabled = true;
         }
 
-        public void ShowRateSelection(string title, string helperText, string[] options, int selectedIndex)
+        public void ShowRateSelection(DoomRateSelectionViewModel model)
         {
             if (_rateSelectionRoot == null)
             {
@@ -274,12 +274,12 @@ namespace Elin_JustDoomIt
             _rateSelectionRoot.SetActive(true);
             if (_rateSelectionTitle != null)
             {
-                _rateSelectionTitle.text = title ?? string.Empty;
+                _rateSelectionTitle.text = model.Title;
             }
 
             if (_rateSelectionHelp != null)
             {
-                _rateSelectionHelp.text = helperText ?? string.Empty;
+                _rateSelectionHelp.text = model.HelperText;
             }
 
             for (var i = 0; i < _rateSelectionRows.Length; i++)
@@ -289,8 +289,8 @@ namespace Elin_JustDoomIt
                     continue;
                 }
 
-                var option = options != null && i < options.Length ? options[i] : string.Empty;
-                var selected = i == selectedIndex;
+                var option = i < model.Options.Length ? model.Options[i] : string.Empty;
+                var selected = i == model.SelectedIndex;
                 _rateSelectionRows[i].text = option;
                 _rateSelectionRows[i].color = selected
                     ? new Color(1f, 0.96f, 0.72f, 1f)
@@ -558,7 +558,7 @@ namespace Elin_JustDoomIt
             _hudDeltaTextRt.anchoredPosition = new Vector2(0f, -20f);
             _hudDeltaTextRt.sizeDelta = new Vector2(280f, 26f);
 
-            SetHud("-", "-", "-", "-", 0, 0, false);
+            SetHud(new DoomHudViewModel("-", "-", "-", "-", 0, 0, false));
         }
 
         private Image CreateBarRect(Transform parent, string name, Color color)

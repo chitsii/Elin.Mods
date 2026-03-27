@@ -2,11 +2,10 @@
 
 『初代DOOM』のアーケード筐体をフォーチュンベル受付横に追加します。
 
-各マップ開始時に `LOW / MID / HIGH` の RATE を選択。
-`LOW` は安定、`MID` は標準、`HIGH` は長マップ無被弾で大きく狙う夢枠です。
-撃破報酬は未確定プールに貯まり、被弾で一部ロスト + 連続ボーナスリセット、クリア時だけ `CASH OUT`。
-シークレット発見でも未確定プールへ固定 `+500` が加算されます。
-死亡時はそのマップの未確定プールを精算し、`ESC` 退出では失います。
+`START OVER` / `CONTINUE` ごとに固定参加費 `100` を1回だけ支払って報酬セッションを開始。
+撃破報酬とシークレット報酬はその場で即時支給され、基本の1キル報酬 `70` は連続キルごとに `+35` ずつ上昇。
+1キル報酬の上限は難易度依存で、被弾しても獲得済み報酬は減らず連キルボーナスだけリセット、クリア時は追加 `+1000`。
+同じセッション中の後続マップでは追加参加費はなく、死亡や `ESC` 退出で追加精算や没収もありません。
 ちょっと物騒なパチスロです。
 あなたはカジノに通ってプレイしてもいいし、盗んでもいいし、牧場や寝室に置いてもいい。
 
@@ -34,20 +33,20 @@ A. BFGを撃った後に鍬を持つと、少しだけ物足りなくなりま�
 
 #### 構成要素
 
-- C#製DOOM互換エンジン: [DoomNetFrameworkEngine](https://github.com/mahach666/DoomNetFrameworkEngine)
+- C#製DOOM互換エンジン: [ManagedDoom](https://github.com/sinshu/managed-doom)
 - ゲームデータ: [FreeDoom](https://freedoom.github.io/) の `freedoom1.wad`
 - 筐体の追加は、CWL（Custom Whatever Loader）経由のカスタムアイテム
 
 #### ライセンスについて
 
-- DoomNetFrameworkEngine: MIT License.
+- ManagedDoom: GPLv2 or later.
 - FreeDoom (`freedoom1.wad`): BSD 3-Clause License.
 
 配布物には `LICENSES/` フォルダを同梱し、以下を収録しています。
 
 - LICENSES/FreeDoom-BSD-3-Clause.txt
 - LICENSES/FreeDoom-CREDITS.txt
-- DoomNetFrameworkEngine-MIT.txt
+- ManagedDoom-GPL-2.0.txt
 
 上記はいずれもライセンス条件の範囲で再配布可能なリソースです。
 素晴らしい資産を公開してくださっている各配布元・開発者の皆さまに深く感謝申し上げます。

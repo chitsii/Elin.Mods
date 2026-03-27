@@ -111,6 +111,9 @@ namespace Elin_ArsMoriendi
             ["servantReleased"] = (
                 "従者を解放した。",
                 "Servant released.", "仆从已解放。"),
+            ["servantButcherBlocked"] = (
+                "従者は肉切り包丁で屠殺できない。",
+                "Servants cannot be slaughtered with a butcher knife.", "仆从不能用屠刀宰杀。"),
 
             // Offering system
             ["actOffer"] = (

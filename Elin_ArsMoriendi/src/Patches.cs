@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
 
@@ -242,6 +243,93 @@ namespace Elin_ArsMoriendi
             if (pc.HasCondition<ConApotheosis>())
                 return true;
             return ApotheosisFeatBonus.HasAnyApotheosisFeat(pc);
+        }
+    }
+
+    /// <summary>
+    /// Harmony patch: servants are excluded from butcher-knife targeting.
+    /// Replaces the target scan so vanilla slaughter never offers servant targets.
+    /// </summary>
+    [HarmonyPatch]
+    public static class Patch_TraitToolButcher_TrySetHeldAct_BlockServant
+    {
+        static MethodBase TargetMethod()
+        {
+            return AccessTools.Method(typeof(TraitToolButcher), nameof(TraitToolButcher.TrySetHeldAct), new[] { typeof(ActPlan) });
+        }
+
+        static bool Prefix(ActPlan p)
+        {
+            try
+            {
+                if (p?.pos?.Charas == null)
+                    return false;
+
+                var mgr = NecromancyManager.Instance;
+                foreach (Chara chara in p.pos.Charas)
+                {
+                    bool canButcher = mgr.CanOfferButcherAction(chara);
+                    if (!canButcher)
+                        continue;
+
+                    Chara target = chara;
+                    p.TrySetAct("AI_Slaughter", delegate
+                    {
+                        Dialog.TryWarnSlaughter(delegate
+                        {
+                            EClass.pc.SetAIImmediate(new AI_Slaughter
+                            {
+                                target = target
+                            });
+                        }, target);
+                        return false;
+                    }, target);
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                ModLog.Warn($"TraitToolButcher servant block patch error: {ex.Message}");
+                Plugin.ReportPatchRuntimeFailure(nameof(Patch_TraitToolButcher_TrySetHeldAct_BlockServant));
+                return true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Harmony patch: direct AI_Slaughter execution is also blocked for servants.
+    /// This covers manual AI injection and other non-tool entry points.
+    /// </summary>
+    [HarmonyPatch]
+    public static class Patch_AI_Slaughter_Perform_BlockServant
+    {
+        static MethodBase TargetMethod()
+        {
+            return AccessTools.Method(typeof(AI_Slaughter), nameof(AI_Slaughter.Perform), Type.EmptyTypes);
+        }
+
+        static bool Prefix(AI_Slaughter __instance, ref bool __result)
+        {
+            try
+            {
+                var target = __instance.target?.Chara != null ? __instance.target : Act.TC;
+                if (target?.Chara == null)
+                    return true;
+
+                if (!NecromancyManager.Instance.IsSlaughterProtectedServant(target.Chara))
+                    return true;
+
+                LangHelper.Say("servantButcherBlocked");
+                __result = false;
+                return false;
+            }
+            catch (Exception ex)
+            {
+                ModLog.Warn($"AI_Slaughter servant block patch error: {ex.Message}");
+                Plugin.ReportPatchRuntimeFailure(nameof(Patch_AI_Slaughter_Perform_BlockServant));
+                return true;
+            }
         }
     }
 

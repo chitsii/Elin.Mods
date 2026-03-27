@@ -18,6 +18,7 @@ namespace Elin_ArsMoriendi
         internal const string ServantAuraFxId = "FxServantShadowTentacleAura_SmokeDrip"; // V1
         private const string LegacyServantAuraFxId = "FxServantShadowTentacleAura";
         private const string ServantAuraFxV2Id = "FxServantShadowTentacleAura_SmokeDrip_v2";
+        private const string UndeadServantTraitId = "Elin_ArsMoriendi.TraitUndeadServant";
 
         public static NecromancyManager Instance { get; } = new();
 
@@ -36,6 +37,19 @@ namespace Elin_ArsMoriendi
         private const string ServantPrefix = "chitsii.ars.sv.";
         private const string EnhPrefix = "chitsii.ars.enh.";
         private const string SoulBindSacrificeUidKey = "chitsii.ars.state.soulbind_sacrifice_uid";
+
+        internal enum ServantRegistrationKind
+        {
+            RitualPermanent,
+            SummonedTemporary,
+        }
+
+        private enum ServantCleanupMode
+        {
+            UntrackOnly,
+            Release,
+            PurgeBrokenRemnant,
+        }
 
         // ============================================================
         // Soul Unit Constants
@@ -257,6 +271,7 @@ namespace Elin_ArsMoriendi
             _loadedForGame = EClass.game;
             LoadFromDialogFlags();
             PruneOrphanedServants();
+            PurgeBrokenServantRemnants();
             EnsureStashedServantsInHomeZoneOnLoad();
             EnsureServantVisualStateAll();
             MigrateSpellUnlockAliases();
@@ -828,15 +843,66 @@ namespace Elin_ArsMoriendi
             }
         }
 
-        public void AddServant(Chara servant)
+        public void AddServant(Chara servant) => RegisterSummonedServant(servant);
+
+        public void RegisterSummonedServant(Chara servant)
         {
             EnsureGameStateLoaded();
+            TrackServantRecord(servant, ServantRegistrationKind.SummonedTemporary);
+        }
+
+        public void RegisterRitualServant(Chara servant, int resurrectionLevel)
+        {
+            EnsureGameStateLoaded();
+            if (servant == null || servant.isDestroyed)
+                return;
+
+            var pc = EClass.pc;
+            if (pc == null)
+                return;
+
+            if (pc.homeBranch != null)
+                pc.homeBranch.AddMemeber(servant);
+            else
+            {
+                servant.SetGlobal();
+                servant.SetFaction(EClass.Home);
+            }
+
+            servant.hostility = Hostility.Ally;
+            servant.c_originalHostility = Hostility.Ally;
+            servant.orgPos = null;
+            servant.c_summonDuration = 0;
+            servant.isSummon = false;
+            servant.MakeMinion(pc);
+            servant.isSummon = false;
+            servant.c_summonDuration = 0;
+            servant.c_idTrait = UndeadServantTraitId;
+            servant.ApplyTrait();
+
+            TrackServantRecord(servant, ServantRegistrationKind.RitualPermanent);
+
+            var enhData = GetEnhancement(servant.uid);
+            enhData.ResurrectionLevel = resurrectionLevel;
+            SaveEnhancement(servant.uid, enhData);
+
+            servant.Refresh();
+            pc.Refresh();
+        }
+
+        private void TrackServantRecord(Chara servant, ServantRegistrationKind kind)
+        {
+            if (servant == null || servant.isDestroyed)
+                return;
+
             if (!_servantUidList.Contains(servant.uid))
             {
                 _servantUidList.Add(servant.uid);
                 SetFlag(ServantPrefix + servant.uid, 1);
             }
+
             EnsureServantVisualState(servant);
+            ModLog.Log("Servant tracked: {0} (uid={1}, kind={2})", servant.Name, servant.uid, kind);
         }
 
         private void EnsureServantVisualStateAll()
@@ -886,10 +952,15 @@ namespace Elin_ArsMoriendi
         public void RemoveServant(int uid)
         {
             EnsureGameStateLoaded();
+            UntrackServantRecord(uid, removePresence: true);
+        }
+
+        private void UntrackServantRecord(int uid, bool removePresence)
+        {
             Chara? chara = null;
             EClass.game?.cards?.globalCharas?.TryGetValue(uid, out chara);
             if (chara != null)
-                StopServantAuraFx(chara);
+                ClearServantVisualMarkers(chara, removePresence);
 
             _servantUidList.Remove(uid);
             _enhancements.Remove(uid);
@@ -936,8 +1007,22 @@ namespace Elin_ArsMoriendi
             {
                 Chara? chara = null;
                 EClass.game?.cards?.globalCharas?.TryGetValue(uid, out chara);
-                if (chara == null || chara.isDestroyed || !chara.IsPCFactionOrMinion)
+                if (chara == null)
+                {
                     removed.Add(uid);
+                    continue;
+                }
+
+                bool hasPcMasterUid = EClass.pc != null && chara.c_uidMaster == EClass.pc.uid;
+                bool hasResolvedPcMaster = EClass.pc != null && EClass._map != null && chara.FindMaster() == EClass.pc;
+                if (!ServantIntegrityRules.ShouldKeepTrackedServant(
+                    chara.isDestroyed,
+                    chara.IsPCFactionOrMinion,
+                    hasPcMasterUid,
+                    hasResolvedPcMaster))
+                {
+                    removed.Add(uid);
+                }
             }
 
             foreach (var uid in removed)
@@ -945,15 +1030,153 @@ namespace Elin_ArsMoriendi
                 Chara? chara = null;
                 EClass.game?.cards?.globalCharas?.TryGetValue(uid, out chara);
                 if (chara != null)
-                    StopServantAuraFx(chara);
+                    CleanupServantState(chara, ServantCleanupMode.UntrackOnly);
+                else
+                    UntrackServantRecord(uid, removePresence: true);
 
-                RemoveServantFlags(uid);
-                _servantUidList.Remove(uid);
-                _enhancements.Remove(uid);
                 ModLog.Log("Servant UID removed (orphaned/banished): {0}", uid);
             }
 
             return removed.Count;
+        }
+
+        private int PurgeBrokenServantRemnants()
+        {
+            var globalCharas = EClass.game?.cards?.globalCharas;
+            if (globalCharas == null || globalCharas.Count == 0)
+                return 0;
+
+            int purged = 0;
+            foreach (var chara in globalCharas.Values.ToList())
+            {
+                if (!ShouldPurgeBrokenServantRemnant(chara))
+                    continue;
+
+                if (PurgeBrokenServantRemnant(chara))
+                    purged++;
+            }
+
+            if (purged > 0)
+            {
+                EClass.pc?.Refresh();
+                ModLog.Warn($"Purged {purged} broken servant remnant(s).");
+            }
+
+            return purged;
+        }
+
+        private bool ShouldPurgeBrokenServantRemnant(Chara chara)
+        {
+            if (chara == null)
+                return false;
+
+            var snapshot = new ServantIntegrityRules.RemnantSnapshot(
+                isTrackedServant: _servantUidList.Contains(chara.uid),
+                isDestroyed: chara.isDestroyed,
+                hasUndeadServantTrait: HasUndeadServantTraitMarker(chara),
+                hasUndeadServantPresence: chara.HasCondition<ConUndeadServantPresence>());
+
+            return ServantIntegrityRules.ShouldPurgeBrokenServantRemnant(snapshot);
+        }
+
+        private static bool HasUndeadServantTraitMarker(Chara chara)
+        {
+            if (chara == null || string.IsNullOrEmpty(chara.c_idTrait))
+                return false;
+
+            return chara.c_idTrait.IndexOf(nameof(TraitUndeadServant), StringComparison.Ordinal) >= 0
+                || chara.c_idTrait.IndexOf(UndeadServantTraitId, StringComparison.Ordinal) >= 0;
+        }
+
+        private bool PurgeBrokenServantRemnant(Chara chara)
+        {
+            return CleanupServantState(chara, ServantCleanupMode.PurgeBrokenRemnant);
+        }
+
+        internal bool CanOfferButcherAction(Chara chara)
+        {
+            if (chara == null)
+                return false;
+
+            return ServantIntegrityRules.ShouldOfferButcherAction(
+                isPcFaction: chara.IsPCFaction,
+                isPc: chara.IsPC,
+                hasHost: chara.host != null,
+                isServant: IsSlaughterProtectedServant(chara));
+        }
+
+        internal bool IsSlaughterProtectedServant(Chara chara)
+        {
+            return chara != null && IsServant(chara.uid);
+        }
+
+        private static void ClearServantVisualMarkers(Chara chara, bool removePresence)
+        {
+            if (chara == null)
+                return;
+
+            CustomAssetFx.StopAllAttachedFx(chara);
+            StopServantAuraFx(chara);
+            if (removePresence && chara.HasCondition<ConUndeadServantPresence>())
+                chara.RemoveCondition<ConUndeadServantPresence>();
+        }
+
+        private bool CleanupServantState(Chara servant, ServantCleanupMode mode)
+        {
+            if (servant == null)
+                return false;
+
+            try
+            {
+                UntrackServantRecord(servant.uid, removePresence: true);
+                if (mode == ServantCleanupMode.UntrackOnly)
+                    return true;
+
+                DetachServantOwnership(servant, removeHomeMember: true);
+                DestroyServantCard(servant);
+
+                if (!servant.isDestroyed)
+                {
+                    ModLog.Warn($"{mode}: failed to destroy {servant.Name} (uid={servant.uid})");
+                    return false;
+                }
+
+                switch (mode)
+                {
+                    case ServantCleanupMode.Release:
+                        ModLog.Log("Servant released: {0} (uid={1})", servant.Name, servant.uid);
+                        break;
+                    case ServantCleanupMode.PurgeBrokenRemnant:
+                        ModLog.Warn($"Purged broken servant remnant: {servant.Name} (uid={servant.uid})");
+                        break;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ModLog.Warn($"{mode} cleanup error for {servant?.Name ?? "(null)"}: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static void DetachServantOwnership(Chara servant, bool removeHomeMember)
+        {
+            if (servant.c_uidMaster != 0 && !SafeInvoke.TryDetachMinion(servant))
+                ModLog.Warn($"DetachServantOwnership: detach minion failed for {servant.Name} (uid={servant.uid})");
+
+            if (EClass.pc?.party?.members?.Contains(servant) == true)
+                EClass.pc.party.RemoveMember(servant);
+
+            if (removeHomeMember && servant.homeBranch != null)
+                servant.homeBranch.RemoveMemeber(servant);
+        }
+
+        private static void DestroyServantCard(Chara servant)
+        {
+            servant.RemoveGlobal();
+            if (!servant.isDestroyed)
+                servant.Destroy();
         }
 
         internal static void StopServantAuraFx(Card card)
@@ -1009,44 +1232,8 @@ namespace Elin_ArsMoriendi
                 // 1. Place in the zone
                 EClass._zone.AddCard(servant, NecroSpellUtil.GetSpawnPos());
 
-                // 2. Register as home member
-                if (EClass.pc.homeBranch != null)
-                    EClass.pc.homeBranch.AddMemeber(servant);
-                else
-                {
-                    servant.SetGlobal();
-                    servant.SetFaction(EClass.Home);
-                }
-
-                // 3. Set ally attributes
-                servant.hostility = Hostility.Ally;
-                servant.c_originalHostility = Hostility.Ally;
-                servant.orgPos = null;
-                servant.c_summonDuration = 0;
-                servant.isSummon = false;
-
-                // 4. MakeMinion sets c_uidMaster
-                servant.MakeMinion(EClass.pc);
-
-                // 5. Ensure permanent
-                servant.isSummon = false;
-                servant.c_summonDuration = 0;
-
-                // 6. Apply undead servant trait
-                servant.c_idTrait = "Elin_ArsMoriendi.TraitUndeadServant";
-                servant.ApplyTrait();
-
-                // 7. Track the servant
-                AddServant(servant);
-
-                // 8. Store resurrection level for enhancement system
-                var enhData = GetEnhancement(servant.uid);
-                enhData.ResurrectionLevel = level;
-                SaveEnhancement(servant.uid, enhData);
-
-                // 9. Refresh
-                servant.Refresh();
-                EClass.pc.Refresh();
+                // 2. Apply the permanent ritual servant lifecycle in one place.
+                RegisterRitualServant(servant, level);
 
                 // Consume corpse
                 if (corpse.Num > 1)
@@ -1115,28 +1302,8 @@ namespace Elin_ArsMoriendi
             if (servant == null)
                 return;
 
-            // Best-effort cleanup for any loop/attached FX before card teardown.
-            CustomAssetFx.StopAllAttachedFx(servant);
-            RemoveServant(servant.uid);
-
-            if (!SafeInvoke.TryDetachMinion(servant))
-                ModLog.Warn($"ReleaseServant: detach minion failed for {servant.Name} (uid={servant.uid})");
-
-            if (EClass.pc?.party?.members?.Contains(servant) == true)
-                EClass.pc.party.RemoveMember(servant);
-
-            if (servant.homeBranch != null)
-                servant.homeBranch.RemoveMemeber(servant);
-
-            servant.RemoveGlobal();
-            if (!servant.isDestroyed)
-                servant.Destroy();
-            if (!servant.isDestroyed)
-                ModLog.Warn($"ReleaseServant: failed to destroy {servant.Name} (uid={servant.uid})");
-
-            EClass.pc?.Refresh();
-
-            ModLog.Log("Servant released: {0} (uid={1})", servant.Name, servant.uid);
+            if (CleanupServantState(servant, ServantCleanupMode.Release))
+                EClass.pc?.Refresh();
         }
 
         public static bool SafeDie(Chara chara, Card? origin = null, AttackSource attackSource = AttackSource.None, Chara? originalTarget = null)
@@ -1235,6 +1402,7 @@ namespace Elin_ArsMoriendi
         {
             EnsureGameStateLoaded();
             PruneOrphanedServants();
+            PurgeBrokenServantRemnants();
             int active = 0;
             int dormant = 0;
             int stashed = 0;

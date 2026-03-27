@@ -50,9 +50,9 @@ namespace Elin_ArsMoriendi
                 chara.MakeMinion(caster);
                 chara.SetSummon(200 + power / 2);
 
-                // Track as servant (UI listing)
-                // Die patch will clean up when summon expires
-                NecromancyManager.Instance.AddServant(chara);
+                // Track as a temporary servant-like summon for UI and shared safety rules.
+                // Die patch will clean up when summon expires.
+                NecromancyManager.Instance.RegisterSummonedServant(chara);
 
                 NecroVFX.PlaySummon(chara);
                 caster.Say("summon_ally", caster);

@@ -44,7 +44,9 @@
   - `members` から外す場合は、`Reserve` 相当の永続強参照を必ず持つ。
   - `members` に残す場合は、`currentZone` を `null/somewhere` にしない（例: 拠点ゾーンへ移動）。
 
-## 従者の faction 判定
+## 従者の faction 判定（実装確認済み）
+
+- 最終確認: 2026-03-25
 
 従者は `MakeMinion(EClass.pc)` で作成されるため、faction 判定に注意:
 
@@ -57,7 +59,19 @@
 従者の生存・所属チェックには **`IsPCFactionOrMinion`** を使うこと。
 `IsPCFaction` だと従者（ミニオン）が全て除外される。
 
-追放時: `FactionBranch.BanishMember` -> `RemoveMemeber` -> `SetFaction(Wilds)` -> `IsPCFactionOrMinion == false`
+- ただし `IsPCFactionMinion` は `c_uidMaster != 0` ではなく **`master` 参照が生きているか** を見ている。
+- `master == null` でも `IsMinion` 自体は `c_uidMaster != 0` で true になりうる。
+- そのため、死亡済み/オフマップ/banish 済み minion は `c_uidMaster` が残っていても、`master` 未解決の間は `IsPCFactionOrMinion` が false になりうる。
+- オフマップ死体やロード直後の minion を判定する場合は、`FindMaster()` か `c_uidMaster` を補助条件として併用する。
+
+## 屠殺 (`AI_Slaughter`) 後の banish / revive（実装確認済み）
+
+- 最終確認: 2026-03-25
+- `AI_Slaughter` は完了時に `target.Die()` を呼んだ後、unique Trait でない相手には `target.Chara.homeBranch.BanishMember(target.Chara, skipMsg: true)` を実行する。
+- `FactionBranch.RemoveMemeber` はメンバー一覧から外した上で `SetFaction(Wilds)` を行うが、`homeZone` と `c_uidMaster` はここでは消さない。
+- `big_daddy` は SourceChara 上 `quality=4`（Artifact 扱い）なので、`RemoveMemeber` でも `RemoveGlobal()` されず、global chara のまま banish されうる。
+- その結果、屠殺済みでも `homeZone` に紐づく dead global chara として残り、後日 `Zone.Revive()` の `value.isDead && value.CanRevive() && value.homeZone == this` に拾われて復活しうる。
+- ただし banish 後は `IsPCFaction` を失っているため、復活後は「従者リストにいない / minion の痕跡はある / 肉切り包丁対象にならない / big_daddy 死亡時の `littleOne` pop 条件 (`!IsPCFaction`) は満たす」という破綻状態が起こりうる。
 
 ## `MakeMinion(EClass.pc)` 従者のバニラ制限（実装確認済み）
 

@@ -42,7 +42,7 @@ namespace Elin_ArsMoriendi
                 chara.MakeMinion(caster);
                 chara.SetSummon(300 + power * 2 / 3);
 
-                NecromancyManager.Instance.AddServant(chara);
+                NecromancyManager.Instance.RegisterSummonedServant(chara);
 
                 NecroVFX.PlaySummon(chara);
                 LangHelper.Say("castSummonSkeletonWarrior", caster);

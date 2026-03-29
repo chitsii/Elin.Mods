@@ -113,6 +113,12 @@ namespace Elin_ArsMoriendi
             RebuildTabNames();
         }
 
+        public static void ShowServants()
+        {
+            Show();
+            _currentTab = 2;
+        }
+
         public static void Hide()
         {
             IsVisible = false;

@@ -84,6 +84,11 @@ namespace Elin_ArsMoriendi
         public static void Draw()
         {
             if (!ModConfig.ShowServantWidget.Value) return;
+            if (!HasActiveGameContext())
+            {
+                ResetCache();
+                return;
+            }
             RefreshCache();
             if (_summaryTotal == 0) return;
             InitStyles();
@@ -232,7 +237,19 @@ namespace Elin_ArsMoriendi
 
         private static void DrawCharaSprite(Rect box, Chara chara)
         {
-            var sprite = chara.GetSprite();
+            if (chara == null || !HasActiveGameContext())
+                return;
+
+            Sprite sprite;
+            try
+            {
+                sprite = chara.GetSprite();
+            }
+            catch
+            {
+                return;
+            }
+
             if (sprite == null || sprite.texture == null) return;
 
             var tex = sprite.texture;
@@ -261,19 +278,19 @@ namespace Elin_ArsMoriendi
 
         private static void RefreshCache()
         {
+            if (!HasActiveGameContext())
+            {
+                ResetCache();
+                return;
+            }
+
             if (Time.time - _lastRefresh < RefreshInterval) return;
             _lastRefresh = Time.time;
 
             var mgr = NecromancyManager.Instance;
             if (mgr == null || EClass.game?.cards?.globalCharas == null)
             {
-                _servants.Clear();
-                _barCache.Clear();
-                _summaryTotal = 0;
-                _summaryActive = 0;
-                _summaryStashed = 0;
-                _summaryDead = 0;
-                _tintChecked = false;
+                ResetCache();
                 return;
             }
 
@@ -574,6 +591,26 @@ namespace Elin_ArsMoriendi
         private static string FormatStat(int cur, int max)
         {
             return $"{FormatValue(cur)}/{FormatValue(max)}";
+        }
+
+        private static bool HasActiveGameContext()
+        {
+            Core core = EClass.core;
+            return core != null
+                && core.IsGameStarted
+                && core.game?.player?.chara != null;
+        }
+
+        private static void ResetCache()
+        {
+            _servants.Clear();
+            _barCache.Clear();
+            _summaryTotal = 0;
+            _summaryActive = 0;
+            _summaryStashed = 0;
+            _summaryDead = 0;
+            _tintChecked = false;
+            _lastRefresh = 0f;
         }
 
         private struct BarCache

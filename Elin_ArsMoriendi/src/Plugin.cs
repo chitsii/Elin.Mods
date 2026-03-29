@@ -6,6 +6,7 @@ using BepInEx;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using EvilMask.Elin.ModOptions;
 using EvilMask.Elin.ModOptions.UI;
 
@@ -15,6 +16,18 @@ namespace Elin_ArsMoriendi
     [BepInDependency("evilmask.elinplugins.modoptions", BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {
+        private const string TomeItemId = "ars_moriendi_tome";
+        private static readonly KeyCode[] TomeHotkeyCandidates =
+        {
+            KeyCode.None,
+            KeyCode.A, KeyCode.B, KeyCode.C, KeyCode.D, KeyCode.E, KeyCode.F, KeyCode.G,
+            KeyCode.H, KeyCode.I, KeyCode.J, KeyCode.K, KeyCode.L, KeyCode.M, KeyCode.N,
+            KeyCode.O, KeyCode.P, KeyCode.Q, KeyCode.R, KeyCode.S, KeyCode.T, KeyCode.U,
+            KeyCode.V, KeyCode.W, KeyCode.X, KeyCode.Y, KeyCode.Z,
+            KeyCode.F1, KeyCode.F2, KeyCode.F3, KeyCode.F4, KeyCode.F5, KeyCode.F6,
+            KeyCode.F7, KeyCode.F8, KeyCode.F9, KeyCode.F10, KeyCode.F11, KeyCode.F12,
+        };
+
         public const string ModGuid = "chitsii.elin.ars_moriendi";
         private static readonly List<Type> FailedPatchTypes = new();
         private static readonly HashSet<Type> CriticalPatchTypes = new()
@@ -143,9 +156,20 @@ namespace Elin_ArsMoriendi
             if (ArsMoriendiGUI.IsVisible)
                 EInput.haltInput = true;
 
+            if (ShouldToggleTomeUiHotkey())
+            {
+                if (ArsMoriendiGUI.IsVisible)
+                    ArsMoriendiGUI.Hide();
+                else
+                    ArsMoriendiGUI.ShowServants();
+
+                EInput.Consume(true, 2);
+                return;
+            }
+
             if (!_patchFailureNoticeShown
                 && (HasCriticalPatchFailures || HasCriticalRuntimePatchFailures)
-                && EClass.pc != null)
+                && TryGetPlayerChara(out _))
             {
                 _patchFailureNoticeShown = true;
                 Msg.Say(
@@ -188,6 +212,15 @@ namespace Elin_ArsMoriendi
             controller.OnBuildUI += builder =>
             {
                 var rootVLG = builder.Root?.Base;
+                var keyTexts = TomeHotkeyCandidates.Select(GetHotkeyKeyLabel).ToList();
+
+                void AddSectionHeader(string translationKey)
+                {
+                    var header = builder.Root!.AddText(controller.Tr(translationKey), TextAnchor.MiddleLeft, 15);
+                    header.PrefferedWidth = 1f;
+                }
+
+                AddSectionHeader("ModSectionServants");
 
                 var servantAuraToggle = builder.Root!.AddToggle(
                     controller.Tr("ShowServantAura"), ModConfig.ShowServantAura.Value,
@@ -197,6 +230,54 @@ namespace Elin_ArsMoriendi
                     ModConfig.ShowServantAura.Value = v;
                     NecromancyManager.Instance.RefreshServantVisualStateCurrentZone();
                 };
+
+                var stashedContributionToggle = builder.Root!.AddToggle(
+                    controller.Tr("EnableStashedServantHomeContribution"), ModConfig.EnableStashedServantHomeContribution.Value,
+                    16, controller.Tr("EnableStashedServantHomeContribution_tooltip"));
+                stashedContributionToggle.OnValueChanged += v =>
+                {
+                    ModConfig.EnableStashedServantHomeContribution.Value = v;
+                    NecromancyManager.Instance.ReconcileServantRuntimeStates();
+                };
+
+                AddSectionHeader("ModSectionHotkey");
+
+                var hotkeyRow = builder.Root.AddHLayout();
+                hotkeyRow.Base.childScaleWidth = true;
+                var hotkeyLabel = hotkeyRow.AddText(controller.Tr("TomeHotkeyKey"), TextAnchor.MiddleLeft, 14);
+                hotkeyLabel.PrefferedWidth = 0.5f;
+                var hotkeyDropdown = hotkeyRow.AddDropdown(keyTexts, Array.IndexOf(TomeHotkeyCandidates, ModConfig.TomeHotkeyKey.Value));
+                hotkeyDropdown.PrefferedWidth = 0.5f;
+                hotkeyDropdown.OnValueChanged += index =>
+                {
+                    if (index >= 0 && index < TomeHotkeyCandidates.Length)
+                        ModConfig.TomeHotkeyKey.Value = TomeHotkeyCandidates[index];
+                };
+
+                var modifierRow = builder.Root.AddHLayout();
+                modifierRow.Base.childScaleWidth = true;
+                var modifierLabel = modifierRow.AddText(controller.Tr("TomeHotkeyModifiers"), TextAnchor.MiddleLeft, 14);
+                modifierLabel.PrefferedWidth = 0.32f;
+
+                var shiftToggle = modifierRow.AddToggle(
+                    controller.Tr("TomeHotkeyShift"), ModConfig.TomeHotkeyShift.Value,
+                    16, controller.Tr("TomeHotkeyShift_tooltip"));
+                shiftToggle.PrefferedWidth = 0.22f;
+                shiftToggle.OnValueChanged += v => { ModConfig.TomeHotkeyShift.Value = v; };
+
+                var ctrlToggle = modifierRow.AddToggle(
+                    controller.Tr("TomeHotkeyCtrl"), ModConfig.TomeHotkeyCtrl.Value,
+                    16, controller.Tr("TomeHotkeyCtrl_tooltip"));
+                ctrlToggle.PrefferedWidth = 0.22f;
+                ctrlToggle.OnValueChanged += v => { ModConfig.TomeHotkeyCtrl.Value = v; };
+
+                var altToggle = modifierRow.AddToggle(
+                    controller.Tr("TomeHotkeyAlt"), ModConfig.TomeHotkeyAlt.Value,
+                    16, controller.Tr("TomeHotkeyAlt_tooltip"));
+                altToggle.PrefferedWidth = 0.22f;
+                altToggle.OnValueChanged += v => { ModConfig.TomeHotkeyAlt.Value = v; };
+
+                AddSectionHeader("ModSectionOther");
 
                 var uiCompatToggle = builder.Root!.AddToggle(
                     controller.Tr("EnableUiCompatibilityMode"), ModConfig.EnableUiCompatibilityMode.Value,
@@ -209,8 +290,8 @@ namespace Elin_ArsMoriendi
                 apotheosisBonusToggle.OnValueChanged += v =>
                 {
                     ModConfig.EnableApotheosisStatBonuses.Value = v;
-                    if (EClass.pc != null)
-                        ApotheosisFeatBonus.SyncWithConfigAndFeat(EClass.pc);
+                    if (TryGetPlayerChara(out Chara playerChara))
+                        ApotheosisFeatBonus.SyncWithConfigAndFeat(playerChara);
                 };
 
                 var debugToggle = builder.Root!.AddToggle(
@@ -227,6 +308,71 @@ namespace Elin_ArsMoriendi
                         LayoutRebuilder.ForceRebuildLayoutImmediate(contentRect);
                 }
             };
+        }
+
+        private static bool ShouldToggleTomeUiHotkey()
+        {
+            if (!TryGetPlayerChara(out Chara playerChara))
+                return false;
+            if (IsTextInputFocused())
+                return false;
+
+            var key = ModConfig.TomeHotkeyKey.Value;
+            if (key == KeyCode.None || !Input.GetKeyDown(key))
+                return false;
+
+            bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+            bool ctrl = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+            bool alt = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
+
+            if (shift != ModConfig.TomeHotkeyShift.Value
+                || ctrl != ModConfig.TomeHotkeyCtrl.Value
+                || alt != ModConfig.TomeHotkeyAlt.Value)
+                return false;
+
+            if (!ArsMoriendiGUI.IsVisible && !HasTomeInInventory(playerChara))
+                return false;
+
+            return true;
+        }
+
+        private static bool HasTomeInInventory(Chara playerChara)
+        {
+            return playerChara?.things?.Find(TomeItemId) != null;
+        }
+
+        private static bool TryGetPlayerChara(out Chara playerChara)
+        {
+            playerChara = default!;
+
+            Core core = EClass.core;
+            if (core == null || !core.IsGameStarted)
+                return false;
+
+            Game game = core.game;
+            if (game?.player?.chara == null)
+                return false;
+
+            Chara chara = game.player.chara;
+            if (chara == null)
+                return false;
+
+            playerChara = chara;
+            return true;
+        }
+
+        private static bool IsTextInputFocused()
+        {
+            var current = EventSystem.current?.currentSelectedGameObject;
+            if (current == null)
+                return false;
+
+            return current.GetComponent<InputField>() != null;
+        }
+
+        private static string GetHotkeyKeyLabel(KeyCode key)
+        {
+            return key == KeyCode.None ? "None" : key.ToString();
         }
     }
 }

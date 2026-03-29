@@ -11,6 +11,7 @@ namespace Elin_ArsMoriendi
         public bool IsUndead => true;
 
         public override bool CanJoinParty => false;
+        public override bool CanBeBanished => false;
         public override bool IsCountAsResident => false;
     }
 }

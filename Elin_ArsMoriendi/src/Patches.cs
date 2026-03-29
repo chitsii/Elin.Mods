@@ -412,7 +412,7 @@ namespace Elin_ArsMoriendi
                 if (__instance.isSummon) return;
 
                 bool isStashed = mgr.IsServantStashed(__instance.uid);
-                // GetRevived sent the servant to homeZone — pull active/dormant servants back to PC's zone.
+                // GetRevived sent the servant to homeZone — pull active servants back to PC's zone.
                 if (!isStashed && __instance.currentZone != null && __instance.currentZone != EClass._zone)
                 {
                     __instance.currentZone.RemoveCard(__instance);
@@ -734,13 +734,13 @@ namespace Elin_ArsMoriendi
             {
                 CustomAssetFx.EnsureLegacyLoopMigrationOnce();
 
-                // Keep dormant restoration isolated so quest/spawn errors never skip it.
+                // Keep servant runtime reconciliation isolated so quest/spawn errors never skip it.
                 NecromancyManager.Instance.ReconcileServantRuntimeStates();
                 NecromancyManager.Instance.RefreshServantVisualStateCurrentZone();
             }
             catch (Exception ex)
             {
-                ModLog.Error($"Zone.Activate dormant restore error: {ex.Message}");
+                ModLog.Error($"Zone.Activate servant runtime reconcile error: {ex.Message}");
             }
 
             try
@@ -805,7 +805,7 @@ namespace Elin_ArsMoriendi
     }
 
     // ================================================================
-    // Dormant/Tactics System
+    // Servant Runtime/Tactics System
     // ================================================================
 
     /// <summary>
@@ -837,10 +837,10 @@ namespace Elin_ArsMoriendi
     }
 
     /// <summary>
-    /// Harmony patch: Block dormant/stashed servants from entering combat AI.
+    /// Harmony patch: Block only runtime-frozen servants from entering combat AI.
     /// </summary>
     [HarmonyPatch(typeof(Chara), nameof(Chara.SetAIAggro))]
-    public static class Patch_Chara_SetAIAggro_DormantBlock
+    public static class Patch_Chara_SetAIAggro_ServantRuntimeFreeze
     {
         static bool Prefix(Chara __instance)
         {
@@ -848,21 +848,21 @@ namespace Elin_ArsMoriendi
             {
                 var mgr = NecromancyManager.Instance;
                 if (!mgr.IsServant(__instance.uid)) return true;
-                return !mgr.IsServantCombatInactive(__instance.uid);
+                return !mgr.ShouldFreezeServantAI(__instance.uid);
             }
             catch (Exception ex)
             {
-                ModLog.Warn($"SetAIAggro dormant block error: {ex.Message}");
+                ModLog.Warn($"SetAIAggro servant runtime freeze error: {ex.Message}");
                 return true;
             }
         }
     }
 
     /// <summary>
-    /// Harmony patch: Force dormant/stashed servants into NoGoal when choosing new goals.
+    /// Harmony patch: Force only runtime-frozen servants into NoGoal when choosing new goals.
     /// </summary>
     [HarmonyPatch(typeof(Chara), nameof(Chara.ChooseNewGoal))]
-    public static class Patch_Chara_ChooseNewGoal_DormantBlock
+    public static class Patch_Chara_ChooseNewGoal_ServantRuntimeFreeze
     {
         static bool Prefix(Chara __instance)
         {
@@ -871,7 +871,7 @@ namespace Elin_ArsMoriendi
                 var mgr = NecromancyManager.Instance;
                 if (!mgr.IsServant(__instance.uid)) return true;
 
-                if (mgr.IsServantCombatInactive(__instance.uid))
+                if (mgr.ShouldFreezeServantAI(__instance.uid))
                 {
                     __instance.SetAI(new NoGoal());
                     return false;
@@ -880,8 +880,449 @@ namespace Elin_ArsMoriendi
             }
             catch (Exception ex)
             {
-                ModLog.Warn($"ChooseNewGoal dormant block error: {ex.Message}");
+                ModLog.Warn($"ChooseNewGoal servant runtime freeze error: {ex.Message}");
                 return true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Harmony patch: companion quest progress should count vanilla home members, not Ars servants.
+    /// </summary>
+    [HarmonyPatch(typeof(QuestCompanion), nameof(QuestCompanion.CanUpdateOnTalk))]
+    public static class Patch_QuestCompanion_CanUpdateOnTalk_ExcludeServants
+    {
+        static bool Prefix(QuestCompanion __instance, ref bool __result)
+        {
+            try
+            {
+                int count = NecromancyManager.Instance.CountHomeBranchMembersExcludingServants();
+                __result = __instance.phase switch
+                {
+                    0 => count >= 3,
+                    1 => count >= 11,
+                    _ => false,
+                };
+                return false;
+            }
+            catch (Exception ex)
+            {
+                ModLog.Warn($"QuestCompanion CanUpdateOnTalk patch error: {ex.Message}");
+                Plugin.ReportPatchRuntimeFailure(nameof(Patch_QuestCompanion_CanUpdateOnTalk_ExcludeServants));
+                return true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Harmony patch: companion quest progress text should ignore Ars servants.
+    /// </summary>
+    [HarmonyPatch(typeof(QuestCompanion), nameof(QuestCompanion.GetTextProgress))]
+    public static class Patch_QuestCompanion_GetTextProgress_ExcludeServants
+    {
+        static bool Prefix(QuestCompanion __instance, ref string __result)
+        {
+            try
+            {
+                if (__instance.phase != 1)
+                {
+                    __result = string.Empty;
+                    return false;
+                }
+
+                int count = NecromancyManager.Instance.CountHomeBranchMembersExcludingServants();
+                __result = "progressRecruit".lang((count - 1).ToString() ?? "", 10.ToString() ?? "");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                ModLog.Warn($"QuestCompanion GetTextProgress patch error: {ex.Message}");
+                Plugin.ReportPatchRuntimeFailure(nameof(Patch_QuestCompanion_GetTextProgress_ExcludeServants));
+                return true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Harmony patch: servants remain visible on the resident board for work inspection,
+    /// but cannot be managed from that UI.
+    /// </summary>
+    [HarmonyPatch(typeof(BaseListPeople), nameof(BaseListPeople.OnClick))]
+    public static class Patch_BaseListPeople_OnClick_BlockServantResidentBoardActions
+    {
+        static bool Prefix(BaseListPeople __instance, Chara c)
+        {
+            try
+            {
+                if (!ResidentBoardServantUiHelpers.ShouldTreatAsReadOnlyResidentBoardEntry(__instance, c))
+                    return true;
+
+                SE.BeepSmall();
+                Msg.SayRaw(
+                    Lang.isJP
+                        ? "従者は住民掲示板では管理できません。退避・招集などは従者UIを使ってください。"
+                        : (Lang.langCode == "CN"
+                            ? "仆从不能在居民面板中管理。退避、招集等操作请使用仆从UI。"
+                            : "Servants cannot be managed from the resident board. Use the servant UI for stash, recall, and other actions."));
+                return false;
+            }
+            catch (Exception ex)
+            {
+                ModLog.Warn($"Resident board servant click block error: {ex.Message}");
+                Plugin.ReportPatchRuntimeFailure(nameof(Patch_BaseListPeople_OnClick_BlockServantResidentBoardActions));
+                return true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Harmony patch: show servant runtime state on resident-board rows.
+    /// </summary>
+    [HarmonyPatch(typeof(BaseListPeople), nameof(BaseListPeople.OnInstantiate))]
+    public static class Patch_BaseListPeople_OnInstantiate_ShowServantResidentBoardState
+    {
+        static void Postfix(BaseListPeople __instance, Chara a, ItemGeneral b)
+        {
+            try
+            {
+                if (__instance.GetType() == typeof(ListPeople))
+                {
+                    ResidentBoardServantUiHelpers.GetOrCreateResidentBoardStateLabel(b)?.SetActive(enable: false);
+                }
+
+                if (!ResidentBoardServantUiHelpers.ShouldTreatAsReadOnlyResidentBoardEntry(__instance, a))
+                    return;
+
+                var (text, color) = ResidentBoardServantUiHelpers.GetResidentBoardServantState(a);
+                var label = ResidentBoardServantUiHelpers.GetOrCreateResidentBoardStateLabel(b);
+                if (label != null && !string.IsNullOrEmpty(text))
+                {
+                    label.SetActive(enable: true);
+                    label.alignment = TextAnchor.MiddleRight;
+                    label.SetText(text, color);
+                }
+            }
+            catch (Exception ex)
+            {
+                ModLog.Warn($"Resident board servant state label error: {ex.Message}");
+                Plugin.ReportPatchRuntimeFailure(nameof(Patch_BaseListPeople_OnInstantiate_ShowServantResidentBoardState));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Harmony patch: append servant-specific runtime notes to the work tooltip.
+    /// </summary>
+    [HarmonyPatch(typeof(BaseListPeople), nameof(BaseListPeople.WriteHobbies))]
+    public static class Patch_BaseListPeople_WriteHobbies_ShowServantResidentBoardState
+    {
+        static void Postfix(BaseListPeople __instance, UITooltip t, Chara a, BaseArea roomWork)
+        {
+            try
+            {
+                if (!ResidentBoardServantUiHelpers.ShouldTreatAsReadOnlyResidentBoardEntry(__instance, a) || t?.note == null)
+                    return;
+
+                t.note.Space(8);
+                var (statusText, statusColor) = ResidentBoardServantUiHelpers.GetResidentBoardServantState(a);
+                t.note.AddText(
+                    Lang.isJP
+                        ? "Ars 従者"
+                        : (Lang.langCode == "CN" ? "Ars 仆从" : "Ars servant"),
+                    FontColor.Good);
+                t.note.AddText(
+                    (Lang.isJP
+                        ? "状態: "
+                        : (Lang.langCode == "CN" ? "状态: " : "State: ")) + statusText,
+                    statusColor);
+
+                if (!a.IsInHomeZone())
+                {
+                    t.note.AddText(
+                        Lang.isJP
+                            ? "ホーム外にいるため、住民としての仕事は行いません。"
+                            : (Lang.langCode == "CN"
+                                ? "当前不在家园区域，因此不会执行居民工作。"
+                                : "This servant is outside the home zone, so resident work is inactive."),
+                        FontColor.Warning);
+                }
+                else if (NecromancyManager.Instance.IsServantStashed(a.uid) && !ModConfig.EnableStashedServantHomeContribution.Value)
+                {
+                    t.note.AddText(
+                        Lang.isJP
+                            ? "退避中の拠点貢献が無効なため、現在は仕事しません。"
+                            : (Lang.langCode == "CN"
+                                ? "由于“退避中也参与据点贡献”已关闭，当前不会工作。"
+                                : "Stashed home contribution is disabled, so this servant is not working right now."),
+                        FontColor.Warning);
+                }
+
+                t.note.Build();
+            }
+            catch (Exception ex)
+            {
+                ModLog.Warn($"Resident board servant tooltip error: {ex.Message}");
+                Plugin.ReportPatchRuntimeFailure(nameof(Patch_BaseListPeople_WriteHobbies_ShowServantResidentBoardState));
+            }
+        }
+    }
+
+    internal static class ResidentBoardServantUiHelpers
+    {
+        private const string ResidentBoardStateLabelObjectName = "ArsResidentBoardServantState";
+
+        internal static bool ShouldTreatAsReadOnlyResidentBoardEntry(BaseListPeople? list, Chara? chara)
+        {
+            if (list == null || list.GetType() != typeof(ListPeople) || chara == null)
+                return false;
+
+            if (list.memberType != FactionMemberType.Default && list.memberType != FactionMemberType.Livestock)
+                return false;
+
+            var mgr = NecromancyManager.Instance;
+            return mgr != null && mgr.IsServant(chara.uid);
+        }
+
+        internal static (string Text, FontColor Color) GetResidentBoardServantState(Chara chara)
+        {
+            if (chara.isDead)
+            {
+                return (
+                    Lang.isJP ? "従者(死亡)" : (Lang.langCode == "CN" ? "仆从(死亡)" : "Servant (Dead)"),
+                    FontColor.Bad);
+            }
+
+            var mgr = NecromancyManager.Instance;
+            if (mgr == null)
+                return (Lang.isJP ? "従者(戦闘)" : (Lang.langCode == "CN" ? "仆从(战斗)" : "Servant (Combat)"), FontColor.Good);
+
+            if (mgr.IsServantStashed(chara.uid))
+            {
+                if (ModConfig.EnableStashedServantHomeContribution.Value)
+                {
+                    return (
+                        Lang.isJP ? "従者(労働)" : (Lang.langCode == "CN" ? "仆从(劳动)" : "Servant (Work)"),
+                        FontColor.Good);
+                }
+
+                return (
+                    Lang.isJP ? "従者(退避)" : (Lang.langCode == "CN" ? "仆从(退避)" : "Servant (Stashed)"),
+                    FontColor.Warning);
+            }
+
+            return (
+                Lang.isJP ? "従者(戦闘)" : (Lang.langCode == "CN" ? "仆从(战斗)" : "Servant (Combat)"),
+                FontColor.Good);
+        }
+
+        internal static UIText? GetOrCreateResidentBoardStateLabel(ItemGeneral? item)
+        {
+            if (item?.button1?.subText2 == null)
+                return null;
+
+            Transform? existing = item.button1.transform.Find(ResidentBoardStateLabelObjectName);
+            if (existing != null)
+                return existing.GetComponent<UIText>();
+
+            UIText template = item.button1.subText2;
+            UIText label = UnityEngine.Object.Instantiate(template, template.transform.parent);
+            label.name = ResidentBoardStateLabelObjectName;
+            label.alignment = TextAnchor.MiddleRight;
+            label.raycastTarget = false;
+            label.SetActive(enable: false);
+            return label;
+        }
+    }
+
+    /// <summary>
+    /// Harmony patch: direct reserve writes must never store servants in vanilla hearth reserve.
+    /// Use explicit TargetMethod + Prepare so missing runtime methods skip cleanly instead of producing patch errors.
+    /// </summary>
+    [HarmonyPatch]
+    public static class Patch_FACTION_AddReserve_ServantRedirect
+    {
+        private const string AddReserveMethodName = "AddReserve";
+
+        private static MethodInfo? ResolveTargetMethod()
+        {
+            return AccessTools.Method(typeof(FACTION), AddReserveMethodName, new[] { typeof(Chara) });
+        }
+
+        static bool Prepare()
+        {
+            return ResolveTargetMethod() != null;
+        }
+
+        static MethodBase? TargetMethod()
+        {
+            return ResolveTargetMethod();
+        }
+
+        static bool Prefix(FACTION __instance, Chara c)
+        {
+            try
+            {
+                if (!TryHandleServantReserveRedirect(c))
+                    return true;
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                ModLog.Warn($"FACTION.AddReserve servant redirect error: {ex.Message}");
+                Plugin.ReportPatchRuntimeFailure(nameof(Patch_FACTION_AddReserve_ServantRedirect));
+                return true;
+            }
+        }
+
+        private static bool TryHandleServantReserveRedirect(Chara? c)
+        {
+            if (c == null)
+                return false;
+
+            var mgr = NecromancyManager.Instance;
+            if (mgr == null || !mgr.IsServant(c.uid))
+                return false;
+
+            if (!mgr.TryRedirectReserveToStash(c))
+            {
+                SE.Beep();
+                ModLog.Warn($"AddReserve servant redirect rejected: {c.Name} ({c.uid}) dead={c.isDead} zone={(c.currentZone == null ? "null" : c.currentZone.id)}");
+                Msg.SayRaw(
+                    c.isDead
+                        ? (Lang.isJP
+                            ? "死亡した従者は盟約の石の予備枠へは移せません。還生後に従者の退避を使ってください。"
+                            : (Lang.langCode == "CN"
+                                ? "死亡仆从不能移入盟约石预备栏。请先还生，再使用仆从退避。"
+                                : "Dead servants cannot be moved into the Hearth Stone reserve. Revive them first, then use servant stash."))
+                        : (Lang.isJP
+                            ? "この従者は盟約の石の予備枠ではなく、従者の退避で管理されます。今回は退避への移動に失敗しました。"
+                            : (Lang.langCode == "CN"
+                                ? "该仆从不会进入盟约石的预备栏，而是改用仆从退避来管理。这次转入退避失败了。"
+                                : "This servant is managed by servant stashing instead of the Hearth Stone reserve. Redirecting to stash failed this time.")));
+            }
+
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Harmony patch: when a reserved servant is recruited back, restore servant tracking/runtime.
+    /// </summary>
+    [HarmonyPatch(typeof(FactionBranch), nameof(FactionBranch.Recruit))]
+    public static class Patch_FactionBranch_Recruit_ServantReserveRecovery
+    {
+        static void Postfix(Chara c)
+        {
+            try
+            {
+                NecromancyManager.Instance.SyncServantAfterReserveRecruit(c);
+            }
+            catch (Exception ex)
+            {
+                ModLog.Warn($"Recruit servant reserve recovery error: {ex.Message}");
+                Plugin.ReportPatchRuntimeFailure(nameof(Patch_FactionBranch_Recruit_ServantReserveRecovery));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Harmony patch: servants must never be sent on vanilla expeditions.
+    /// This guards direct UI actions and any other backend path that dispatches expeditions.
+    /// </summary>
+    [HarmonyPatch]
+    public static class Patch_ExpeditionManager_Add_BlockServant
+    {
+        static MethodBase? TargetMethod()
+        {
+            return AccessTools.Method(typeof(ExpeditionManager), nameof(ExpeditionManager.Add), new[] { typeof(Expedition) });
+        }
+
+        static bool Prefix(Expedition ex)
+        {
+            try
+            {
+                var servant = ex?.chara;
+                var mgr = NecromancyManager.Instance;
+                if (servant == null || mgr == null || !mgr.IsServant(servant.uid))
+                    return true;
+
+                ModLog.Warn($"Blocked servant expedition dispatch: {servant.Name} ({servant.uid}) type={ex.type}");
+                return false;
+            }
+            catch (Exception ex2)
+            {
+                ModLog.Warn($"Expedition servant block patch error: {ex2.Message}");
+                Plugin.ReportPatchRuntimeFailure(nameof(Patch_ExpeditionManager_Add_BlockServant));
+                return true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Harmony patch: expedition board should not offer servants as dispatch candidates.
+    /// Uses Postfix filtering to preserve vanilla board construction.
+    /// </summary>
+    [HarmonyPatch(typeof(ListPeopleExpedition), nameof(ListPeopleExpedition.OnList))]
+    public static class Patch_ListPeopleExpedition_OnList_ExcludeServants
+    {
+        static void Postfix(ListPeopleExpedition __instance)
+        {
+            try
+            {
+                var mgr = NecromancyManager.Instance;
+                if (mgr == null || __instance?.list == null)
+                    return;
+
+                __instance.list.objects.RemoveAll(o => o is Chara chara && mgr.IsServant(chara.uid));
+
+                if (__instance.expeditions == null || __instance.expeditions.Count == 0)
+                    return;
+
+                foreach (var uid in __instance.expeditions.Keys.Where(uid => mgr.IsServant(uid)).ToList())
+                    __instance.expeditions.Remove(uid);
+            }
+            catch (Exception ex)
+            {
+                ModLog.Warn($"Expedition board servant filter patch error: {ex.Message}");
+                Plugin.ReportPatchRuntimeFailure(nameof(Patch_ListPeopleExpedition_OnList_ExcludeServants));
+            }
+        }
+    }
+
+    internal static class ServantPathingRules
+    {
+        internal static bool ShouldSuppressHomePathDestruction(Chara chara)
+        {
+            if (chara == null)
+                return false;
+
+            var mgr = NecromancyManager.Instance;
+            if (mgr == null || !mgr.IsServant(chara.uid))
+                return false;
+
+            return chara.currentZone?.IsPCFaction == true;
+        }
+    }
+
+    /// <summary>
+    /// Harmony patch: servants should not bulldoze home walls/furniture while pathing in PC-owned zones.
+    /// Postfix keeps vanilla path-destruction logic intact outside the home zone.
+    /// </summary>
+    [HarmonyPatch(typeof(Chara), nameof(Chara.CanDestroyPath))]
+    public static class Patch_Chara_CanDestroyPath_BlockServantHomePathDestruction
+    {
+        static void Postfix(Chara __instance, ref bool __result)
+        {
+            try
+            {
+                if (__result && ServantPathingRules.ShouldSuppressHomePathDestruction(__instance))
+                    __result = false;
+            }
+            catch (Exception ex)
+            {
+                ModLog.Warn($"Servant CanDestroyPath patch error: {ex.Message}");
+                Plugin.ReportPatchRuntimeFailure(nameof(Patch_Chara_CanDestroyPath_BlockServantHomePathDestruction));
             }
         }
     }

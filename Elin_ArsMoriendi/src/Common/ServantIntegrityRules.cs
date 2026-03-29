@@ -12,12 +12,14 @@ namespace Elin_ArsMoriendi
                 bool isTrackedServant,
                 bool isDestroyed,
                 bool hasUndeadServantTrait,
-                bool hasUndeadServantPresence)
+                bool hasUndeadServantPresence,
+                bool isInReserve)
             {
                 IsTrackedServant = isTrackedServant;
                 IsDestroyed = isDestroyed;
                 HasUndeadServantTrait = hasUndeadServantTrait;
                 HasUndeadServantPresence = hasUndeadServantPresence;
+                IsInReserve = isInReserve;
             }
 
             public bool IsTrackedServant { get; }
@@ -27,6 +29,8 @@ namespace Elin_ArsMoriendi
             public bool HasUndeadServantTrait { get; }
 
             public bool HasUndeadServantPresence { get; }
+
+            public bool IsInReserve { get; }
         }
 
         public static bool ShouldOfferButcherAction(
@@ -45,17 +49,18 @@ namespace Elin_ArsMoriendi
             bool isDestroyed,
             bool isPcFactionOrMinion,
             bool hasPcMasterUid,
-            bool hasResolvedPcMaster)
+            bool hasResolvedPcMaster,
+            bool isInReserve)
         {
             if (isDestroyed)
                 return false;
 
-            return isPcFactionOrMinion || hasPcMasterUid || hasResolvedPcMaster;
+            return isInReserve || isPcFactionOrMinion || hasPcMasterUid || hasResolvedPcMaster;
         }
 
         public static bool ShouldPurgeBrokenServantRemnant(RemnantSnapshot snapshot)
         {
-            if (snapshot.IsDestroyed || snapshot.IsTrackedServant)
+            if (snapshot.IsDestroyed || snapshot.IsTrackedServant || snapshot.IsInReserve)
                 return false;
 
             return snapshot.HasUndeadServantTrait || snapshot.HasUndeadServantPresence;

@@ -64,6 +64,33 @@
 - そのため、死亡済み/オフマップ/banish 済み minion は `c_uidMaster` が残っていても、`master` 未解決の間は `IsPCFactionOrMinion` が false になりうる。
 - オフマップ死体やロード直後の minion を判定する場合は、`FindMaster()` か `c_uidMaster` を補助条件として併用する。
 
+## 従者の resident カウントと `homeBranch.members` の罠（実装確認済み）
+
+- 最終確認: 2026-03-28
+- `TraitUndeadServant.IsCountAsResident == false` のため、`FactionBranch.CountMembers(FactionMemberType.Default)` を使う UI や人口上限判定には従者が入らない。
+- そのため、住民数 UI、最大人口、過密系の基本判定は追加 patch なしでも従者を除外できる。
+- ただし、バニラには `EClass.pc.homeBranch.members.Count` をそのまま人数扱いする処理がある。
+- 確認した具体例は `QuestCompanion.CanUpdateOnTalk()` と `QuestCompanion.GetTextProgress()`。
+- 「バニラ勧誘 NPC の人数だけを見たい」用途では、`CountMembers(Default)` へ単純置換せず、`members.Count - Ars従者数` のように mod 管理個体だけを差し引く方が安全。
+
+## 盟約の石 reserve と従者の衝突（実装確認済み）
+
+- 最終確認: 2026-03-29
+- `FACTION.AddReserve(Chara)` は Hearth Stone の「盟約の石に移す」で使われる。
+- この処理は `IsHomeMember()` なら `homeBranch.RemoveMemeber(c)` を呼び、その後 `currentZone.RemoveCard(c)` して `listReserve` へ積む。
+- しかし minion の detach は行わないため、従者に対して使うと `homeBranch` と `currentZone` を失ったまま `c_uidMaster` だけ残る中途半端な状態になりうる。
+- Ars Moriendi の従者はこの reserve に直接入れず、`退避` へ振り替える方が安全。
+- 既に reserve に入っている従者を扱う場合は、整合性チェックや remnant purge から除外し、呼び戻し時に従者追跡を再同期する。
+
+## 遠征 (`Expedition`) と従者の衝突（実装確認済み）
+
+- 最終確認: 2026-03-29
+- `ExpeditionManager.Add(Expedition)` は `Expedition.Start()` を呼び、対象キャラを `MoveZone("somewhere")` する。
+- `ListPeopleExpedition.OnList()` は `Branch.members` の非パーティメンバーをそのまま遠征候補に入れる。
+- バニラは `homeBranch.members` に残ったキャラが `currentZone == null/somewhere` の場合、ロード時に拠点へ戻す補正を持つ。
+- そのため、従者を遠征へ送ると `somewhere` 管理と従者 runtime/state 管理が衝突しやすい。
+- Ars Moriendi の従者は遠征候補から除外し、backend 側でも `ExpeditionManager.Add` を拒否する方が安全。
+
 ## 屠殺 (`AI_Slaughter`) 後の banish / revive（実装確認済み）
 
 - 最終確認: 2026-03-25

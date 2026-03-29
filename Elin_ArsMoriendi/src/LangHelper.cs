@@ -331,14 +331,6 @@ namespace Elin_ArsMoriendi
             // ── Servant context menu ──
             ["servantRename"] = ("名前を変更", "Rename", "改名"),
             ["servantTactics"] = ("作戦を変更", "Change Tactics", "更改战术"),
-            ["servantDormant"] = ("展示モードにする", "Enter Display Mode", "进入展示模式"),
-            ["servantActivate"] = ("行動を再開する", "Resume Activity", "恢复活动"),
-            ["servantDormantOn"] = (
-                "#1は静かに佇んでいる…",
-                "#1 stands quietly...", "#1静静地伫立着……"),
-            ["servantDormantOff"] = (
-                "#1は再び動き始めた。",
-                "#1 begins to move again.", "#1再次开始行动了。"),
             ["tacticDefault"] = ("デフォルト", "Default", "默认"),
 
             // ── Pursuit pause (追跡一時停止) ──

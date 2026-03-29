@@ -48,7 +48,8 @@ namespace Elin_ArsMoriendi.Tests
                 isDestroyed: false,
                 isPcFactionOrMinion: true,
                 hasPcMasterUid: false,
-                hasResolvedPcMaster: false);
+                hasResolvedPcMaster: false,
+                isInReserve: false);
 
             Assert.That(result, Is.True);
         }
@@ -60,7 +61,8 @@ namespace Elin_ArsMoriendi.Tests
                 isDestroyed: false,
                 isPcFactionOrMinion: false,
                 hasPcMasterUid: true,
-                hasResolvedPcMaster: false);
+                hasResolvedPcMaster: false,
+                isInReserve: false);
 
             Assert.That(result, Is.True);
         }
@@ -72,7 +74,21 @@ namespace Elin_ArsMoriendi.Tests
                 isDestroyed: false,
                 isPcFactionOrMinion: false,
                 hasPcMasterUid: false,
-                hasResolvedPcMaster: true);
+                hasResolvedPcMaster: true,
+                isInReserve: false);
+
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
+        public void ShouldKeepTrackedServant_HearthReserve_KeepsTracked()
+        {
+            bool result = ServantIntegrityRules.ShouldKeepTrackedServant(
+                isDestroyed: false,
+                isPcFactionOrMinion: false,
+                hasPcMasterUid: false,
+                hasResolvedPcMaster: false,
+                isInReserve: true);
 
             Assert.That(result, Is.True);
         }
@@ -84,7 +100,8 @@ namespace Elin_ArsMoriendi.Tests
                 isDestroyed: false,
                 isPcFactionOrMinion: false,
                 hasPcMasterUid: false,
-                hasResolvedPcMaster: false);
+                hasResolvedPcMaster: false,
+                isInReserve: false);
 
             Assert.That(result, Is.False);
         }
@@ -96,7 +113,8 @@ namespace Elin_ArsMoriendi.Tests
                 isTrackedServant: false,
                 isDestroyed: false,
                 hasUndeadServantTrait: true,
-                hasUndeadServantPresence: false);
+                hasUndeadServantPresence: false,
+                isInReserve: false);
 
             Assert.That(ServantIntegrityRules.ShouldPurgeBrokenServantRemnant(snapshot), Is.True);
         }
@@ -108,7 +126,8 @@ namespace Elin_ArsMoriendi.Tests
                 isTrackedServant: false,
                 isDestroyed: false,
                 hasUndeadServantTrait: false,
-                hasUndeadServantPresence: true);
+                hasUndeadServantPresence: true,
+                isInReserve: false);
 
             Assert.That(ServantIntegrityRules.ShouldPurgeBrokenServantRemnant(snapshot), Is.True);
         }
@@ -120,7 +139,8 @@ namespace Elin_ArsMoriendi.Tests
                 isTrackedServant: true,
                 isDestroyed: false,
                 hasUndeadServantTrait: true,
-                hasUndeadServantPresence: true);
+                hasUndeadServantPresence: true,
+                isInReserve: false);
 
             Assert.That(ServantIntegrityRules.ShouldPurgeBrokenServantRemnant(snapshot), Is.False);
         }
@@ -132,7 +152,21 @@ namespace Elin_ArsMoriendi.Tests
                 isTrackedServant: false,
                 isDestroyed: true,
                 hasUndeadServantTrait: true,
-                hasUndeadServantPresence: true);
+                hasUndeadServantPresence: true,
+                isInReserve: false);
+
+            Assert.That(ServantIntegrityRules.ShouldPurgeBrokenServantRemnant(snapshot), Is.False);
+        }
+
+        [Test]
+        public void ShouldPurgeBrokenServantRemnant_HearthReserve_DoesNotPurge()
+        {
+            var snapshot = new ServantIntegrityRules.RemnantSnapshot(
+                isTrackedServant: false,
+                isDestroyed: false,
+                hasUndeadServantTrait: true,
+                hasUndeadServantPresence: true,
+                isInReserve: true);
 
             Assert.That(ServantIntegrityRules.ShouldPurgeBrokenServantRemnant(snapshot), Is.False);
         }
@@ -144,7 +178,8 @@ namespace Elin_ArsMoriendi.Tests
                 isTrackedServant: false,
                 isDestroyed: false,
                 hasUndeadServantTrait: false,
-                hasUndeadServantPresence: false);
+                hasUndeadServantPresence: false,
+                isInReserve: false);
 
             Assert.That(ServantIntegrityRules.ShouldPurgeBrokenServantRemnant(snapshot), Is.False);
         }

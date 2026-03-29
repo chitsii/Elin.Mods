@@ -42,6 +42,7 @@ namespace Elin_ArsMoriendi
         {
             RitualPermanent,
             SummonedTemporary,
+            ReserveRecovery,
         }
 
         private enum ServantCleanupMode
@@ -317,6 +318,8 @@ namespace Elin_ArsMoriendi
                 }
             }
 
+            MigrateLegacyDormantFlagsToStash(flags);
+
             ModLog.Log("LoadFromDialogFlags: {0} spells, {1} servants, {2} enhancements",
                 _unlocked.Count, _servantUidList.Count, _enhancements.Count);
         }
@@ -356,7 +359,6 @@ namespace Elin_ArsMoriendi
             if (rest == "lvl") enh.EnhancementLevel = value;
             else if (rest == "bp") enh.AddedBodyParts = value;
             else if (rest == "rlv") enh.ResurrectionLevel = value;
-            else if (rest == "dorm") enh.IsDormant = value == 1;
             else if (rest == "stsh") enh.IsStashed = value == 1;
             else if (rest == "tac") enh.TacticId = TacticIndexToId(value);
             else if (rest.StartsWith("sl."))
@@ -374,6 +376,40 @@ namespace Elin_ArsMoriendi
                 if (int.TryParse(rest.Substring(3), out int slotId))
                     enh.SlotResonance[slotId] = value;
             }
+        }
+
+        private void MigrateLegacyDormantFlagsToStash(Dictionary<string, int> flags)
+        {
+            int migrated = 0;
+            foreach (var kvp in flags)
+            {
+                if (!kvp.Key.StartsWith(EnhPrefix) || !kvp.Key.EndsWith(".dorm") || kvp.Value != 1)
+                    continue;
+
+                string suffix = kvp.Key.Substring(EnhPrefix.Length);
+                int dotIndex = suffix.IndexOf('.');
+                if (dotIndex < 0)
+                    continue;
+
+                string uidStr = suffix.Substring(0, dotIndex);
+                if (!int.TryParse(uidStr, out int uid))
+                    continue;
+
+                if (!_enhancements.TryGetValue(uid, out var enh))
+                {
+                    enh = new ServantEnhancement();
+                    _enhancements[uid] = enh;
+                }
+
+                if (enh.IsStashed)
+                    continue;
+
+                enh.IsStashed = true;
+                migrated++;
+            }
+
+            if (migrated > 0)
+                ModLog.Log("Migrated {0} legacy dormant servant flag(s) to stash.", migrated);
         }
 
         // ── dialogFlags helpers ──
@@ -644,7 +680,7 @@ namespace Elin_ArsMoriendi
 
         /// <summary>
         /// Alive servants currently participating in the active zone battle space.
-        /// Excludes stashed servants and display-mode servants.
+        /// Excludes stashed servants.
         /// </summary>
         public List<Chara> GetCombatServantsInCurrentZone()
         {
@@ -653,7 +689,7 @@ namespace Elin_ArsMoriendi
             {
                 if (servant.currentZone != EClass._zone) continue;
                 var enh = GetEnhancement(servant.uid);
-                if (enh.IsStashed || enh.IsDormant) continue;
+                if (enh.IsStashed) continue;
                 result.Add(servant);
             }
             return result;
@@ -717,6 +753,44 @@ namespace Elin_ArsMoriendi
             SaveEnhancement(servant.uid, enh);
             ApplyServantRuntimeState(servant, enh);
             return moved;
+        }
+
+        public bool TryRedirectReserveToStash(Chara servant)
+        {
+            EnsureGameStateLoaded();
+            if (servant == null || servant.isDestroyed || servant.isDead) return false;
+            if (!_servantUidList.Contains(servant.uid)) return false;
+
+            bool moved = SetServantStashedState(servant, true);
+            if (moved)
+                ModLog.Log("Servant redirected from hearth reserve to stash: {0} (uid={1})", servant.Name, servant.uid);
+            return moved;
+        }
+
+        public void SyncServantAfterReserveRecruit(Chara servant)
+        {
+            EnsureGameStateLoaded();
+            if (servant == null || servant.isDestroyed) return;
+
+            bool tracked = _servantUidList.Contains(servant.uid);
+            bool hasMarkers = HasUndeadServantTraitMarker(servant) || servant.HasCondition<ConUndeadServantPresence>();
+            if (!tracked && !hasMarkers) return;
+
+            if (!tracked)
+            {
+                if (!servant.isDead && EClass.pc != null && servant.c_uidMaster == 0)
+                {
+                    servant.MakeMinion(EClass.pc);
+                    servant.isSummon = false;
+                    servant.c_summonDuration = 0;
+                }
+
+                TrackServantRecord(servant, ServantRegistrationKind.ReserveRecovery);
+                SaveEnhancement(servant.uid, GetEnhancement(servant.uid));
+                ModLog.Warn($"Recovered servant tracking from hearth reserve: {servant.Name} ({servant.uid})");
+            }
+
+            ApplyServantRuntimeState(servant, GetEnhancement(servant.uid));
         }
 
         public int StashAllActiveServants()
@@ -1019,7 +1093,8 @@ namespace Elin_ArsMoriendi
                     chara.isDestroyed,
                     chara.IsPCFactionOrMinion,
                     hasPcMasterUid,
-                    hasResolvedPcMaster))
+                    hasResolvedPcMaster,
+                    IsInHearthReserve(chara)))
                 {
                     removed.Add(uid);
                 }
@@ -1074,7 +1149,8 @@ namespace Elin_ArsMoriendi
                 isTrackedServant: _servantUidList.Contains(chara.uid),
                 isDestroyed: chara.isDestroyed,
                 hasUndeadServantTrait: HasUndeadServantTraitMarker(chara),
-                hasUndeadServantPresence: chara.HasCondition<ConUndeadServantPresence>());
+                hasUndeadServantPresence: chara.HasCondition<ConUndeadServantPresence>(),
+                isInReserve: IsInHearthReserve(chara));
 
             return ServantIntegrityRules.ShouldPurgeBrokenServantRemnant(snapshot);
         }
@@ -1086,6 +1162,22 @@ namespace Elin_ArsMoriendi
 
             return chara.c_idTrait.IndexOf(nameof(TraitUndeadServant), StringComparison.Ordinal) >= 0
                 || chara.c_idTrait.IndexOf(UndeadServantTraitId, StringComparison.Ordinal) >= 0;
+        }
+
+        private static bool IsInHearthReserve(Chara chara)
+        {
+            if (chara == null) return false;
+
+            var reserve = EClass.Home?.listReserve;
+            if (reserve == null) return false;
+
+            foreach (var item in reserve)
+            {
+                if (item?.chara == chara || item?.chara?.uid == chara.uid)
+                    return true;
+            }
+
+            return false;
         }
 
         private bool PurgeBrokenServantRemnant(Chara chara)
@@ -1321,7 +1413,6 @@ namespace Elin_ArsMoriendi
             SetFlag(p + "lvl", e.EnhancementLevel);
             SetFlag(p + "bp", e.AddedBodyParts);
             SetFlag(p + "rlv", e.ResurrectionLevel);
-            SetFlag(p + "dorm", e.IsDormant ? 1 : 0);
             SetFlag(p + "stsh", e.IsStashed ? 1 : 0);
             SetFlag(p + "tac", TacticIdToIndex(e.TacticId));
             foreach (var kvp in e.SlotAdditions) SetFlag(p + "sl." + kvp.Key, kvp.Value);
@@ -1339,26 +1430,31 @@ namespace Elin_ArsMoriendi
         public void SaveEnhancementsPublic() => SaveAllEnhancements();
 
         /// <summary>
-        /// Returns whether the servant is currently in display mode (dormant).
+        /// Returns whether servant AI/movement should be force-frozen.
         /// Non-servants always return false.
         /// </summary>
-        public bool IsServantDormant(int uid)
-        {
-            EnsureGameStateLoaded();
-            if (!_servantUidList.Contains(uid)) return false;
-            return GetEnhancement(uid).IsDormant;
-        }
-
-        /// <summary>
-        /// Returns whether servant is excluded from combat behavior (display mode or stashed).
-        /// Non-servants always return false.
-        /// </summary>
-        public bool IsServantCombatInactive(int uid)
+        public bool ShouldFreezeServantAI(int uid)
         {
             EnsureGameStateLoaded();
             if (!_servantUidList.Contains(uid)) return false;
             var enh = GetEnhancement(uid);
-            return enh.IsDormant || enh.IsStashed;
+            return enh.IsStashed && !IsStashedHomeContributionEnabled();
+        }
+
+        public int CountHomeBranchMembersExcludingServants()
+        {
+            EnsureGameStateLoaded();
+            var branch = EClass.pc?.homeBranch;
+            if (branch == null) return 0;
+
+            int count = 0;
+            foreach (var member in branch.members)
+            {
+                if (member == null || member.isDestroyed) continue;
+                if (IsServant(member.uid)) continue;
+                count++;
+            }
+            return count;
         }
 
         /// <summary>
@@ -1376,25 +1472,6 @@ namespace Elin_ArsMoriendi
         }
 
         /// <summary>
-        /// Set display mode state for a servant and immediately apply runtime behavior.
-        /// This is the single entry point for dormant on/off transitions.
-        /// </summary>
-        public void SetServantDormantState(Chara servant, bool isDormant)
-        {
-            EnsureGameStateLoaded();
-            if (servant == null || servant.isDestroyed) return;
-            if (!_servantUidList.Contains(servant.uid)) return;
-
-            var enh = GetEnhancement(servant.uid);
-            bool changed = enh.IsDormant != isDormant;
-            enh.IsDormant = isDormant;
-            if (changed)
-                SaveEnhancement(servant.uid, enh);
-
-            ApplyServantRuntimeState(servant, enh);
-        }
-
-        /// <summary>
         /// Re-apply runtime behavior (movement/AI) for all tracked servants.
         /// Called on zone activation to recover from serialized stale runtime flags.
         /// </summary>
@@ -1404,7 +1481,6 @@ namespace Elin_ArsMoriendi
             PruneOrphanedServants();
             PurgeBrokenServantRemnants();
             int active = 0;
-            int dormant = 0;
             int stashed = 0;
 
             foreach (var uid in _servantUidList)
@@ -1416,12 +1492,11 @@ namespace Elin_ArsMoriendi
                 var enh = GetEnhancement(uid);
                 ApplyServantRuntimeState(chara, enh);
                 if (enh.IsStashed) stashed++;
-                else if (enh.IsDormant) dormant++;
                 else active++;
             }
 
-            if (active > 0 || dormant > 0 || stashed > 0)
-                ModLog.Log("ReconcileServantRuntimeStates: active={0}, dormant={1}, stashed={2}", active, dormant, stashed);
+            if (active > 0 || stashed > 0)
+                ModLog.Log("ReconcileServantRuntimeStates: active={0}, stashed={1}", active, stashed);
         }
 
         private static void ApplyServantRuntimeState(Chara servant, ServantEnhancement enh)
@@ -1433,27 +1508,24 @@ namespace Elin_ArsMoriendi
                 if (isPcMaster && servant.c_minionType != MinionType.Friend)
                     servant.c_minionType = MinionType.Friend;
 
-                servant.noMove = true;
                 servant.enemy = null;
-                if (!servant.HasNoGoal)
-                    servant.SetAI(new NoGoal());
                 CustomAssetFx.StopAllAttachedFx(servant);
                 if (!TryMoveServantToHomeStashZone(servant))
                     ModLog.Warn($"ApplyServantRuntimeState(stashed) move-home failed: {servant.Name} ({servant.uid})");
-                return;
-            }
 
-            if (enh.IsDormant)
-            {
-                // Exclude dormant servants from zone-follow transfer list.
-                // Vanilla only transfers MinionType.Default on zone move.
-                if (isPcMaster && servant.c_minionType != MinionType.Friend)
-                    servant.c_minionType = MinionType.Friend;
-
-                servant.noMove = true;
-                servant.enemy = null;
-                if (!servant.HasNoGoal)
-                    servant.SetAI(new NoGoal());
+                if (IsStashedHomeContributionEnabled())
+                {
+                    bool wasFrozen = servant.noMove;
+                    servant.noMove = false;
+                    if (servant.currentZone == EClass._zone && (wasFrozen || servant.HasNoGoal))
+                        servant.ChooseNewGoal();
+                }
+                else
+                {
+                    servant.noMove = true;
+                    if (!servant.HasNoGoal)
+                        servant.SetAI(new NoGoal());
+                }
                 return;
             }
 
@@ -1465,16 +1537,14 @@ namespace Elin_ArsMoriendi
             servant.noMove = false;
 
             // If the servant was previously forced into NoGoal/noMove, request a fresh goal.
-            // This fixes cases where non-dormant servants remain idle after zone transitions.
+            // This fixes cases where servants remain idle after zone transitions.
             if (servant.currentZone == EClass._zone && (wasNoMove || servant.HasNoGoal))
                 servant.ChooseNewGoal();
         }
 
-        public void RestoreDormantStates()
-        {
-            // Backward-compatible wrapper for older call sites.
-            ReconcileServantRuntimeStates();
-        }
+        private static bool IsStashedHomeContributionEnabled() =>
+            ModConfig.EnableStashedServantHomeContribution != null
+            && ModConfig.EnableStashedServantHomeContribution.Value;
 
         /// <summary>Get or create enhancement data for a servant.</summary>
         public ServantEnhancement GetEnhancement(int uid)
@@ -1984,8 +2054,6 @@ namespace Elin_ArsMoriendi
         public Dictionary<int, int> AttrInjections = new();
         /// <summary>slotId → resonance count (pity timer for augmentation).</summary>
         public Dictionary<int, int> SlotResonance = new();
-        /// <summary>True = display mode (no movement, no actions).</summary>
-        public bool IsDormant;
         /// <summary>True = parked at home zone and excluded from battlefield.</summary>
         public bool IsStashed;
         /// <summary>Tactics override. Empty = default, otherwise SourceTactics.Row.id.</summary>

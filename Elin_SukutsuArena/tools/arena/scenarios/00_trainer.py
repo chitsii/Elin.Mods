@@ -21,8 +21,6 @@ def define_trainer_main_drama(builder: ArenaDramaBuilder):
 
     # ラベル定義
     main = builder.label("main")
-    greeting_pre_game = builder.label("greeting_pre_game")
-    greeting_post_game = builder.label("greeting_post_game")
     quest_done_last_battle = f"{QUEST_DONE_PREFIX}{QuestIds.LAST_BATTLE}"
     choices = builder.label("choices")
     end = builder.label("end")
@@ -78,18 +76,21 @@ def define_trainer_main_drama(builder: ArenaDramaBuilder):
     newgame_execute = builder.label("newgame_execute")
 
     # ========================================
-    # エントリーポイント（エピローグ完了チェック）
+    # エントリーポイント
+    # inject/Unique は同一ドラマ内で最初の inject だけが有効になるため、
+    # クリア前後の挨拶を条件付きテキストで同一ステップに畳む。
     # ========================================
-    builder.step(main).branch_if(
-        quest_done_last_battle, "==", 1, greeting_post_game
-    ).jump(greeting_pre_game)
-
-    # ========================================
-    # 選択肢（エピローグ前）
-    # ========================================
-    builder.step(greeting_pre_game).say(
+    builder.step(main).say_if(
+        "greet_post",
+        "やぁ君！また会えたね。何か用？",
+        f"hasFlag,{quest_done_last_battle}",
+        "Hey there! Good to see you again. Need something?",
+        "嗨！又见面了呢。有什么事吗？",
+        actor=trainer,
+    ).say_if(
         "greet",
         "やぁ君！私と一緒に……汗を流さない？",
+        f"!hasFlag,{quest_done_last_battle}",
         "Welcome! Want to... work up a sweat with me?",
         "欢迎！要不要和我一起……流点汗呢？",
         actor=trainer,
@@ -107,31 +108,6 @@ def define_trainer_main_drama(builder: ArenaDramaBuilder):
         text_id="c_secret",
     ).choice(
         end, "また今度", "Perhaps another time", "下次再说", text_id="c_bye"
-    ).on_cancel(end)
-
-    # ========================================
-    # 選択肢（エピローグ後）
-    # ========================================
-    builder.step(greeting_post_game).say(
-        "greet_post",
-        "やぁ君！また会えたね。何か用？",
-        "Hey there! Good to see you again. Need something?",
-        "嗨！又见面了呢。有什么事吗？",
-        actor=trainer,
-    ).inject_unique().choice(
-        special_training_menu,
-        "特別なトレーニングを所望する",
-        "Receive special training",
-        "接受特别训练",
-        text_id="c_pg_special_training",
-    ).choice(
-        secret_menu,
-        "（Mod設定）",
-        "(Mod settings)",
-        "（Mod设置）",
-        text_id="c_pg_secret",
-    ).choice(
-        end, "また今度", "Perhaps another time", "下次再说", text_id="c_pg_bye"
     ).on_cancel(end)
 
     # 戻り先用（他のメニューから戻る時に使用）

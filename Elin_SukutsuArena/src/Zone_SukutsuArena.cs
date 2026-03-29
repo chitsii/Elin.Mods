@@ -50,6 +50,21 @@ public class Zone_SukutsuArena : Zone_Civilized
     };
 
     /// <summary>
+    /// クリア後に勧誘解禁を保証したいNPC。
+    /// バニラの inject/Unique は trait.CanInvite だけでは表示されず、
+    /// 好感度(Respected以上)と numBeaten(111) を見ているため明示的に補正する。
+    /// </summary>
+    private static readonly string[] PostgameRecruitableNpcIds =
+    {
+        ArenaConfig.NpcIds.Lily,
+        ArenaConfig.NpcIds.Iris,
+        ArenaConfig.NpcIds.Balgas,
+        ArenaConfig.NpcIds.Zek,
+        ArenaConfig.NpcIds.Nul,
+        "sukutsu_cain",
+    };
+
+    /// <summary>
     /// マップファイルのパス（Mod フォルダ内の Maps/ から読み込む）
     /// StrangeSpellShop と同じパターン
     /// </summary>
@@ -113,6 +128,9 @@ public class Zone_SukutsuArena : Zone_Civilized
 
         // ストーリー進行に応じてNPCの表示/非表示を制御
         HandleNpcVisibility();
+
+        // クリア後はバニラの勧誘表示条件を満たすよう補正
+        EnsurePostgameRecruitability();
 
         // 初回訪問時のみオープニングドラマを再生
         // dialogFlags でフラグを管理（CWLと同じ）
@@ -355,6 +373,56 @@ public class Zone_SukutsuArena : Zone_Civilized
         {
             HideNpcToSomewhere(ArenaConfig.NpcIds.Balgas);
         }
+    }
+
+    /// <summary>
+    /// クリア後、バニラの inject/Unique が勧誘選択肢を出せる状態に補正する。
+    /// Trait.CanInvite=true だけでは不足で、内部的に好感度と決闘勝利回数も必要。
+    /// </summary>
+    private void EnsurePostgameRecruitability()
+    {
+        var qm = ArenaQuestManager.Instance;
+        if (!(qm?.IsQuestCompleted("18_last_battle") ?? false))
+        {
+            return;
+        }
+
+        foreach (var npcId in PostgameRecruitableNpcIds)
+        {
+            var npc = FindArenaNpc(npcId);
+            if (npc == null || npc.IsPCFaction || npc.IsPCParty || npc.master == EClass.pc)
+            {
+                continue;
+            }
+
+            bool changed = false;
+
+            // ユニーク/グローバルNPCは numBeaten(111)==0 だと _invite ではなく _bout に分岐する。
+            if ((npc.trait.IsUnique || npc.IsGlobal) && npc.GetInt(111) <= 0)
+            {
+                npc.SetInt(111, 1);
+                changed = true;
+            }
+
+            // Respected未満だと _invite/_bout 分岐自体に入れないため、最小限だけ底上げする。
+            int guard = 0;
+            while (!npc.affinity.CanInvite() && guard++ < 2000)
+            {
+                npc._affinity++;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                ModLog.Log($"[SukutsuArena] Postgame recruit unlocked for {npcId}: affinity={npc._affinity}, beaten={npc.GetInt(111)}");
+            }
+        }
+    }
+
+    private static Chara FindArenaNpc(string npcId)
+    {
+        return EClass.game?.cards?.globalCharas?.Find(npcId)
+            ?? EClass._map?.charas?.Find(c => c.id == npcId);
     }
 
     /// <summary>

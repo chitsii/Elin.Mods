@@ -52,9 +52,9 @@ namespace Elin_Elinikki
         private readonly List<GameObject> _wallQuads = new List<GameObject>(256);
         private readonly List<MeshRenderer> _wallRenderers = new List<MeshRenderer>(256);
         private readonly List<MeshFilter> _wallFilters = new List<MeshFilter>(256);
-        private readonly List<GameObject> _roofQuads = new List<GameObject>(128);
-        private readonly List<MeshRenderer> _roofRenderers = new List<MeshRenderer>(128);
-        private readonly List<MeshFilter> _roofFilters = new List<MeshFilter>(128);
+        private readonly List<GameObject> _ceilingQuads = new List<GameObject>(128);
+        private readonly List<MeshRenderer> _ceilingRenderers = new List<MeshRenderer>(128);
+        private readonly List<MeshFilter> _ceilingFilters = new List<MeshFilter>(128);
         private readonly List<GameObject> _wallMountedQuads = new List<GameObject>(128);
         private readonly List<MeshRenderer> _wallMountedRenderers = new List<MeshRenderer>(128);
         private readonly List<MeshFilter> _wallMountedFilters = new List<MeshFilter>(128);
@@ -66,7 +66,7 @@ namespace Elin_Elinikki
         private GameObject _terrainRoot;
         private GameObject _terrainOverlayRoot;
         private GameObject _wallRoot;
-        private GameObject _roofRoot;
+        private GameObject _ceilingRoot;
         private GameObject _wallMountedRoot;
         private GameObject _uprightRoot;
         private GameObject _groundRoot;
@@ -132,7 +132,7 @@ namespace Elin_Elinikki
             UpdateCamera(pose);
             GeometryUtility.CalculateFrustumPlanes(_camera, _cameraFrustumPlanes);
             UpdateTerrainPreview(pose);
-            UpdateRoofPreview(pose);
+            UpdateCeilingPreview(pose);
             UpdateSpritePreview(pose, viewState.CameraDistance > 0.2f);
             LogDiagnosticsFrame(pose);
 
@@ -150,7 +150,7 @@ namespace Elin_Elinikki
                 _terrainRoot = null;
                 _terrainOverlayRoot = null;
                 _wallRoot = null;
-                _roofRoot = null;
+                _ceilingRoot = null;
                 _wallMountedRoot = null;
                 _uprightRoot = null;
                 _groundRoot = null;
@@ -227,9 +227,9 @@ namespace Elin_Elinikki
             _wallQuads.Clear();
             _wallRenderers.Clear();
             _wallFilters.Clear();
-            _roofQuads.Clear();
-            _roofRenderers.Clear();
-            _roofFilters.Clear();
+            _ceilingQuads.Clear();
+            _ceilingRenderers.Clear();
+            _ceilingFilters.Clear();
             _wallMountedQuads.Clear();
             _wallMountedRenderers.Clear();
             _wallMountedFilters.Clear();
@@ -363,9 +363,9 @@ namespace Elin_Elinikki
             _wallRoot.transform.SetParent(_root.transform, false);
             SetLayerRecursively(_wallRoot, RenderLayer);
 
-            _roofRoot = new GameObject("Roofs");
-            _roofRoot.transform.SetParent(_root.transform, false);
-            SetLayerRecursively(_roofRoot, RenderLayer);
+            _ceilingRoot = new GameObject("Ceilings");
+            _ceilingRoot.transform.SetParent(_root.transform, false);
+            SetLayerRecursively(_ceilingRoot, RenderLayer);
 
             _wallMountedRoot = new GameObject("WallMountedSprites");
             _wallMountedRoot.transform.SetParent(_root.transform, false);
@@ -757,11 +757,11 @@ namespace Elin_Elinikki
             return mat.GetFloat(propertyName).ToString("F3");
         }
 
-        private void UpdateRoofPreview(GpuViewPose pose)
+        private void UpdateCeilingPreview(GpuViewPose pose)
         {
             if (Plugin.Settings?.EnableIndoorCeiling?.Value != true)
             {
-                DisableRoofQuads();
+                DisableCeilingQuads();
                 return;
             }
 
@@ -769,7 +769,7 @@ namespace Elin_Elinikki
             Lot currentLot = currentRoom?.lot;
             if (currentRoom == null || currentLot == null || !currentRoom.HasRoof || (currentRoom.data?.atrium ?? false))
             {
-                DisableRoofQuads();
+                DisableCeilingQuads();
                 return;
             }
 
@@ -780,10 +780,10 @@ namespace Elin_Elinikki
                 new Vector3(currentLot.x, ceilingY, currentLot.mz + 1f),
                 new Vector3(currentLot.mx + 1f, ceilingY, currentLot.mz + 1f));
 
-            EnsureRoofPool(1);
-            GameObject quad = _roofQuads[0];
-            MeshRenderer renderer = _roofRenderers[0];
-            MeshFilter filter = _roofFilters[0];
+            EnsureCeilingPool(1);
+            GameObject quad = _ceilingQuads[0];
+            MeshRenderer renderer = _ceilingRenderers[0];
+            MeshFilter filter = _ceilingFilters[0];
             quad.SetActive(true);
             Material rendererMaterial = ResolveWallRendererMaterial(true);
             if (renderer.sharedMaterial != rendererMaterial)
@@ -805,20 +805,20 @@ namespace Elin_Elinikki
             _propertyBlock.Clear();
             _propertyBlock.SetTexture("_MainTex", ceilingTexture);
             Color styledCeiling = ApplySurfaceStyle(baseColor, FpsVisualSurfaceKind.Ceiling, 0, true);
-            _propertyBlock.SetColor("_Color", ApplyAtmosphericFog(styledCeiling, face.Center, Mathf.Max(1f, Plugin.Settings.MaxDistance.Value), 0.08f, "roof-interior"));
+            _propertyBlock.SetColor("_Color", ApplyAtmosphericFog(styledCeiling, face.Center, Mathf.Max(1f, Plugin.Settings.MaxDistance.Value), 0.08f, "ceiling-interior"));
             renderer.SetPropertyBlock(_propertyBlock);
 
-            for (int i = 1; i < _roofQuads.Count; i++)
+            for (int i = 1; i < _ceilingQuads.Count; i++)
             {
-                _roofQuads[i].SetActive(false);
+                _ceilingQuads[i].SetActive(false);
             }
         }
 
-        private void DisableRoofQuads()
+        private void DisableCeilingQuads()
         {
-            for (int i = 0; i < _roofQuads.Count; i++)
+            for (int i = 0; i < _ceilingQuads.Count; i++)
             {
-                _roofQuads[i].SetActive(false);
+                _ceilingQuads[i].SetActive(false);
             }
         }
 
@@ -1873,26 +1873,26 @@ namespace Elin_Elinikki
             }
         }
 
-        private void EnsureRoofPool(int count)
+        private void EnsureCeilingPool(int count)
         {
-            while (_roofQuads.Count < count)
+            while (_ceilingQuads.Count < count)
             {
-                GameObject quad = new GameObject($"GpuRoofQuad_{_roofQuads.Count}");
+                GameObject quad = new GameObject($"GpuCeilingQuad_{_ceilingQuads.Count}");
                 quad.hideFlags = HideFlags.HideAndDontSave;
-                quad.transform.SetParent(_roofRoot.transform, false);
+                quad.transform.SetParent(_ceilingRoot.transform, false);
                 SetLayerRecursively(quad, RenderLayer);
 
                 MeshFilter filter = quad.AddComponent<MeshFilter>();
-                filter.sharedMesh = CreateWallQuadMesh($"FpsGpuRoofQuad_{_roofQuads.Count}");
+                filter.sharedMesh = CreateWallQuadMesh($"FpsGpuCeilingQuad_{_ceilingQuads.Count}");
 
                 MeshRenderer renderer = quad.AddComponent<MeshRenderer>();
                 renderer.sharedMaterial = _groundMaterial ?? _spriteMaterial;
                 renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 renderer.receiveShadows = false;
 
-                _roofQuads.Add(quad);
-                _roofRenderers.Add(renderer);
-                _roofFilters.Add(filter);
+                _ceilingQuads.Add(quad);
+                _ceilingRenderers.Add(renderer);
+                _ceilingFilters.Add(filter);
                 quad.SetActive(false);
             }
         }

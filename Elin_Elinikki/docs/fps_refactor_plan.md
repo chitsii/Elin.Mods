@@ -110,17 +110,20 @@ Status:
 4. Re-check that gameplay stacking rules and visual support rules stay separated
 
 ### D. Terrain simplification cleanup
+Status: complete
 1. Keep only `Flat / RaisedPlatform / Stair / Bridge` archetype rules
 2. Audit remaining inference-heavy terrain branches inside renderer
 3. Remove leftover generic riser/base-floor assumptions that archetypes replaced
 
 ### E. Ceiling cleanup
+Status: complete
 1. Keep only indoor ceiling math and rendering
 2. Add tests for indoor ceiling height rules
 3. Remove any remaining roof-specific naming that now means ceiling only
 
-## Immediate next targets
+## Refactor result
 
-1. Add direct tests for `FpsSpriteVisibilityResolver`
-2. Add direct tests for indoor ceiling resolution
-3. Start deleting dead roof runtime paths from `FpsGpuPreviewRenderer`
+- Roof runtime is reduced to indoor ceiling only.
+- `FpsGpuPreviewRenderer` is split into terrain, wall, atmosphere, and shared orchestration responsibilities.
+- Sprite visibility, support/elevation, placement, terrain archetypes, and indoor ceiling math are all resolver-driven.
+- Terrain rendering uses explicit archetypes instead of mixed generic roof/riser/base-floor inference.

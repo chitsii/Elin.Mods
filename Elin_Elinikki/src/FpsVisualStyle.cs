@@ -110,7 +110,7 @@ namespace Elin_Elinikki
             {
                 target = new Color(0.72f, 0.79f, 0.83f, fogColor.a);
             }
-            else if (string.Equals(category, "roof-interior", StringComparison.Ordinal))
+            else if (string.Equals(category, "ceiling-interior", StringComparison.Ordinal))
             {
                 target = new Color(0.70f, 0.67f, 0.62f, fogColor.a);
             }

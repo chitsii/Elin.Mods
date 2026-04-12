@@ -3,7 +3,7 @@
 Status: IN PROGRESS
 
 ## Current Phase
-Phase 1: Quest infrastructure foundation
+Phase 2: Drama scripts (Phase 1 complete)
 
 ## Phases
 
@@ -13,7 +13,7 @@ Phase 1: Quest infrastructure foundation
 - [x] Task 1.3: Define ElinikkiQuestStage enum
 - [x] Task 1.4: Rewrite QuestFlow as ElinikkiQuestFlow
 - [x] Task 1.5: Fame-5000 gate in Patch_Zone_Activate_QuestPulse
-- [ ] Task 1.6: Verify build.bat debug
+- [x] Task 1.6: Verify build.bat debug
 
 ### Phase 2: Drama scripts
 - [ ] Task 2.1: DramaDsl submodule reference

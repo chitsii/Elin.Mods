@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Elin_Elinikki.Quest.Drama;
 
 namespace Elin_Elinikki.Quest.Quest
 {
@@ -33,6 +34,40 @@ namespace Elin_Elinikki.Quest.Quest
     /// </summary>
     public static class ElinikkiQuestFlow
     {
+        /// <summary>
+        /// Minimum player fame required to unlock the intro drama. Matches
+        /// the design decision in <c>.claude/plans/zesty-zooming-dusk.md</c>
+        /// (Q3 — quest start condition).
+        /// </summary>
+        public const int IntroFameThreshold = 5000;
+
+        /// <summary>
+        /// Drama id for the chapter-0 intro sequence delivered by Mina at the
+        /// player's home.
+        /// </summary>
+        public const string IntroDramaId = "elinikki_quest_intro";
+
+        /// <summary>
+        /// Phase gate: set to <c>true</c> when the Phase 2 drama authoring
+        /// task ships <c>Dialog/Drama/drama_elinikki_quest_intro.xlsx</c>.
+        /// Until then, <see cref="TryStartIntroQuest"/> performs the fame /
+        /// home-zone / UI checks and logs the result but does NOT call into
+        /// the drama runtime — because <c>GameQuestDramaRuntimeContext.TryActivateDrama</c>
+        /// will instantiate a <c>LayerDrama</c> and throw when the underlying
+        /// drama sheet is missing. Phase 2 Task 2.2 flips this constant to
+        /// <c>true</c> together with the committed drama asset.
+        /// </summary>
+        private const bool IntroDramaAvailable = false;
+
+        /// <summary>
+        /// Lazy singleton for drama invocation. Instantiated on first use so
+        /// we do not force the ctor to run during Mod loading.
+        /// </summary>
+        private static IQuestDramaRuntimeContext _dramaContext;
+
+        private static IQuestDramaRuntimeContext DramaContext
+            => _dramaContext ?? (_dramaContext = new GameQuestDramaRuntimeContext());
+
         private sealed class ZoneStageRule
         {
             public readonly ElinikkiQuestStage Predecessor;
@@ -195,7 +230,9 @@ namespace Elin_Elinikki.Quest.Quest
         /// Called from <c>Patch_Zone_Activate_QuestPulse</c> after every
         /// <c>Zone.Activate</c>. Fail-soft: any exception is caught and logged
         /// without propagating, because this runs inside a Harmony postfix and
-        /// must never break zone loading.
+        /// must never break zone loading. Runs both the intro gate and the
+        /// zone-based advancement logic, because Zone.Activate is the only
+        /// legitimate trigger for zone stage transitions.
         /// </summary>
         public static void Pulse()
         {
@@ -218,11 +255,39 @@ namespace Elin_Elinikki.Quest.Quest
                     " zone=" + (zoneId ?? "<null>") +
                     " prev=" + (previousZoneId ?? "<null>"));
 
+                TryStartIntroQuest(currentStage);
                 AdvanceForZone(zoneId, previousZoneId, currentStage);
             }
             catch (Exception ex)
             {
                 QuestModLog.Warn("Quest pulse failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Secondary pulse used as a retry for the chapter-0 intro drama
+        /// when the player is idling at home (hourly tick via
+        /// <c>Patch_Player_OnAdvanceHour_QuestPulse</c>). Intentionally
+        /// does NOT run <see cref="AdvanceForZone"/>: zone-based stage
+        /// transitions must only fire on a real Zone.Activate so that
+        /// standing inside a chapter zone during an hour advance cannot
+        /// skip the quest forward without an actual zone transition.
+        /// </summary>
+        public static void IntroRetryPulse()
+        {
+            try
+            {
+                ElinikkiQuestStage currentStage = ElinikkiQuestStageExtensions.GetCurrentStage();
+                if (currentStage != ElinikkiQuestStage.NotStarted)
+                {
+                    return;
+                }
+
+                TryStartIntroQuest(currentStage);
+            }
+            catch (Exception ex)
+            {
+                QuestModLog.Warn("Intro retry pulse failed: " + ex.Message);
             }
         }
 
@@ -263,6 +328,145 @@ namespace Elin_Elinikki.Quest.Quest
                 TryAdvanceStage(rule.Target);
                 return;
             }
+        }
+
+        /// <summary>
+        /// Checks the Chapter 0 start condition. When all of the following
+        /// hold, starts the intro drama:
+        ///   * Current stage is <see cref="ElinikkiQuestStage.NotStarted"/>.
+        ///   * The player is standing in THEIR OWN home zone
+        ///     (<c>pc.homeBranch.owner</c>), not any arbitrary settlement
+        ///     the player happens to own. Mina's chapter-0 drama is authored
+        ///     for the canonical home, so multi-settlement players must only
+        ///     see the intro in the correct zone.
+        ///   * Player fame is at least <see cref="IntroFameThreshold"/>.
+        ///
+        /// The drama itself advances the stage to <see cref="ElinikkiQuestStage.Accepted"/>
+        /// via <c>cmd.elinikki.stage.advance.accepted</c>, so this method
+        /// does NOT touch <c>quest.stage</c> directly. If the drama cannot
+        /// currently start (UI busy, PC in conversation, drama id not yet
+        /// authored in Phase 2) the call is a no-op and the next Pulse will
+        /// retry automatically.
+        /// </summary>
+        private static void TryStartIntroQuest(ElinikkiQuestStage currentStage)
+        {
+            if (currentStage != ElinikkiQuestStage.NotStarted)
+            {
+                return;
+            }
+
+            var pc = EClass.pc;
+            if (pc == null)
+            {
+                return;
+            }
+
+            // Resolve the canonical home zone for the player. Prefer
+            // pc.homeBranch.owner (the zone that holds the active home
+            // branch) and fall back to pc.homeZone if the branch reference
+            // is not yet initialized. Either way, we want a single specific
+            // zone — not just "any zone the player owns".
+            var homeZone = pc.homeBranch?.owner ?? pc.homeZone;
+            if (homeZone == null)
+            {
+                // Player has not claimed a home yet; no valid place to run
+                // the intro.
+                return;
+            }
+
+            var zone = EClass._zone;
+            if (zone == null || zone != homeZone)
+            {
+                return;
+            }
+
+            var player = EClass.player;
+            if (player == null)
+            {
+                return;
+            }
+
+            if (player.fame < IntroFameThreshold)
+            {
+                return;
+            }
+
+            // Do not open the intro drama if another UI layer is already
+            // active (book, menu, dialog, sleep cutscene, another drama,
+            // etc.). LayerDrama.Activate would stack on top of whatever is
+            // open, which is visually wrong and can break the active layer's
+            // state. Wait until the UI is idle and retry next pulse.
+            if (IsUiBusy())
+            {
+                return;
+            }
+
+            // Phase gate: until the drama asset is packaged (Phase 2 Task 2.2),
+            // do not attempt to open the drama. Calling TryStartDrama* against
+            // a missing sheet still instantiates a LayerDrama and makes the
+            // game's drama loader throw on every pulse. Log that the gate
+            // passed and return — the Pulse will retry next zone activation
+            // or next hour until Phase 2 flips IntroDramaAvailable to true.
+            if (!IntroDramaAvailable)
+            {
+                QuestModLog.Info(
+                    "Intro gate passed (fame=" + player.fame + " >= " + IntroFameThreshold +
+                    ", home zone=" + (zone.source?.id ?? "<unknown>") +
+                    "). Drama '" + IntroDramaId + "' not yet packaged — skipping start.");
+                return;
+            }
+
+            // Post-gate path. Phase 2 will flip IntroDramaAvailable to true
+            // and this code becomes live. Until then it is unreachable by
+            // design; the warning is suppressed locally so the overall build
+            // stays warning-clean.
+#pragma warning disable CS0162 // Unreachable code detected
+            QuestModLog.Info(
+                "Intro gate passed (fame=" + player.fame + " >= " + IntroFameThreshold +
+                ", home zone=" + (zone.source?.id ?? "<unknown>") +
+                "). Requesting intro drama '" + IntroDramaId + "'.");
+
+            try
+            {
+                // Use TryStartDramaUntilComplete, NOT TryStartDrama:
+                // plain TryStartDrama is one-shot — once it succeeds the
+                // drama is marked "started" in dialogFlags and will not run
+                // again until completed. If the intro is interrupted before
+                // advancing to Accepted (save/reload, UI exit, mod reload,
+                // etc.) the quest would be permanently stranded in
+                // NotStarted. The *_until_complete variant relaunches on
+                // every pulse until cmd.elinikki.stage.advance.accepted
+                // actually fires and moves the quest out of NotStarted.
+                bool started = DramaContext.TryStartDramaUntilComplete(IntroDramaId);
+                if (!started)
+                {
+                    QuestModLog.Info(
+                        "Intro drama did not start this pulse (likely UI busy). Will retry.");
+                }
+            }
+            catch (Exception ex)
+            {
+                QuestModLog.Warn("Intro drama start raised: " + ex.Message);
+            }
+#pragma warning restore CS0162
+        }
+
+        /// <summary>
+        /// Returns true if the Elin UI already has an active layer. Used to
+        /// defer opening the intro drama when the player is in a menu,
+        /// reading a book, sleeping, or watching another drama. Fail-safe:
+        /// if the UI reference itself is missing, report "busy" so we do
+        /// not try to open a drama layer against a half-initialised UI.
+        /// </summary>
+        private static bool IsUiBusy()
+        {
+            var ui = EClass.ui;
+            if (ui == null)
+            {
+                return true;
+            }
+
+            return ui.IsActive;
         }
 
         /// <summary>

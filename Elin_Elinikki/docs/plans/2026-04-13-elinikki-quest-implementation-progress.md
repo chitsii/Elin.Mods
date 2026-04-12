@@ -12,7 +12,7 @@ Phase 1: Quest infrastructure foundation
 - [x] Task 1.2: Update csproj, package.xml, Plugin.cs
 - [x] Task 1.3: Define ElinikkiQuestStage enum
 - [x] Task 1.4: Rewrite QuestFlow as ElinikkiQuestFlow
-- [ ] Task 1.5: Fame-5000 gate in Patch_Zone_Activate_QuestPulse
+- [x] Task 1.5: Fame-5000 gate in Patch_Zone_Activate_QuestPulse
 - [ ] Task 1.6: Verify build.bat debug
 
 ### Phase 2: Drama scripts
@@ -132,3 +132,29 @@ Phase 1: Quest infrastructure foundation
       so the Returned transition only fires when coming directly from YuuCamp.
 
   build.bat debug passes (0 warnings, 0 errors) after each round.
+- 2026-04-13: Task 1.5 complete. Added chapter-0 start gate in ElinikkiQuestFlow:
+  TryStartIntroQuest() checks stage==NotStarted + player.homeBranch.owner (specific home
+  zone, not any IsPlayerFaction zone) + player.fame >= 5000 + UI idle, then requests the
+  intro drama. Guarded by a phase const IntroDramaAvailable=false until Phase 2 Task 2.2
+  packages the drama asset. Added secondary retry path: Patch_Player_OnAdvanceHour_QuestPulse
+  calls ElinikkiQuestFlow.IntroRetryPulse() (NOT the full Pulse()) so an hourly tick cannot
+  advance zone-based stages outside of an actual Zone.Activate.
+
+  Codex review took 4 rounds on this task:
+    * Round 1 [P1]: used plain TryStartDrama which is one-shot — would strand the quest
+      permanently if the intro was interrupted. Fixed by using TryStartDramaUntilComplete.
+    * Round 2 [P2]: IsPlayerFaction matches any owned settlement, not the canonical home.
+      Fixed by gating on pc.homeBranch?.owner ?? pc.homeZone.
+    * Round 3 [P2]: no retry source — Pulse() only fires on Zone.Activate. Fixed by adding
+      Patch_Player_OnAdvanceHour_QuestPulse.
+    * Round 4 [P2]: hourly retry reused full Pulse() and could advance zone stages while
+      idling. Fixed by splitting off IntroRetryPulse() that only runs the intro gate, and
+      adding IsUiBusy() check so the drama does not open on top of sleep cutscenes or
+      menus.
+    * Round 4 [P1]: drama asset is not yet packaged — the "harmless no-op" assumption was
+      wrong because LayerDrama.Activate throws when the drama sheet is missing. Fixed by
+      adding IntroDramaAvailable phase const (false until Phase 2), with local CS0162
+      pragma suppression for the unreachable post-gate code path.
+    * Round 5: Codex returned no issues. Internally consistent, fail-soft, scoped.
+
+  build.bat debug passes (0 warnings, 0 errors) in final state.

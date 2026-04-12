@@ -16,7 +16,7 @@ Phase 2: Drama scripts (Phase 1 complete)
 - [x] Task 1.6: Verify build.bat debug
 
 ### Phase 2: Drama scripts
-- [ ] Task 2.1: DramaDsl submodule reference
+- [x] Task 2.1: DramaDsl submodule reference
 - [ ] Task 2.2: Chapter-00 drama
 - [ ] Task 2.3: Trace examine dramas (chapters 1-3)
 - [ ] Task 2.4: Echo experiment dramas (4 stages)
@@ -67,6 +67,13 @@ Phase 2: Drama scripts (Phase 1 complete)
   and Elin_Elinikki.Quest.QuestBootstrap). Build succeeds; runtime may warn about double
   registration. Task 1.2 will remove the BepInPlugin role from QuestBootstrap and call it
   from the main Plugin.Awake() instead.
+- Task 2.1: tools/drama/data_generated.py and tools/drama/schema/key_spec.py still contain
+  the QuestMod template's flag/resolve/command/cue constants (e.g. "yourname.elin_quest_mod.*"
+  and "quest_drama_replace_me"). These are not referenced by the empty create_drama_excel.py,
+  so they do not affect the current build, but they will need to be regenerated for Elinikki
+  before any scenario that imports FlagKeys/CommandKeys etc. is authored. Task 2.2 (first
+  scenario) will update schema/key_spec.py and run generate_keys.py to refresh
+  data_generated.py at the same time it creates the first scenario file.
 
 ## Notes
 - 2026-04-13: Progress tracker initialized.
@@ -158,3 +165,18 @@ Phase 2: Drama scripts (Phase 1 complete)
     * Round 5: Codex returned no issues. Internally consistent, fail-soft, scoped.
 
   build.bat debug passes (0 warnings, 0 errors) in final state.
+- 2026-04-13: Task 2.1 complete. Set up the drama authoring / compilation pipeline:
+    * Copied tools/drama/ from Elin_QuestMod (drama_builder, schema, tests, scenarios dir)
+    * Removed QuestMod's reference scenarios (quest_drama_feature_*.py) leaving an empty
+      scenarios/__init__.py ready for Phase 2.2-2.6 to populate.
+    * Rewrote tools/drama/data.py with Elinikki-specific DramaIds (25 ids total covering
+      chapter 0-5 + 8 truth conversations + 2 endings).
+    * Rewrote tools/drama/create_drama_excel.py with an empty DRAMAS list that no-ops
+      gracefully until scenarios are added. Output path: LangMod/EN/Dialog/Drama/drama_<id>.xlsx
+    * Updated build.bat to run `python tools/drama/create_drama_excel.py` as step [1/3]
+      before dotnet build, and to include LangMod/ in the deploy copy step.
+  Verified: `python tools/drama/create_drama_excel.py` runs cleanly ("no scenarios
+  registered yet"); `build.bat debug` passes with the new 3-step pipeline.
+  Codex review was started but killed manually (took too long for a tooling-only change).
+  Python build tooling only — no runtime C# logic touched, so review skipped per global
+  rules.

@@ -7,7 +7,14 @@ set MOD_NAME=Elin_Elinikki
 set CONFIG=Release
 if /I "%~1"=="debug" set CONFIG=Debug
 
-echo Compiling %MOD_NAME% (%CONFIG%)...
+echo [1/3] Generate drama Excel...
+python "%~dp0tools\drama\create_drama_excel.py"
+if %ERRORLEVEL% NEQ 0 (
+    echo Drama Excel generation failed.
+    exit /b 1
+)
+
+echo [2/3] Compiling %MOD_NAME% (%CONFIG%)...
 dotnet build "%~dp0%MOD_NAME%.csproj" -c %CONFIG%
 
 if %ERRORLEVEL% NEQ 0 (
@@ -16,7 +23,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo Build Successful!
-echo Deploying to Package folder...
+echo [3/3] Deploying to Package folder...
 
 set DEPLOY_DIR=%ELIN_DIR%\Package\%MOD_NAME%
 if not exist "%DEPLOY_DIR%" mkdir "%DEPLOY_DIR%"
@@ -24,6 +31,9 @@ if not exist "%DEPLOY_DIR%" mkdir "%DEPLOY_DIR%"
 xcopy "%~dp0_bin\%MOD_NAME%.dll" "%DEPLOY_DIR%\" /Y
 xcopy "%~dp0package.xml" "%DEPLOY_DIR%\" /Y
 if exist "%~dp0preview.jpg" xcopy "%~dp0preview.jpg" "%DEPLOY_DIR%\" /Y
+if exist "%~dp0LangMod" (
+    xcopy "%~dp0LangMod" "%DEPLOY_DIR%\LangMod\" /E /Y /I >nul
+)
 
 echo Done.
 endlocal

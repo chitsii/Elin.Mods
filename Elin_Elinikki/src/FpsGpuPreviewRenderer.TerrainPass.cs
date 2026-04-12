@@ -116,14 +116,14 @@ namespace Elin_Elinikki
             }
 
             Cell cell = EClass._map.cells[cellX, cellZ];
-            bool allowRisers = cell != null && !cell.HasFullBlock;
+            bool emitFlatCliffSides = cell != null && !cell.HasFullBlock;
             FpsTerrainArchetypeResolution resolution = FpsTerrainArchetypeResolver.Resolve(cell, surfaceHeight, RenderHeightOffset);
             bool hasNorthNeighbor = TryGetTerrainNeighborHeight(cellX, cellZ - 1, out float northNeighborHeight);
             bool hasEastNeighbor = TryGetTerrainNeighborHeight(cellX + 1, cellZ, out float eastNeighborHeight);
             bool hasSouthNeighbor = TryGetTerrainNeighborHeight(cellX, cellZ + 1, out float southNeighborHeight);
             bool hasWestNeighbor = TryGetTerrainNeighborHeight(cellX - 1, cellZ, out float westNeighborHeight);
-            FpsResolvedWallSurface riserSurface = default;
-            bool hasRiserSurface = allowRisers && _idealizedWorld.TryResolveTerrainRiser(EClass._map.cells[cellX, cellZ], out riserSurface);
+            FpsResolvedWallSurface sideSurface = default;
+            bool hasSideSurface = emitFlatCliffSides && _idealizedWorld.TryResolveTerrainSideSurface(EClass._map.cells[cellX, cellZ], out sideSurface);
             context.Cells.Add(new TerrainChunkSourceCell(
                 cellX - chunkX * TerrainChunkSize,
                 cellZ - chunkZ * TerrainChunkSize,
@@ -132,7 +132,7 @@ namespace Elin_Elinikki
                 floorSurface,
                 hasBlockSurface,
                 blockTopSurface,
-                allowRisers,
+                emitFlatCliffSides,
                 resolution.Archetype,
                 resolution.ShapeBaseHeight,
                 hasNorthNeighbor,
@@ -143,8 +143,8 @@ namespace Elin_Elinikki
                 southNeighborHeight + RenderHeightOffset,
                 hasWestNeighbor,
                 westNeighborHeight + RenderHeightOffset,
-                hasRiserSurface,
-                riserSurface,
+                hasSideSurface,
+                sideSurface,
                 resolution.RampDir,
                 resolution.RampStepCount,
                 resolution.HasBridgePillar,
@@ -258,7 +258,7 @@ namespace Elin_Elinikki
                     hash = hash * 31 + cell.Height.GetHashCode();
                     hash = hash * 31 + (cell.HasFloorSurface ? 1 : 0);
                     hash = hash * 31 + (cell.HasBlockSurface ? 1 : 0);
-                    hash = hash * 31 + (cell.AllowRisers ? 1 : 0);
+                    hash = hash * 31 + (cell.EmitFlatCliffSides ? 1 : 0);
                     hash = hash * 31 + (int)cell.Archetype;
                     hash = hash * 31 + cell.BaseHeight.GetHashCode();
                     hash = hash * 31 + (cell.HasNorthNeighbor ? 1 : 0);
@@ -269,7 +269,7 @@ namespace Elin_Elinikki
                     hash = hash * 31 + cell.SouthNeighborHeight.GetHashCode();
                     hash = hash * 31 + (cell.HasWestNeighbor ? 1 : 0);
                     hash = hash * 31 + cell.WestNeighborHeight.GetHashCode();
-                    hash = hash * 31 + (cell.HasRiserSurface ? 1 : 0);
+                    hash = hash * 31 + (cell.HasSideSurface ? 1 : 0);
                     hash = hash * 31 + cell.RampDir;
                     hash = hash * 31 + cell.RampStepCount;
                     hash = hash * 31 + (cell.HasBridgePillar ? 1 : 0);
@@ -288,10 +288,10 @@ namespace Elin_Elinikki
                         hash = hash * 31 + cell.FloorSurface.MaterialColor;
                     }
 
-                    if (cell.HasRiserSurface)
+                    if (cell.HasSideSurface)
                     {
-                        hash = hash * 31 + cell.RiserSurface.Tile;
-                        hash = hash * 31 + cell.RiserSurface.MaterialColor;
+                        hash = hash * 31 + cell.SideSurface.Tile;
+                        hash = hash * 31 + cell.SideSurface.MaterialColor;
                     }
                 }
 
@@ -346,7 +346,7 @@ namespace Elin_Elinikki
                     cell.SouthNeighborHeight,
                     cell.HasWestNeighbor,
                     cell.WestNeighborHeight,
-                    cell.AllowRisers && cell.HasRiserSurface,
+                    cell.EmitFlatCliffSides && cell.HasSideSurface,
                     cell.Archetype,
                     cell.BaseHeight,
                     cell.RampDir,
@@ -424,7 +424,7 @@ namespace Elin_Elinikki
                         riserTexture,
                         sideTint);
                 }
-                else if (cell.Archetype != FpsTerrainChunkArchetype.Flat || (cell.AllowRisers && cell.HasRiserSurface))
+                else if (cell.Archetype != FpsTerrainChunkArchetype.Flat || (cell.EmitFlatCliffSides && cell.HasSideSurface))
                 {
                     FillTerrainChunkTile(
                         pixels,
@@ -492,8 +492,8 @@ namespace Elin_Elinikki
                 return true;
             }
 
-            if (cell.HasRiserSurface
-                && _spriteTextureCache.TryGetBlockFaceTexture(cell.RiserSurface, true, out Texture riserTexture)
+            if (cell.HasSideSurface
+                && _spriteTextureCache.TryGetBlockFaceTexture(cell.SideSurface, true, out Texture riserTexture)
                 && riserTexture is Texture2D riserTexture2D)
             {
                 texture = riserTexture2D;

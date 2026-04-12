@@ -261,7 +261,7 @@ namespace Elin_Elinikki
             return true;
         }
 
-        public bool TryResolveTerrainRiser(Cell cell, out FpsResolvedWallSurface surface)
+        public bool TryResolveTerrainSideSurface(Cell cell, out FpsResolvedWallSurface surface)
         {
             surface = default;
             if (cell == null)

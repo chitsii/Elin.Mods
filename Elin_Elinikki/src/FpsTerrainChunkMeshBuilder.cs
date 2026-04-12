@@ -37,8 +37,8 @@ namespace Elin_Elinikki
             float southNeighborHeight,
             bool hasWestNeighbor,
             float westNeighborHeight,
-            bool allowRisers)
-            : this(localX, localZ, height, tint, hasNorthNeighbor, northNeighborHeight, hasEastNeighbor, eastNeighborHeight, hasSouthNeighbor, southNeighborHeight, hasWestNeighbor, westNeighborHeight, allowRisers, FpsTerrainChunkArchetype.Flat, 0f, 0, 0, false, 0f)
+            bool emitFlatCliffSides)
+            : this(localX, localZ, height, tint, hasNorthNeighbor, northNeighborHeight, hasEastNeighbor, eastNeighborHeight, hasSouthNeighbor, southNeighborHeight, hasWestNeighbor, westNeighborHeight, emitFlatCliffSides, FpsTerrainChunkArchetype.Flat, 0f, 0, 0, false, 0f)
         {
         }
 
@@ -55,7 +55,7 @@ namespace Elin_Elinikki
             float southNeighborHeight,
             bool hasWestNeighbor,
             float westNeighborHeight,
-            bool allowRisers,
+            bool emitFlatCliffSides,
             FpsTerrainChunkArchetype archetype,
             float baseHeight,
             int rampDir,
@@ -75,7 +75,7 @@ namespace Elin_Elinikki
             SouthNeighborHeight = southNeighborHeight;
             HasWestNeighbor = hasWestNeighbor;
             WestNeighborHeight = westNeighborHeight;
-            AllowRisers = allowRisers;
+            EmitFlatCliffSides = emitFlatCliffSides;
             Archetype = archetype;
             BaseHeight = baseHeight;
             RampDir = rampDir;
@@ -108,7 +108,7 @@ namespace Elin_Elinikki
 
         public float WestNeighborHeight { get; }
 
-        public bool AllowRisers { get; }
+        public bool EmitFlatCliffSides { get; }
 
         public FpsTerrainChunkArchetype Archetype { get; }
 
@@ -246,7 +246,7 @@ namespace Elin_Elinikki
                     }
                 }
 
-                if (cell.Archetype == FpsTerrainChunkArchetype.Flat && cell.AllowRisers)
+                if (cell.Archetype == FpsTerrainChunkArchetype.Flat && cell.EmitFlatCliffSides)
                 {
                     if (cell.HasNorthNeighbor && cell.Height > cell.NorthNeighborHeight + HeightEpsilon)
                     {

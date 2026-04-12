@@ -1678,16 +1678,6 @@ namespace Elin_Elinikki
                         _diagnostics.BlockBackFacing++;
                     }
                     break;
-                case "riser":
-                    if (frontFacing)
-                    {
-                        _diagnostics.RiserFrontFacing++;
-                    }
-                    else
-                    {
-                        _diagnostics.RiserBackFacing++;
-                    }
-                    break;
                 case "panel":
                     if (frontFacing)
                     {
@@ -1718,7 +1708,6 @@ namespace Elin_Elinikki
                 $"GPU wall diagnostics: cam={_camera.transform.position:F3} player={pose.PlayerOrigin:F3} wallShader={shaderName} wallDoubleSidedShader={doubleSidedWallShaderName} activeWallShader={activeWallShaderName} terrainShader={terrainShaderName} " +
                 $"queue={_wallMaterial?.renderQueue ?? -1} solidDebug={UseSolidFaceDebug()} " +
                 $"blockFaces={_diagnostics.BlockFaces} blockFallbacks={_diagnostics.BlockFallbacks} blockFront={_diagnostics.BlockFrontFacing} blockBack={_diagnostics.BlockBackFacing} " +
-                $"riserFaces={_diagnostics.RiserFaces} riserFallbacks={_diagnostics.RiserFallbacks} riserFront={_diagnostics.RiserFrontFacing} riserBack={_diagnostics.RiserBackFacing} " +
                 $"wallPanels={_diagnostics.WallPanels} wallPanelFallbacks={_diagnostics.WallPanelFallbacks} panelFront={_diagnostics.PanelFrontFacing} panelBack={_diagnostics.PanelBackFacing}");
 
             for (int i = 0; i < _diagnosticSamples.Count; i++)
@@ -2225,96 +2214,6 @@ namespace Elin_Elinikki
             }
         }
 
-        private int AddTerrainRisers(int activeWallIndex, int cellX, int cellZ, Cell cell, int mapSize)
-        {
-            float cellHeight = FpsIdealizedWorld.GetCellSurfaceHeight(cell);
-            if (cellX + 1 < mapSize)
-            {
-                Cell neighbor = EClass._map.cells[cellX + 1, cellZ];
-                if (neighbor != null && !IsSolidWall(neighbor))
-                {
-                    float neighborHeight = FpsIdealizedWorld.GetCellSurfaceHeight(neighbor);
-                    if (cellHeight > neighborHeight + 0.02f
-                        && _idealizedWorld.TryResolveTerrainRiser(cell, out FpsResolvedWallSurface riserSurface))
-                    {
-                        activeWallIndex = AddTerrainRiserQuad(activeWallIndex, cellX, cellZ, FpsGpuTerrainEdge.East, cellHeight, neighborHeight, riserSurface);
-                    }
-                    else if (neighborHeight > cellHeight + 0.02f
-                        && _idealizedWorld.TryResolveTerrainRiser(neighbor, out FpsResolvedWallSurface neighborRiserSurface))
-                    {
-                        activeWallIndex = AddTerrainRiserQuad(activeWallIndex, cellX + 1, cellZ, FpsGpuTerrainEdge.West, neighborHeight, cellHeight, neighborRiserSurface);
-                    }
-                }
-            }
-
-            if (cellZ + 1 < mapSize)
-            {
-                Cell neighbor = EClass._map.cells[cellX, cellZ + 1];
-                if (neighbor != null && !IsSolidWall(neighbor))
-                {
-                    float neighborHeight = FpsIdealizedWorld.GetCellSurfaceHeight(neighbor);
-                    if (cellHeight > neighborHeight + 0.02f
-                        && _idealizedWorld.TryResolveTerrainRiser(cell, out FpsResolvedWallSurface riserSurface))
-                    {
-                        activeWallIndex = AddTerrainRiserQuad(activeWallIndex, cellX, cellZ, FpsGpuTerrainEdge.South, cellHeight, neighborHeight, riserSurface);
-                    }
-                    else if (neighborHeight > cellHeight + 0.02f
-                        && _idealizedWorld.TryResolveTerrainRiser(neighbor, out FpsResolvedWallSurface neighborRiserSurface))
-                    {
-                        activeWallIndex = AddTerrainRiserQuad(activeWallIndex, cellX, cellZ + 1, FpsGpuTerrainEdge.North, neighborHeight, cellHeight, neighborRiserSurface);
-                    }
-                }
-            }
-
-            return activeWallIndex;
-        }
-
-        private int AddTerrainRiserQuad(int activeWallIndex, int cellX, int cellZ, FpsGpuTerrainEdge edge, float topHeight, float bottomHeight, FpsResolvedWallSurface surface)
-        {
-            if (topHeight - bottomHeight <= 0.01f)
-            {
-                return activeWallIndex;
-            }
-
-            EnsureWallPool(activeWallIndex + 1);
-
-            GameObject quad = _wallQuads[activeWallIndex];
-            MeshRenderer renderer = _wallRenderers[activeWallIndex];
-            MeshFilter filter = _wallFilters[activeWallIndex];
-            quad.SetActive(true);
-            renderer.sharedMaterial = ResolveWallRendererMaterial(false);
-            FpsGpuFaceQuad face = FpsGpuRiserGeometryBuilder.BuildEdgeQuad(cellX, cellZ, topHeight, bottomHeight, edge);
-            ApplyWallQuadGeometry(quad, filter, face, false);
-
-            bool hitVertical = edge == FpsGpuTerrainEdge.East || edge == FpsGpuTerrainEdge.West;
-            bool textureResolved = _spriteTextureCache.TryGetBlockFaceTexture(
-                    surface,
-                    hitVertical,
-                    out Texture wallTexture);
-            Texture texture = UseSolidFaceDebug()
-                ? Texture2D.whiteTexture
-                : textureResolved
-                ? wallTexture
-                : Texture2D.whiteTexture;
-            _diagnostics.RiserFaces++;
-            if (!textureResolved)
-            {
-                _diagnostics.RiserFallbacks++;
-            }
-
-            RecordWallDiagnostic("riser", cellX, cellZ, EdgeToDir(edge), textureResolved, surface, face, renderer, false);
-            _propertyBlock.Clear();
-            _propertyBlock.SetTexture("_MainTex", texture);
-            bool indoor = IsCurrentIndoorCell(surface.Cell);
-            _propertyBlock.SetColor("_Color", UseSolidFaceDebug()
-                ? ResolveDebugEdgeColor(edge)
-                : textureResolved
-                ? ApplySurfaceStyle(Color.white, FpsVisualSurfaceKind.TerrainSide, EdgeToDir(edge), indoor)
-                : new Color32(255, 0, 255, 255));
-            renderer.SetPropertyBlock(_propertyBlock);
-            return activeWallIndex + 1;
-        }
-
         private void ApplyBlockTopTexture(MeshFilter filter, FpsResolvedWallSurface surface)
         {
             if (filter == null)
@@ -2561,7 +2460,7 @@ namespace Elin_Elinikki
                 FpsResolvedFloorSurface floorSurface,
                 bool hasBlockSurface,
                 FpsResolvedWallSurface blockTopSurface,
-                bool allowRisers,
+                bool emitFlatCliffSides,
                 FpsTerrainChunkArchetype archetype,
                 float baseHeight,
                 bool hasNorthNeighbor,
@@ -2572,8 +2471,8 @@ namespace Elin_Elinikki
                 float southNeighborHeight,
                 bool hasWestNeighbor,
                 float westNeighborHeight,
-                bool hasRiserSurface,
-                FpsResolvedWallSurface riserSurface,
+                bool hasSideSurface,
+                FpsResolvedWallSurface sideSurface,
                 int rampDir,
                 int rampStepCount,
                 bool hasBridgePillar,
@@ -2586,7 +2485,7 @@ namespace Elin_Elinikki
                 FloorSurface = floorSurface;
                 HasBlockSurface = hasBlockSurface;
                 BlockTopSurface = blockTopSurface;
-                AllowRisers = allowRisers;
+                EmitFlatCliffSides = emitFlatCliffSides;
                 Archetype = archetype;
                 BaseHeight = baseHeight;
                 HasNorthNeighbor = hasNorthNeighbor;
@@ -2597,8 +2496,8 @@ namespace Elin_Elinikki
                 SouthNeighborHeight = southNeighborHeight;
                 HasWestNeighbor = hasWestNeighbor;
                 WestNeighborHeight = westNeighborHeight;
-                HasRiserSurface = hasRiserSurface;
-                RiserSurface = riserSurface;
+                HasSideSurface = hasSideSurface;
+                SideSurface = sideSurface;
                 RampDir = rampDir;
                 RampStepCount = rampStepCount;
                 HasBridgePillar = hasBridgePillar;
@@ -2619,7 +2518,7 @@ namespace Elin_Elinikki
 
             public FpsResolvedWallSurface BlockTopSurface { get; }
 
-            public bool AllowRisers { get; }
+            public bool EmitFlatCliffSides { get; }
 
             public FpsTerrainChunkArchetype Archetype { get; }
 
@@ -2641,9 +2540,9 @@ namespace Elin_Elinikki
 
             public float WestNeighborHeight { get; }
 
-            public bool HasRiserSurface { get; }
+            public bool HasSideSurface { get; }
 
-            public FpsResolvedWallSurface RiserSurface { get; }
+            public FpsResolvedWallSurface SideSurface { get; }
 
             public int RampDir { get; }
 
@@ -2707,10 +2606,6 @@ namespace Elin_Elinikki
             public int BlockFallbacks;
             public int BlockFrontFacing;
             public int BlockBackFacing;
-            public int RiserFaces;
-            public int RiserFallbacks;
-            public int RiserFrontFacing;
-            public int RiserBackFacing;
             public int WallPanels;
             public int WallPanelFallbacks;
             public int PanelFrontFacing;

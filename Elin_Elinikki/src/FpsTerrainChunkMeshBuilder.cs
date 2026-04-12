@@ -4,6 +4,14 @@ using UnityEngine;
 
 namespace Elin_Elinikki
 {
+    internal enum FpsTerrainChunkArchetype
+    {
+        Flat,
+        RaisedPlatform,
+        Stair,
+        Bridge
+    }
+
     internal readonly struct FpsTerrainChunkCell
     {
         public FpsTerrainChunkCell(int localX, int localZ, float height)
@@ -12,7 +20,7 @@ namespace Elin_Elinikki
         }
 
         public FpsTerrainChunkCell(int localX, int localZ, float height, Color32 tint)
-            : this(localX, localZ, height, tint, false, 0f, false, 0f, false, 0f, false, 0f, true, false, 0, 0, 0f, false, 0f, false, 0f, false, 0f)
+            : this(localX, localZ, height, tint, false, 0f, false, 0f, false, 0f, false, 0f, true, FpsTerrainChunkArchetype.Flat, 0f, 0, 0, false, 0f)
         {
         }
 
@@ -30,7 +38,7 @@ namespace Elin_Elinikki
             bool hasWestNeighbor,
             float westNeighborHeight,
             bool allowRisers)
-            : this(localX, localZ, height, tint, hasNorthNeighbor, northNeighborHeight, hasEastNeighbor, eastNeighborHeight, hasSouthNeighbor, southNeighborHeight, hasWestNeighbor, westNeighborHeight, allowRisers, false, 0, 0, 0f, false, 0f, false, 0f, false, 0f)
+            : this(localX, localZ, height, tint, hasNorthNeighbor, northNeighborHeight, hasEastNeighbor, eastNeighborHeight, hasSouthNeighbor, southNeighborHeight, hasWestNeighbor, westNeighborHeight, allowRisers, FpsTerrainChunkArchetype.Flat, 0f, 0, 0, false, 0f)
         {
         }
 
@@ -48,65 +56,12 @@ namespace Elin_Elinikki
             bool hasWestNeighbor,
             float westNeighborHeight,
             bool allowRisers,
-            bool hasRamp,
+            FpsTerrainChunkArchetype archetype,
+            float baseHeight,
             int rampDir,
             int rampStepCount,
-            float rampBaseHeight,
             bool hasBridgePillar,
-            float bridgeBaseHeight,
-            bool hasUndersideDeck,
-            float undersideDeckBaseHeight)
-            : this(
-                localX,
-                localZ,
-                height,
-                tint,
-                hasNorthNeighbor,
-                northNeighborHeight,
-                hasEastNeighbor,
-                eastNeighborHeight,
-                hasSouthNeighbor,
-                southNeighborHeight,
-                hasWestNeighbor,
-                westNeighborHeight,
-                allowRisers,
-                hasRamp,
-                rampDir,
-                rampStepCount,
-                rampBaseHeight,
-                hasBridgePillar,
-                bridgeBaseHeight,
-                hasUndersideDeck,
-                undersideDeckBaseHeight,
-                false,
-                0f)
-        {
-        }
-
-        public FpsTerrainChunkCell(
-            int localX,
-            int localZ,
-            float height,
-            Color32 tint,
-            bool hasNorthNeighbor,
-            float northNeighborHeight,
-            bool hasEastNeighbor,
-            float eastNeighborHeight,
-            bool hasSouthNeighbor,
-            float southNeighborHeight,
-            bool hasWestNeighbor,
-            float westNeighborHeight,
-            bool allowRisers,
-            bool hasRamp,
-            int rampDir,
-            int rampStepCount,
-            float rampBaseHeight,
-            bool hasBridgePillar,
-            float bridgeBaseHeight,
-            bool hasUndersideDeck,
-            float undersideDeckBaseHeight,
-            bool hasBaseFloorSurface,
-            float baseFloorHeight)
+            float bridgeBaseHeight)
         {
             LocalX = localX;
             LocalZ = localZ;
@@ -121,16 +76,12 @@ namespace Elin_Elinikki
             HasWestNeighbor = hasWestNeighbor;
             WestNeighborHeight = westNeighborHeight;
             AllowRisers = allowRisers;
-            HasRamp = hasRamp;
+            Archetype = archetype;
+            BaseHeight = baseHeight;
             RampDir = rampDir;
             RampStepCount = rampStepCount;
-            RampBaseHeight = rampBaseHeight;
             HasBridgePillar = hasBridgePillar;
             BridgeBaseHeight = bridgeBaseHeight;
-            HasUndersideDeck = hasUndersideDeck;
-            UndersideDeckBaseHeight = undersideDeckBaseHeight;
-            HasBaseFloorSurface = hasBaseFloorSurface;
-            BaseFloorHeight = baseFloorHeight;
         }
 
         public int LocalX { get; }
@@ -159,25 +110,17 @@ namespace Elin_Elinikki
 
         public bool AllowRisers { get; }
 
-        public bool HasRamp { get; }
+        public FpsTerrainChunkArchetype Archetype { get; }
+
+        public float BaseHeight { get; }
 
         public int RampDir { get; }
 
         public int RampStepCount { get; }
 
-        public float RampBaseHeight { get; }
-
         public bool HasBridgePillar { get; }
 
         public float BridgeBaseHeight { get; }
-
-        public bool HasUndersideDeck { get; }
-
-        public float UndersideDeckBaseHeight { get; }
-
-        public bool HasBaseFloorSurface { get; }
-
-        public float BaseFloorHeight { get; }
     }
 
     internal sealed class FpsTerrainChunkMeshData
@@ -194,7 +137,7 @@ namespace Elin_Elinikki
     internal static class FpsTerrainChunkMeshBuilder
     {
         private const float HeightEpsilon = 0.02f;
-        private const int TextureSlotCount = 3;
+        private const int TextureSlotCount = 2;
 
         public static FpsTerrainChunkMeshData Build(int chunkOriginX, int chunkOriginZ, int chunkSize, IReadOnlyList<FpsTerrainChunkCell> cells)
         {
@@ -225,12 +168,10 @@ namespace Elin_Elinikki
                 float topUMax = (cell.LocalX * TextureSlotCount + 1) * uvStepX;
                 float sideUMin = (cell.LocalX * TextureSlotCount + 1) * uvStepX;
                 float sideUMax = (cell.LocalX * TextureSlotCount + 2) * uvStepX;
-                float baseUMin = (cell.LocalX * TextureSlotCount + 2) * uvStepX;
-                float baseUMax = (cell.LocalX * TextureSlotCount + 3) * uvStepX;
                 float vMin = cell.LocalZ * uvStepY;
                 float vMax = (cell.LocalZ + 1) * uvStepY;
 
-                if (cell.HasRamp)
+                if (cell.Archetype == FpsTerrainChunkArchetype.Stair)
                 {
                     AddStairVolume(
                         vertices,
@@ -241,23 +182,37 @@ namespace Elin_Elinikki
                         worldZ,
                         cell.RampDir,
                         cell.RampStepCount,
-                        cell.UndersideDeckBaseHeight,
-                        cell.RampBaseHeight,
+                        cell.BaseHeight,
+                        cell.BaseHeight,
                         y,
                         topUMin,
                         topUMax,
                         sideUMin,
                         sideUMax,
-                        cell.HasBaseFloorSurface,
-                        cell.BaseFloorHeight,
-                        baseUMin,
-                        baseUMax,
                         vMin,
                         vMax,
                         cell.Tint);
                 }
                 else
                 {
+                    if ((cell.Archetype == FpsTerrainChunkArchetype.Bridge || cell.Archetype == FpsTerrainChunkArchetype.RaisedPlatform)
+                        && cell.BridgeBaseHeight < cell.BaseHeight - HeightEpsilon)
+                    {
+                        AddTemplate(
+                            vertices,
+                            uvs,
+                            triangles,
+                            colors,
+                            FpsTerrainTemplateLibrary.Get(FpsTerrainTemplateKind.Top),
+                            new Vector3(worldX, cell.BridgeBaseHeight, worldZ),
+                            new Vector3(1f, 1f, 1f),
+                            topUMin,
+                            topUMax,
+                            vMin,
+                            vMax,
+                            cell.Tint);
+                    }
+
                     AddTemplate(
                         vertices,
                         uvs,
@@ -272,42 +227,26 @@ namespace Elin_Elinikki
                         vMax,
                         cell.Tint);
 
-                    if (cell.HasUndersideDeck && y > cell.UndersideDeckBaseHeight + HeightEpsilon)
+                    if (cell.Archetype != FpsTerrainChunkArchetype.Flat && y > cell.BaseHeight + HeightEpsilon)
                     {
-                        AddTemplate(
+                        AddClosedPlatformVolume(
                             vertices,
                             uvs,
                             triangles,
                             colors,
-                            FpsTerrainTemplateLibrary.Get(FpsTerrainTemplateKind.Bottom),
-                            new Vector3(worldX, cell.UndersideDeckBaseHeight, worldZ),
-                            new Vector3(1f, 1f, 1f),
+                            worldX,
+                            worldZ,
+                            cell.BaseHeight,
+                            y,
                             sideUMin,
                             sideUMax,
                             vMin,
                             vMax,
                             cell.Tint);
                     }
-
-                    if (cell.HasBaseFloorSurface)
-                    {
-                        AddTemplate(
-                            vertices,
-                            uvs,
-                            triangles,
-                            colors,
-                            FpsTerrainTemplateLibrary.Get(FpsTerrainTemplateKind.Top),
-                            new Vector3(worldX, cell.BaseFloorHeight, worldZ),
-                            new Vector3(1f, 1f, 1f),
-                            baseUMin,
-                            baseUMax,
-                            vMin,
-                            vMax,
-                            cell.Tint);
-                    }
                 }
 
-                if (cell.AllowRisers)
+                if (cell.Archetype == FpsTerrainChunkArchetype.Flat && cell.AllowRisers)
                 {
                     if (cell.HasNorthNeighbor && cell.Height > cell.NorthNeighborHeight + HeightEpsilon)
                     {
@@ -380,7 +319,13 @@ namespace Elin_Elinikki
 
                 if (cell.HasBridgePillar && y > cell.BridgeBaseHeight + HeightEpsilon)
                 {
-                    AddPillar(vertices, uvs, triangles, colors, worldX + 0.5f, worldZ + 0.5f, cell.BridgeBaseHeight, y, sideUMin, sideUMax, vMin, vMax, cell.Tint);
+                    float pillarTop = cell.Archetype == FpsTerrainChunkArchetype.Bridge || cell.Archetype == FpsTerrainChunkArchetype.RaisedPlatform
+                        ? cell.BaseHeight
+                        : y;
+                    if (pillarTop > cell.BridgeBaseHeight + HeightEpsilon)
+                    {
+                        AddPillar(vertices, uvs, triangles, colors, worldX + 0.5f, worldZ + 0.5f, cell.BridgeBaseHeight, pillarTop, sideUMin, sideUMax, vMin, vMax, cell.Tint);
+                    }
                 }
             }
 
@@ -470,6 +415,88 @@ namespace Elin_Elinikki
             }
         }
 
+        private static void AddClosedPlatformVolume(
+            List<Vector3> vertices,
+            List<Vector2> uvs,
+            List<int> triangles,
+            List<Color32> colors,
+            float worldX,
+            float worldZ,
+            float baseHeight,
+            float topHeight,
+            float sideUMin,
+            float sideUMax,
+            float vMin,
+            float vMax,
+            Color32 tint)
+        {
+            AddTemplate(
+                vertices,
+                uvs,
+                triangles,
+                colors,
+                FpsTerrainTemplateLibrary.Get(FpsTerrainTemplateKind.Bottom),
+                new Vector3(worldX, baseHeight, worldZ),
+                new Vector3(1f, 1f, 1f),
+                sideUMin,
+                sideUMax,
+                vMin,
+                vMax,
+                tint);
+            AddTemplate(
+                vertices,
+                uvs,
+                triangles,
+                colors,
+                FpsTerrainTemplateLibrary.Get(FpsTerrainTemplateKind.NorthSide),
+                new Vector3(worldX, baseHeight, worldZ),
+                new Vector3(1f, topHeight - baseHeight, 1f),
+                sideUMin,
+                sideUMax,
+                vMin,
+                vMax,
+                tint);
+            AddTemplate(
+                vertices,
+                uvs,
+                triangles,
+                colors,
+                FpsTerrainTemplateLibrary.Get(FpsTerrainTemplateKind.EastSide),
+                new Vector3(worldX, baseHeight, worldZ),
+                new Vector3(1f, topHeight - baseHeight, 1f),
+                sideUMin,
+                sideUMax,
+                vMin,
+                vMax,
+                tint);
+            AddTemplate(
+                vertices,
+                uvs,
+                triangles,
+                colors,
+                FpsTerrainTemplateLibrary.Get(FpsTerrainTemplateKind.SouthSide),
+                new Vector3(worldX, baseHeight, worldZ),
+                new Vector3(1f, topHeight - baseHeight, 1f),
+                sideUMin,
+                sideUMax,
+                vMin,
+                vMax,
+                tint);
+            AddTemplate(
+                vertices,
+                uvs,
+                triangles,
+                colors,
+                FpsTerrainTemplateLibrary.Get(FpsTerrainTemplateKind.WestSide),
+                new Vector3(worldX, baseHeight, worldZ),
+                new Vector3(1f, topHeight - baseHeight, 1f),
+                sideUMin,
+                sideUMax,
+                vMin,
+                vMax,
+                tint);
+        }
+
         private static void AddStairVolume(
             List<Vector3> vertices,
             List<Vector2> uvs,
@@ -486,10 +513,6 @@ namespace Elin_Elinikki
             float topUMax,
             float sideUMin,
             float sideUMax,
-            bool hasBaseFloorSurface,
-            float baseFloorHeight,
-            float baseUMin,
-            float baseUMax,
             float vMin,
             float vMax,
             Color32 tint)
@@ -514,24 +537,6 @@ namespace Elin_Elinikki
                 vMin,
                 vMax,
                 tint);
-
-            if (hasBaseFloorSurface)
-            {
-                AddQuad(
-                    vertices,
-                    uvs,
-                    triangles,
-                    colors,
-                    new Vector3(worldX, baseFloorHeight, worldZ),
-                    new Vector3(worldX + 1f, baseFloorHeight, worldZ),
-                    new Vector3(worldX, baseFloorHeight, worldZ + 1f),
-                    new Vector3(worldX + 1f, baseFloorHeight, worldZ + 1f),
-                    baseUMin,
-                    baseUMax,
-                    vMin,
-                    vMax,
-                    tint);
-            }
 
             for (int stepIndex = 0; stepIndex < stepCount; stepIndex++)
             {

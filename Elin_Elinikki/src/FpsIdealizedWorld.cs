@@ -6,13 +6,6 @@ namespace Elin_Elinikki
     internal sealed class FpsIdealizedWorld
     {
         private const float SpritePixelsPerTile = 64f;
-        private const float LargeObjectDistanceMultiplier = 1.45f;
-        private const float GameplayDistanceMultiplier = 1.35f;
-        private const float ItemDistanceMultiplier = 1.1f;
-        private const float EffectDistanceMultiplier = 0.9f;
-        private const float LargeObjectConeDot = 0.17364818f; // ~160 degrees
-        private const float SmallObjectConeDot = 0.259f; // ~150 degrees
-        private const float GameplayConeDot = 0.0f; // ~180 degrees, frustum still applies
         private const float RoofHeightOffset = 0.01f;
         private const float HybridRoofEaveDepth = 0.16f;
         private const float HybridRoofThickness = 0.18f;
@@ -1594,11 +1587,11 @@ namespace Elin_Elinikki
             BillboardKind kind = ResolveBillboardKind(card);
             if (card.trait?.IsGround == true)
             {
-                TryAddGroundSprite(card, origin, ResolveCardVisibilityDistance(kind, maxDistance), lighting, groundOutput);
+                TryAddGroundSprite(card, origin, FpsSpriteVisibilityResolver.ResolveCardVisibilityDistance(kind, maxDistance), lighting, groundOutput);
                 return;
             }
 
-            TryAddUprightSprite(card, origin, ResolveCardVisibilityDistance(kind, maxDistance), kind, lighting, uprightOutput);
+            TryAddUprightSprite(card, origin, FpsSpriteVisibilityResolver.ResolveCardVisibilityDistance(kind, maxDistance), kind, lighting, uprightOutput);
         }
 
         private void TryAddWallMountedInstalledCard(
@@ -1717,7 +1710,7 @@ namespace Elin_Elinikki
                 pivotX = Mathf.Clamp01(0.5f - 0.005f * (card.Pref?.pivotX ?? 0));
             }
 
-            float groundHeightWorld = GetCellSurfaceHeight(card.pos.cell) + ResolveBillboardElevation(card, kind);
+            float groundHeightWorld = GetCellSurfaceHeight(card.pos.cell) + FpsStackSupportResolver.ResolveBillboardElevation(card, kind);
             position = ApplyScatterOffset(position, card, kind);
             FpsResolvedLightSample lightSample = ResolveUprightCardLight(kind, lighting);
 
@@ -1735,8 +1728,8 @@ namespace Elin_Elinikki
                 ShadowSizeWorld = Mathf.Max(0.12f, spriteWidth * 0.25f),
                 CastsShadow = true,
                 FacingRule = BillboardFacingRule.CameraFacing,
-                VisibilityDistance = ResolveCardVisibilityDistance(kind, maxDistance),
-                VisibilityConeDot = ResolveCardVisibilityConeDot(kind),
+                VisibilityDistance = FpsSpriteVisibilityResolver.ResolveCardVisibilityDistance(kind, maxDistance),
+                VisibilityConeDot = FpsSpriteVisibilityResolver.ResolveCardVisibilityConeDot(kind),
                 RenderPriority = ResolveCardRenderPriority(kind),
                 MaterialColor = materialColor,
                 HasMaterialTint = true,
@@ -1771,7 +1764,7 @@ namespace Elin_Elinikki
             }
 
             position += ResolveGroundScatter(card);
-            float groundHeightWorld = GetCellSurfaceHeight(card.pos.cell) + ResolveGroundElevation(card);
+            float groundHeightWorld = GetCellSurfaceHeight(card.pos.cell) + FpsStackSupportResolver.ResolveGroundElevation(card);
             float aspect = Mathf.Max(0.2f, sprite.rect.width) / Mathf.Max(1f, sprite.rect.height);
             float width = Mathf.Clamp(0.18f + aspect * 0.14f, 0.18f, 0.48f);
             float depth = Mathf.Clamp(0.16f + aspect * 0.08f, 0.16f, 0.34f);
@@ -1849,7 +1842,7 @@ namespace Elin_Elinikki
             Vector2 position = new Vector2(cellX + 0.5f, cellZ + 0.5f);
             float distance = Vector2.Distance(position, origin);
             bool uprightObject = IsUprightCellObject(cell, sourceObj, renderData);
-            float visibilityDistance = ResolveCellObjectVisibilityDistance(sourceObj, renderData, uprightObject, maxDistance);
+            float visibilityDistance = FpsSpriteVisibilityResolver.ResolveCellObjectVisibilityDistance(uprightObject, maxDistance);
             if (distance <= 0.1f || distance > visibilityDistance + 1f)
             {
                 LogDoorRejection(sourceObj, renderData, distance <= 0.1f ? "too-close" : $"distance>{visibilityDistance + 1f:0.00}");
@@ -1940,7 +1933,7 @@ namespace Elin_Elinikki
                     CastsShadow = sourceObj.pref.shadow > 1 && !cell.ignoreObjShadow,
                     FacingRule = BillboardFacingRule.CameraFacing,
                     VisibilityDistance = visibilityDistance,
-                    VisibilityConeDot = ResolveCellObjectVisibilityConeDot(sourceObj, renderData, true),
+                    VisibilityConeDot = FpsSpriteVisibilityResolver.ResolveCellObjectVisibilityConeDot(true),
                     RenderPriority = sourceObj.HasGrowth ? 1 : 2,
                     MaterialColor = hasMaterialTint ? materialColor : 0,
                     HasMaterialTint = hasMaterialTint,
@@ -1965,7 +1958,7 @@ namespace Elin_Elinikki
                     Distance = distance,
                     SizeWorld = groundSize,
                     VisibilityDistance = visibilityDistance,
-                    VisibilityConeDot = ResolveCellObjectVisibilityConeDot(sourceObj, renderData, false),
+                    VisibilityConeDot = FpsSpriteVisibilityResolver.ResolveCellObjectVisibilityConeDot(false),
                     RenderPriority = sourceObj.HasGrowth ? 1 : 3,
                     MaterialColor = hasMaterialTint ? materialColor : 0,
                     HasMaterialTint = hasMaterialTint,
@@ -2135,61 +2128,6 @@ namespace Elin_Elinikki
             float offsetX = (((hash >> 1) & 3) - 1.5f) * 0.025f;
             float offsetZ = (((hash >> 3) & 3) - 1.5f) * 0.025f;
             return new Vector2(offsetX, offsetZ);
-        }
-
-        private static float ResolveGroundElevation(Card card)
-        {
-            if (card == null)
-            {
-                return 0f;
-            }
-
-            float elevation = ResolveVisualSupportHeight(card);
-            elevation += Mathf.Clamp(card.altitude, 0, 4) * 0.06f;
-            if (card is Thing thing && !card.ignoreStackHeight)
-            {
-                elevation += Mathf.Clamp(thing.stackOrder, 0, 6) * 0.025f;
-            }
-
-            return Mathf.Clamp(elevation, 0f, 3f);
-        }
-
-        private static float ResolveBillboardElevation(Card card, BillboardKind kind)
-        {
-            if (card == null)
-            {
-                return 0f;
-            }
-
-            float elevation = ResolveVisualSupportHeight(card);
-            BaseTileMap tileMap = EClass.screen?.tileMap;
-            if (tileMap != null)
-            {
-                if (card.altitude != 0)
-                {
-                    elevation += card.altitude * 0.12f;
-                }
-            }
-
-            if (card is Thing thing && !card.ignoreStackHeight)
-            {
-                elevation += Mathf.Clamp(thing.stackOrder, 0, 6) * 0.05f;
-            }
-
-            if (kind == BillboardKind.InstalledObject || kind == BillboardKind.TallObject)
-            {
-                SourcePref pref = card.Pref;
-                if (pref != null)
-                {
-                    elevation += Mathf.Clamp(pref.height * 0.08f, 0f, 0.25f);
-                }
-            }
-            else if (kind == BillboardKind.Chara)
-            {
-                elevation += 0.02f;
-            }
-
-            return Mathf.Clamp(elevation, 0f, 3f);
         }
 
         private static FpsResolvedLightSample ResolveUprightCardLight(BillboardKind kind, FpsResolvedCellLighting lighting)
@@ -2476,162 +2414,6 @@ namespace Elin_Elinikki
             return elevation;
         }
 
-        private static float ResolveSupportHeight(Card card)
-        {
-            if (!(card is Thing target) || target.ignoreStackHeight || target.pos?.cell?.detail == null)
-            {
-                return 0f;
-            }
-
-            CellDetail detail = target.pos.cell.detail;
-            float supportHeight = 0f;
-            float lastStackHeight = 0f;
-            Card lastInstalled = null;
-            for (int i = 0; i < detail.things.Count; i++)
-            {
-                Thing thing = detail.things[i];
-                if (thing == target)
-                {
-                    break;
-                }
-
-                if (!thing.IsInstalled)
-                {
-                    continue;
-                }
-
-                TileType tileType = thing.TileType;
-                if (!tileType.CanStack)
-                {
-                    continue;
-                }
-
-                SourcePref pref = thing.Pref;
-                float stackHeight = ResolveInstalledSupportHeight(thing, tileType, pref);
-
-                if (thing.ignoreStackHeight)
-                {
-                    supportHeight -= lastStackHeight;
-                }
-
-                supportHeight += stackHeight;
-                if (!tileType.UseMountHeight && thing.altitude != 0)
-                {
-                    stackHeight += Mathf.Clamp(thing.altitude, 0, 6) * 0.06f;
-                }
-
-                if (thing.trait.IgnoreLastStackHeight && (lastInstalled == null || !lastInstalled.trait.IgnoreLastStackHeight))
-                {
-                    supportHeight -= lastStackHeight;
-                }
-
-                lastStackHeight = stackHeight;
-                lastInstalled = thing;
-            }
-
-            if (target.ignoreStackHeight)
-            {
-                supportHeight -= lastStackHeight;
-            }
-
-            return Mathf.Clamp(supportHeight, 0f, 3f);
-        }
-
-        private static float ResolveVisualSupportHeight(Card card)
-        {
-            if (!(card is Thing target) || target.ignoreStackHeight || target.pos?.cell?.detail == null)
-            {
-                return 0f;
-            }
-
-            CellDetail detail = target.pos.cell.detail;
-            float supportHeight = 0f;
-            float lastStackHeight = 0f;
-            Card lastInstalled = null;
-            for (int i = 0; i < detail.things.Count; i++)
-            {
-                Thing thing = detail.things[i];
-                if (thing == target)
-                {
-                    break;
-                }
-
-                if (!thing.IsInstalled)
-                {
-                    continue;
-                }
-
-                TileType tileType = thing.TileType;
-                if (!tileType.CanStack)
-                {
-                    continue;
-                }
-
-                float stackHeight = ResolveInstalledVisualSupportHeight(thing, tileType, thing.Pref);
-                if (thing.ignoreStackHeight)
-                {
-                    supportHeight -= lastStackHeight;
-                }
-
-                supportHeight += stackHeight;
-                if (!tileType.UseMountHeight && thing.altitude != 0)
-                {
-                    stackHeight += Mathf.Clamp(thing.altitude, 0, 6) * 0.06f;
-                }
-
-                if (thing.trait.IgnoreLastStackHeight && (lastInstalled == null || !lastInstalled.trait.IgnoreLastStackHeight))
-                {
-                    supportHeight -= lastStackHeight;
-                }
-
-                lastStackHeight = stackHeight;
-                lastInstalled = thing;
-            }
-
-            if (target.ignoreStackHeight)
-            {
-                supportHeight -= lastStackHeight;
-            }
-
-            return Mathf.Clamp(supportHeight, 0f, 3f);
-        }
-
-        private static float ResolveInstalledSupportHeight(Thing thing, TileType tileType, SourcePref pref)
-        {
-            if (thing == null || tileType == null)
-            {
-                return 0f;
-            }
-
-            float stackHeight = tileType.UseMountHeight
-                ? 0f
-                : ((pref == null || pref.height < 0f) ? 0f : ((Mathf.Abs(pref.height) <= 0.0001f) ? 0.1f : pref.height));
-
-            if (stackHeight <= 0f)
-            {
-                return stackHeight;
-            }
-
-            return stackHeight;
-        }
-
-        private static float ResolveInstalledVisualSupportHeight(Thing thing, TileType tileType, SourcePref pref)
-        {
-            float stackHeight = ResolveInstalledSupportHeight(thing, tileType, pref);
-            if (thing == null || tileType == null)
-            {
-                return stackHeight;
-            }
-
-            if (pref != null && pref.Surface)
-            {
-                float surfaceHeight = pref.height + Mathf.Clamp(thing.altitude, 0, 6) * 0.1f;
-                return Mathf.Max(stackHeight, surfaceHeight);
-            }
-
-            return stackHeight;
-        }
-
         private static void TryAddEffectSprite(
             Cell cell,
             int cellX,
@@ -2660,7 +2442,7 @@ namespace Elin_Elinikki
             }
 
             Vector2 position = new Vector2(cellX + 0.5f, cellZ + 0.5f);
-            float visibilityDistance = maxDistance * EffectDistanceMultiplier;
+            float visibilityDistance = FpsSpriteVisibilityResolver.ResolveEffectVisibilityDistance(maxDistance);
             float distance = Vector2.Distance(position, origin);
             if (distance <= 0.1f || distance > visibilityDistance + 1f)
             {
@@ -2699,7 +2481,7 @@ namespace Elin_Elinikki
                 PivotX = 0.5f,
                 PivotY = 0.05f,
                 VisibilityDistance = visibilityDistance,
-                VisibilityConeDot = GameplayConeDot,
+                VisibilityConeDot = FpsSpriteVisibilityResolver.GameplayConeDotValue,
                 RenderPriority = 0,
                 RenderData = renderData,
                 Tile = tile,
@@ -2721,48 +2503,6 @@ namespace Elin_Elinikki
             }
         }
 
-        private static float ResolveCardVisibilityDistance(BillboardKind kind, float maxDistance)
-        {
-            switch (kind)
-            {
-                case BillboardKind.Chara:
-                    return maxDistance * GameplayDistanceMultiplier;
-                case BillboardKind.InstalledObject:
-                case BillboardKind.TallObject:
-                    return maxDistance * LargeObjectDistanceMultiplier;
-                default:
-                    return maxDistance * ItemDistanceMultiplier;
-            }
-        }
-
-        private static float ResolveCardVisibilityConeDot(BillboardKind kind)
-        {
-            switch (kind)
-            {
-                case BillboardKind.Chara:
-                    return GameplayConeDot;
-                case BillboardKind.InstalledObject:
-                case BillboardKind.TallObject:
-                    return LargeObjectConeDot;
-                default:
-                    return SmallObjectConeDot;
-            }
-        }
-
-        private static float ResolveCellObjectVisibilityDistance(SourceObj.Row sourceObj, RenderData renderData, bool upright, float maxDistance)
-        {
-            if (upright)
-            {
-                return maxDistance * LargeObjectDistanceMultiplier;
-            }
-
-            return maxDistance * GameplayDistanceMultiplier;
-        }
-
-        private static float ResolveCellObjectVisibilityConeDot(SourceObj.Row sourceObj, RenderData renderData, bool upright)
-        {
-            return upright ? LargeObjectConeDot : SmallObjectConeDot;
-        }
     }
 
     internal struct FpsResolvedFloorSurface
@@ -2980,14 +2720,6 @@ namespace Elin_Elinikki
         public FpsResolvedLightSample Light;
         public FpsRoofSourceOrigin Origin;
         public string DiagnosticLabel;
-    }
-
-    internal enum BillboardKind
-    {
-        LooseItem,
-        Chara,
-        InstalledObject,
-        TallObject
     }
 
     internal enum BillboardFacingRule

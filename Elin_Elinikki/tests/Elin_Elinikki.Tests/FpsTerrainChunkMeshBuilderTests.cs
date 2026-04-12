@@ -53,7 +53,7 @@ namespace Elin_Elinikki.Tests
 
             Assert.True(Mathf.Approximately(mesh.Uvs[0].x, 0.25f));
             Assert.True(Mathf.Approximately(mesh.Uvs[0].y, 0.625f));
-            Assert.True(Mathf.Approximately(mesh.Uvs[3].x, 0.29166666f));
+            Assert.True(Mathf.Approximately(mesh.Uvs[3].x, 0.3125f));
             Assert.True(Mathf.Approximately(mesh.Uvs[3].y, 0.75f));
         }
 
@@ -146,18 +146,16 @@ namespace Elin_Elinikki.Tests
                         false, 0f,
                         false, 0f,
                         true,
-                        true,
+                        FpsTerrainChunkArchetype.Stair,
+                        0.2f,
                         0,
                         3,
-                        0.6f,
                         false,
-                        0f,
-                        true,
-                        0.2f)
+                        0f)
                 });
 
-            Assert.Contains(mesh.Vertices, v => Mathf.Approximately(v.x, 0f) && Mathf.Approximately(v.y, 0.6f) && Mathf.Approximately(v.z, 0f));
-            Assert.Contains(mesh.Vertices, v => Mathf.Approximately(v.x, 0f) && Mathf.Approximately(v.y, 0.8f) && Mathf.Approximately(v.z, 0.33333334f));
+            Assert.Contains(mesh.Vertices, v => Mathf.Approximately(v.x, 0f) && Mathf.Approximately(v.y, 0.2f) && Mathf.Approximately(v.z, 0f));
+            Assert.Contains(mesh.Vertices, v => Mathf.Approximately(v.x, 0f) && Mathf.Approximately(v.y, 0.6f) && Mathf.Approximately(v.z, 0.33333334f));
             Assert.Contains(mesh.Vertices, v => Mathf.Approximately(v.x, 0f) && Mathf.Approximately(v.y, 1f) && Mathf.Approximately(v.z, 0.6666667f));
         }
 
@@ -180,19 +178,80 @@ namespace Elin_Elinikki.Tests
                         false, 0f,
                         false, 0f,
                         true,
-                        false,
+                        FpsTerrainChunkArchetype.Bridge,
+                        0.8f,
                         0,
                         0,
-                        0f,
                         true,
-                        0.1f,
-                        false,
-                        0f)
+                        0.1f)
                 });
 
             Assert.True(mesh.Vertices.Length > 4);
             Assert.Contains(mesh.Vertices, v => Mathf.Approximately(v.x, 0.41f) && Mathf.Approximately(v.y, 0.1f));
-            Assert.Contains(mesh.Vertices, v => Mathf.Approximately(v.x, 0.59f) && Mathf.Approximately(v.y, 1f));
+            Assert.Contains(mesh.Vertices, v => Mathf.Approximately(v.x, 0.59f) && Mathf.Approximately(v.y, 0.8f));
+        }
+
+        [Fact]
+        public void Build_AddsLowerGroundTopForBridgeCells()
+        {
+            FpsTerrainChunkMeshData mesh = FpsTerrainChunkMeshBuilder.Build(
+                0,
+                0,
+                8,
+                new[]
+                {
+                    new FpsTerrainChunkCell(
+                        0,
+                        0,
+                        1f,
+                        new Color32(255, 255, 255, 255),
+                        false, 0f,
+                        false, 0f,
+                        false, 0f,
+                        false, 0f,
+                        true,
+                        FpsTerrainChunkArchetype.Bridge,
+                        0.8f,
+                        0,
+                        0,
+                        true,
+                        0.1f)
+                });
+
+            Assert.Contains(mesh.Vertices, v => v == new Vector3(0f, 0.1f, 0f));
+            Assert.Contains(mesh.Vertices, v => v == new Vector3(1f, 0.1f, 1f));
+        }
+
+        [Fact]
+        public void Build_AddsLowerGroundTopForRaisedPlatformCells()
+        {
+            FpsTerrainChunkMeshData mesh = FpsTerrainChunkMeshBuilder.Build(
+                0,
+                0,
+                8,
+                new[]
+                {
+                    new FpsTerrainChunkCell(
+                        0,
+                        0,
+                        1f,
+                        new Color32(255, 255, 255, 255),
+                        false, 0f,
+                        false, 0f,
+                        false, 0f,
+                        false, 0f,
+                        true,
+                        FpsTerrainChunkArchetype.RaisedPlatform,
+                        0.8f,
+                        0,
+                        0,
+                        true,
+                        0.1f)
+                });
+
+            Assert.Contains(mesh.Vertices, v => v == new Vector3(0f, 0.1f, 0f));
+            Assert.Contains(mesh.Vertices, v => v == new Vector3(1f, 0.1f, 1f));
+            Assert.Contains(mesh.Vertices, v => Mathf.Approximately(v.x, 0.59f) && Mathf.Approximately(v.y, 0.8f));
         }
 
         [Fact]
@@ -255,14 +314,12 @@ namespace Elin_Elinikki.Tests
                         false, 0f,
                         false, 0f,
                         true,
-                        false,
+                        FpsTerrainChunkArchetype.RaisedPlatform,
+                        0.25f,
                         0,
                         0,
-                        0f,
                         false,
-                        0f,
-                        true,
-                        0.25f)
+                        0f)
                 });
 
             Assert.Contains(mesh.Vertices, v => v == new Vector3(0f, 0.25f, 0f));
@@ -288,14 +345,12 @@ namespace Elin_Elinikki.Tests
                         false, 0f,
                         false, 0f,
                         true,
-                        true,
+                        FpsTerrainChunkArchetype.Stair,
+                        0.15f,
                         1,
                         3,
-                        0.6f,
                         false,
-                        0f,
-                        true,
-                        0.15f)
+                        0f)
                 });
 
             Assert.Contains(mesh.Vertices, v => v == new Vector3(0f, 0.15f, 0f));
@@ -321,18 +376,16 @@ namespace Elin_Elinikki.Tests
                         false, 0f,
                         false, 0f,
                         true,
-                        true,
+                        FpsTerrainChunkArchetype.Stair,
+                        0.15f,
                         0,
                         3,
-                        0.6f,
                         false,
-                        0f,
-                        true,
-                        0.15f)
+                        0f)
                 });
 
             Assert.Contains(mesh.Vertices, v => Mathf.Approximately(v.x, 0f) && Mathf.Approximately(v.y, 0.15f) && Mathf.Approximately(v.z, 0.33333334f));
-            Assert.Contains(mesh.Vertices, v => Mathf.Approximately(v.x, 0f) && Mathf.Approximately(v.y, 0.8f) && Mathf.Approximately(v.z, 0.33333334f));
+            Assert.Contains(mesh.Vertices, v => Mathf.Approximately(v.x, 0f) && Mathf.Approximately(v.y, 0.575f) && Mathf.Approximately(v.z, 0.33333334f));
         }
 
         private static Vector3 ComputeTriangleNormal(FpsTerrainChunkMeshData mesh, int quadIndex)

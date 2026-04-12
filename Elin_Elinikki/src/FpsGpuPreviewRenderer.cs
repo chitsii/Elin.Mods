@@ -15,7 +15,7 @@ namespace Elin_Elinikki
         private const int MaxPreviewRadius = 32;
         private const int TerrainChunkSize = 8;
         private const int TerrainTileTextureSize = 16;
-        private const int TerrainTextureSlotCount = 3;
+        private const int TerrainTextureSlotCount = 2;
         private const float MaxProjectedOriginDeviation = 0.35f;
         private const float MaxDungeonCrawlerAxisDeviation = 1.5f;
         private const float GpuEyeHeightScale = 1.0f;
@@ -28,8 +28,6 @@ namespace Elin_Elinikki
         private readonly FpsGpuSpriteTextureCache _spriteTextureCache = new FpsGpuSpriteTextureCache();
         private readonly FpsAtlasSampler _atlasSampler = new FpsAtlasSampler();
         private readonly MaterialPropertyBlock _propertyBlock = new MaterialPropertyBlock();
-        private readonly List<FpsResolvedRoofPlane> _roofPlanes = new List<FpsResolvedRoofPlane>(128);
-        private readonly List<FpsResolvedRoofStructure> _roofStructures = new List<FpsResolvedRoofStructure>(32);
         private readonly List<FpsResolvedWallMountedSprite> _wallMountedSprites = new List<FpsResolvedWallMountedSprite>(128);
         private readonly List<FpsResolvedUprightSprite> _uprightSprites = new List<FpsResolvedUprightSprite>(256);
         private readonly List<FpsResolvedGroundSprite> _groundSprites = new List<FpsResolvedGroundSprite>(256);
@@ -57,7 +55,6 @@ namespace Elin_Elinikki
         private readonly List<GameObject> _roofQuads = new List<GameObject>(128);
         private readonly List<MeshRenderer> _roofRenderers = new List<MeshRenderer>(128);
         private readonly List<MeshFilter> _roofFilters = new List<MeshFilter>(128);
-        private readonly List<RoofVisualState> _roofVisualStates = new List<RoofVisualState>(128);
         private readonly List<GameObject> _wallMountedQuads = new List<GameObject>(128);
         private readonly List<MeshRenderer> _wallMountedRenderers = new List<MeshRenderer>(128);
         private readonly List<MeshFilter> _wallMountedFilters = new List<MeshFilter>(128);
@@ -82,6 +79,7 @@ namespace Elin_Elinikki
         private Material _wallDoubleSidedMaterial;
         private Material _wallDebugMaterial;
         private Material _spriteMaterial;
+        private Material _groundMaterial;
         private BloomOptimized _previewBloom;
         private Beautify _previewBeautify;
         private bool _runtimeMaterialsInitialized;
@@ -180,6 +178,12 @@ namespace Elin_Elinikki
             {
                 UnityEngine.Object.Destroy(_spriteMaterial);
                 _spriteMaterial = null;
+            }
+
+            if (_groundMaterial != null)
+            {
+                UnityEngine.Object.Destroy(_groundMaterial);
+                _groundMaterial = null;
             }
 
             if (_wallMaterial != null)
@@ -380,12 +384,12 @@ namespace Elin_Elinikki
             SetLayerRecursively(_uprightRoot, RenderLayer);
 
             Shader terrainShader = FindPreferredShader(
-                "Sprites/Default",
-                "Unlit/Transparent",
+                "Unlit/Texture",
                 "Unlit/Transparent Cutout",
                 "Legacy Shaders/Transparent/Cutout/Diffuse",
                 "Legacy Shaders/Transparent/Cutout/VertexLit",
-                "Unlit/Texture");
+                "Sprites/Default",
+                "Unlit/Transparent");
             Shader wallShader = FindPreferredShader(
                 "Unlit/Transparent Cutout",
                 "Legacy Shaders/Transparent/Cutout/Diffuse",
@@ -399,12 +403,12 @@ namespace Elin_Elinikki
                 "Unlit/Texture");
 
             LogShaderResolution("terrain", terrainShader,
-                "Sprites/Default",
-                "Unlit/Transparent",
+                "Unlit/Texture",
                 "Unlit/Transparent Cutout",
                 "Legacy Shaders/Transparent/Cutout/Diffuse",
                 "Legacy Shaders/Transparent/Cutout/VertexLit",
-                "Unlit/Texture");
+                "Sprites/Default",
+                "Unlit/Transparent");
             LogShaderResolution("wall", wallShader,
                 "Unlit/Transparent Cutout",
                 "Legacy Shaders/Transparent/Cutout/Diffuse",
@@ -419,9 +423,10 @@ namespace Elin_Elinikki
             _loggedShaderResolution = true;
 
             bool cullWorldBackfaces = Plugin.Settings?.EnableWorldMeshBackfaceCulling?.Value != false;
-            _terrainMaterial = CreateTexturedMaterial(terrainShader, cullOff: true, preferAlphaTestQueue: true);
-            _terrainOverlayMaterial = CreateTexturedMaterial(terrainShader, cullOff: true, preferAlphaTestQueue: true);
-            _spriteMaterial = CreateTexturedMaterial(spriteShader, cullOff: true, preferAlphaTestQueue: false);
+            _terrainMaterial = CreateTexturedMaterial(terrainShader, cullOff: true, preferAlphaTestQueue: false);
+            _terrainOverlayMaterial = CreateTexturedMaterial(terrainShader, cullOff: true, preferAlphaTestQueue: false);
+            _spriteMaterial = CreateTexturedMaterial(spriteShader, cullOff: true, preferAlphaTestQueue: true);
+            _groundMaterial = CreateTexturedMaterial(spriteShader, cullOff: false, preferAlphaTestQueue: true);
             _wallMaterial = CreateTexturedMaterial(wallShader, cullOff: false, preferAlphaTestQueue: true);
             _wallDoubleSidedMaterial = CreateTexturedMaterial(wallShader, cullOff: true, preferAlphaTestQueue: true);
             _wallDebugMaterial = CreateColorMaterial(
@@ -486,11 +491,9 @@ namespace Elin_Elinikki
 
             bool updated = false;
             bool cullWorldBackfaces = Plugin.Settings?.EnableWorldMeshBackfaceCulling?.Value != false;
-            updated |= EnsureMaterialFromPass(ref _terrainMaterial, tileMap.passFloor, cullOff: true, preferAlphaTestQueue: true);
-            updated |= EnsureMaterialFromPass(ref _terrainOverlayMaterial, tileMap.passFloor, cullOff: true, preferAlphaTestQueue: true);
             updated |= EnsureMaterialFromPass(ref _wallMaterial, tileMap.passBlock, cullOff: false, preferAlphaTestQueue: true);
             updated |= EnsureMaterialFromPass(ref _wallDoubleSidedMaterial, tileMap.passBlock, cullOff: true, preferAlphaTestQueue: true);
-            updated |= EnsureMaterialFromPass(ref _spriteMaterial, tileMap.passObj ?? tileMap.passChara, cullOff: true, preferAlphaTestQueue: false);
+            updated |= EnsureMaterialFromPass(ref _spriteMaterial, tileMap.passObj ?? tileMap.passChara, cullOff: true, preferAlphaTestQueue: true);
 
             if (!updated && _runtimeMaterialsInitialized)
             {
@@ -526,7 +529,7 @@ namespace Elin_Elinikki
 
             for (int i = 0; i < _groundRenderers.Count; i++)
             {
-                _groundRenderers[i].sharedMaterial = _spriteMaterial;
+                _groundRenderers[i].sharedMaterial = _groundMaterial ?? _spriteMaterial;
             }
         }
 
@@ -791,7 +794,13 @@ namespace Elin_Elinikki
                     FpsResolvedWallSurface blockTopSurface = default;
                     bool hasBlockSurface = isFullBlock && _idealizedWorld.TryResolveWall(cell, out blockTopSurface);
 
-                    if (terrainVisible)
+                    FpsTerrainArchetypeResolution terrainResolution = FpsTerrainArchetypeResolver.Resolve(
+                        cell,
+                        FpsIdealizedWorld.GetCellSurfaceHeight(cell) + RenderHeightOffset,
+                        0f);
+                    bool isSpecialTerrainCell = cell != null && terrainResolution.IsSpecialTerrainCell;
+
+                    if (terrainVisible || (structureVisible && isSpecialTerrainCell))
                     {
                         float surfaceHeight = isFullBlock
                             ? FpsIdealizedWorld.GetCellSurfaceHeight(cell) + 1f + RenderHeightOffset
@@ -859,37 +868,13 @@ namespace Elin_Elinikki
 
             Cell cell = EClass._map.cells[cellX, cellZ];
             bool allowRisers = cell != null && !cell.HasFullBlock;
-            bool hasRamp = cell != null && cell.HasRamp;
-            int rampDir = hasRamp ? cell.blockDir : 0;
-            int rampStepCount = 0;
-            FpsResolvedFloorSurface baseFloorSurface = default;
-            float cellBaseHeight = cell != null ? GetCellBaseHeight(cell) + RenderHeightOffset : 0f;
-            float rampBaseHeight = surfaceHeight;
-            if (hasRamp && cell.sourceBlock?.tileType != null)
-            {
-                float rampDrop = cell.sourceBlock.tileType.slopeHeight * FpsIdealizedWorld.GetTerrainHeightScale();
-                rampBaseHeight = Mathf.Max(cellBaseHeight, surfaceHeight - rampDrop);
-                rampStepCount = Mathf.Clamp(Mathf.RoundToInt(cell.sourceBlock.tileType.slopeHeight / 2f), 2, 6);
-            }
-            bool hasBridgePillar = cell != null
-                && cell.HasBridge
-                && cell.bridgeHeight > cell.height
-                && cell.sourceBridge?.tileType?.ShowPillar == true;
-            float bridgeBaseHeight = hasBridgePillar ? cellBaseHeight : 0f;
-            bool hasUndersideDeck = cell != null && surfaceHeight > cellBaseHeight + 0.02f;
+            FpsTerrainArchetypeResolution resolution = FpsTerrainArchetypeResolver.Resolve(cell, surfaceHeight, RenderHeightOffset);
             bool hasNorthNeighbor = TryGetTerrainNeighborHeight(cellX, cellZ - 1, out float northNeighborHeight);
             bool hasEastNeighbor = TryGetTerrainNeighborHeight(cellX + 1, cellZ, out float eastNeighborHeight);
             bool hasSouthNeighbor = TryGetTerrainNeighborHeight(cellX, cellZ + 1, out float southNeighborHeight);
             bool hasWestNeighbor = TryGetTerrainNeighborHeight(cellX - 1, cellZ, out float westNeighborHeight);
             FpsResolvedWallSurface riserSurface = default;
             bool hasRiserSurface = allowRisers && _idealizedWorld.TryResolveTerrainRiser(EClass._map.cells[cellX, cellZ], out riserSurface);
-            bool hasBaseFloorSurface = cell != null
-                && cell.HasBridge
-                && surfaceHeight > cellBaseHeight + 0.02f
-                && _idealizedWorld.TryResolveBaseFloor(cell, cellZ * EClass._map.Size + cellX, out baseFloorSurface);
-            float baseFloorHeight = hasBaseFloorSurface
-                ? cell.height * FpsIdealizedWorld.GetTerrainHeightScale() + ((baseFloorSurface.Floor != null ? baseFloorSurface.Floor.tileType.FloorHeight : 0f)) + RenderHeightOffset
-                : 0f;
             context.Cells.Add(new TerrainChunkSourceCell(
                 cellX - chunkX * TerrainChunkSize,
                 cellZ - chunkZ * TerrainChunkSize,
@@ -899,6 +884,8 @@ namespace Elin_Elinikki
                 hasBlockSurface,
                 blockTopSurface,
                 allowRisers,
+                resolution.Archetype,
+                resolution.ShapeBaseHeight,
                 hasNorthNeighbor,
                 northNeighborHeight + RenderHeightOffset,
                 hasEastNeighbor,
@@ -909,17 +896,10 @@ namespace Elin_Elinikki
                 westNeighborHeight + RenderHeightOffset,
                 hasRiserSurface,
                 riserSurface,
-                hasBaseFloorSurface,
-                baseFloorSurface,
-                baseFloorHeight,
-                hasRamp,
-                rampDir,
-                rampStepCount,
-                rampBaseHeight,
-                hasBridgePillar,
-                bridgeBaseHeight,
-                hasUndersideDeck,
-                cellBaseHeight));
+                resolution.RampDir,
+                resolution.RampStepCount,
+                resolution.HasBridgePillar,
+                resolution.SupportBaseHeight));
         }
 
         private int RenderTerrainChunks(float terrainMaxDistance)
@@ -1030,6 +1010,8 @@ namespace Elin_Elinikki
                     hash = hash * 31 + (cell.HasFloorSurface ? 1 : 0);
                     hash = hash * 31 + (cell.HasBlockSurface ? 1 : 0);
                     hash = hash * 31 + (cell.AllowRisers ? 1 : 0);
+                    hash = hash * 31 + (int)cell.Archetype;
+                    hash = hash * 31 + cell.BaseHeight.GetHashCode();
                     hash = hash * 31 + (cell.HasNorthNeighbor ? 1 : 0);
                     hash = hash * 31 + cell.NorthNeighborHeight.GetHashCode();
                     hash = hash * 31 + (cell.HasEastNeighbor ? 1 : 0);
@@ -1039,16 +1021,10 @@ namespace Elin_Elinikki
                     hash = hash * 31 + (cell.HasWestNeighbor ? 1 : 0);
                     hash = hash * 31 + cell.WestNeighborHeight.GetHashCode();
                     hash = hash * 31 + (cell.HasRiserSurface ? 1 : 0);
-                    hash = hash * 31 + (cell.HasBaseFloorSurface ? 1 : 0);
-                    hash = hash * 31 + cell.BaseFloorHeight.GetHashCode();
-                    hash = hash * 31 + (cell.HasRamp ? 1 : 0);
                     hash = hash * 31 + cell.RampDir;
                     hash = hash * 31 + cell.RampStepCount;
-                    hash = hash * 31 + cell.RampBaseHeight.GetHashCode();
                     hash = hash * 31 + (cell.HasBridgePillar ? 1 : 0);
                     hash = hash * 31 + cell.BridgeBaseHeight.GetHashCode();
-                    hash = hash * 31 + (cell.HasUndersideDeck ? 1 : 0);
-                    hash = hash * 31 + cell.UndersideDeckBaseHeight.GetHashCode();
                     if (cell.HasBlockSurface)
                     {
                         hash = hash * 31 + cell.BlockTopSurface.Tile;
@@ -1067,12 +1043,6 @@ namespace Elin_Elinikki
                     {
                         hash = hash * 31 + cell.RiserSurface.Tile;
                         hash = hash * 31 + cell.RiserSurface.MaterialColor;
-                    }
-
-                    if (cell.HasBaseFloorSurface)
-                    {
-                        hash = hash * 31 + cell.BaseFloorSurface.BaseTile;
-                        hash = hash * 31 + cell.BaseFloorSurface.MaterialColor;
                     }
                 }
 
@@ -1097,7 +1067,6 @@ namespace Elin_Elinikki
                         : cell.HasFloorSurface
                             ? cell.FloorSurface.Light.PackedLight
                             : 0);
-                    hash = hash * 31 + (cell.HasBaseFloorSurface ? cell.BaseFloorSurface.Light.PackedLight : 0);
                 }
 
                 return hash;
@@ -1129,16 +1098,12 @@ namespace Elin_Elinikki
                     cell.HasWestNeighbor,
                     cell.WestNeighborHeight,
                     cell.AllowRisers && cell.HasRiserSurface,
-                    cell.HasRamp,
+                    cell.Archetype,
+                    cell.BaseHeight,
                     cell.RampDir,
                     cell.RampStepCount,
-                    cell.RampBaseHeight,
                     cell.HasBridgePillar,
-                    cell.BridgeBaseHeight,
-                    cell.HasUndersideDeck,
-                    cell.UndersideDeckBaseHeight,
-                    cell.HasBaseFloorSurface,
-                    cell.BaseFloorHeight));
+                    cell.BridgeBaseHeight));
             }
 
             FpsTerrainChunkMeshData data = FpsTerrainChunkMeshBuilder.Build(
@@ -1175,21 +1140,31 @@ namespace Elin_Elinikki
             for (int i = 0; i < chunk.Cells.Count; i++)
             {
                 TerrainChunkSourceCell cell = chunk.Cells[i];
+                Color topTint = ApplySurfaceStyle(Color.white, FpsVisualSurfaceKind.TerrainTop, 0, false);
                 if (!TryResolveTerrainChunkSource(cell, out Texture2D sourceTexture))
                 {
-                    continue;
+                    FillTerrainChunkTile(
+                        pixels,
+                        textureWidth,
+                        textureHeight,
+                        cell.LocalX * TerrainTileTextureSize * TerrainTextureSlotCount,
+                        cell.LocalZ * TerrainTileTextureSize,
+                        topTint);
+                }
+                else
+                {
+                    BlitTerrainChunkTile(
+                        pixels,
+                        textureWidth,
+                        textureHeight,
+                        cell.LocalX * TerrainTileTextureSize * TerrainTextureSlotCount,
+                        cell.LocalZ * TerrainTileTextureSize,
+                        sourceTexture,
+                        topTint);
                 }
 
-                BlitTerrainChunkTile(
-                    pixels,
-                    textureWidth,
-                    textureHeight,
-                    cell.LocalX * TerrainTileTextureSize * TerrainTextureSlotCount,
-                    cell.LocalZ * TerrainTileTextureSize,
-                    sourceTexture,
-                    ApplySurfaceStyle(Color.white, FpsVisualSurfaceKind.TerrainTop, 0, false));
-
-                if (TryResolveTerrainChunkRiserSource(cell, out Texture2D riserTexture))
+                Color sideTint = ApplySurfaceStyle(Color.white, FpsVisualSurfaceKind.TerrainSide, 0, false);
+                if (TryResolveTerrainChunkSideSource(cell, out Texture2D riserTexture))
                 {
                     BlitTerrainChunkTile(
                         pixels,
@@ -1198,19 +1173,17 @@ namespace Elin_Elinikki
                         cell.LocalX * TerrainTileTextureSize * TerrainTextureSlotCount + TerrainTileTextureSize,
                         cell.LocalZ * TerrainTileTextureSize,
                         riserTexture,
-                        ApplySurfaceStyle(Color.white, FpsVisualSurfaceKind.TerrainSide, 0, false));
+                        sideTint);
                 }
-
-                if (TryResolveTerrainChunkBaseFloorSource(cell, out Texture2D baseFloorTexture))
+                else if (cell.Archetype != FpsTerrainChunkArchetype.Flat || (cell.AllowRisers && cell.HasRiserSurface))
                 {
-                    BlitTerrainChunkTile(
+                    FillTerrainChunkTile(
                         pixels,
                         textureWidth,
                         textureHeight,
-                        cell.LocalX * TerrainTileTextureSize * TerrainTextureSlotCount + TerrainTileTextureSize * 2,
+                        cell.LocalX * TerrainTileTextureSize * TerrainTextureSlotCount + TerrainTileTextureSize,
                         cell.LocalZ * TerrainTileTextureSize,
-                        baseFloorTexture,
-                        ApplySurfaceStyle(Color.white, FpsVisualSurfaceKind.TerrainTop, 0, false));
+                        sideTint);
                 }
             }
 
@@ -1256,41 +1229,38 @@ namespace Elin_Elinikki
             return false;
         }
 
-        private bool TryResolveTerrainChunkRiserSource(TerrainChunkSourceCell cell, out Texture2D texture)
+        private bool TryResolveTerrainChunkSideSource(TerrainChunkSourceCell cell, out Texture2D texture)
         {
             texture = null;
-            if (!cell.HasRiserSurface)
+            bool preferFloorSide = cell.Archetype != FpsTerrainChunkArchetype.Flat;
+
+            if (preferFloorSide
+                && cell.HasFloorSurface
+                && _floorAtlasBaker.TryGetCompositeTexture(cell.FloorSurface, out Texture preferredFloorTexture)
+                && preferredFloorTexture is Texture2D preferredFloorTexture2D)
             {
-                return false;
+                texture = preferredFloorTexture2D;
+                return true;
             }
 
-            if (_spriteTextureCache.TryGetBlockFaceTexture(cell.RiserSurface, true, out Texture riserTexture)
+            if (cell.HasRiserSurface
+                && _spriteTextureCache.TryGetBlockFaceTexture(cell.RiserSurface, true, out Texture riserTexture)
                 && riserTexture is Texture2D riserTexture2D)
             {
                 texture = riserTexture2D;
                 return true;
             }
 
-            if (cell.HasFloorSurface
-                && _floorAtlasBaker.TryGetCompositeTexture(cell.FloorSurface, out Texture floorTexture)
-                && floorTexture is Texture2D floorTexture2D)
+            if (cell.HasBlockSurface
+                && _spriteTextureCache.TryGetBlockFaceTexture(cell.BlockTopSurface, true, out Texture blockTexture)
+                && blockTexture is Texture2D blockTexture2D)
             {
-                texture = floorTexture2D;
+                texture = blockTexture2D;
                 return true;
             }
 
-            return false;
-        }
-
-        private bool TryResolveTerrainChunkBaseFloorSource(TerrainChunkSourceCell cell, out Texture2D texture)
-        {
-            texture = null;
-            if (!cell.HasBaseFloorSurface)
-            {
-                return false;
-            }
-
-            if (_floorAtlasBaker.TryGetCompositeTexture(cell.BaseFloorSurface, out Texture floorTexture)
+            if (cell.HasFloorSurface
+                && _floorAtlasBaker.TryGetCompositeTexture(cell.FloorSurface, out Texture floorTexture)
                 && floorTexture is Texture2D floorTexture2D)
             {
                 texture = floorTexture2D;
@@ -1331,6 +1301,31 @@ namespace Elin_Elinikki
             }
         }
 
+        private static void FillTerrainChunkTile(Color32[] destination, int destinationWidth, int destinationHeight, int startX, int startY, Color tint)
+        {
+            Color32 color = MultiplyColor(new Color32(255, 255, 255, 255), tint);
+            color.a = 255;
+            for (int y = 0; y < TerrainTileTextureSize; y++)
+            {
+                int destinationY = startY + y;
+                if (destinationY < 0 || destinationY >= destinationHeight)
+                {
+                    continue;
+                }
+
+                for (int x = 0; x < TerrainTileTextureSize; x++)
+                {
+                    int destinationX = startX + x;
+                    if (destinationX < 0 || destinationX >= destinationWidth)
+                    {
+                        continue;
+                    }
+
+                    destination[destinationY * destinationWidth + destinationX] = color;
+                }
+            }
+        }
+
         private static bool TryGetTerrainNeighborHeight(int cellX, int cellZ, out float height)
         {
             height = 0f;
@@ -1347,18 +1342,6 @@ namespace Elin_Elinikki
 
             height = FpsIdealizedWorld.GetCellSurfaceHeight(neighbor);
             return true;
-        }
-
-        private static float GetCellBaseHeight(Cell cell)
-        {
-            if (cell == null)
-            {
-                return 0f;
-            }
-
-            // Base height is the structural support level of the cell.
-            // Do not include floor/platform thickness here, or elevated decks and ramps lose their underside.
-            return cell.height * FpsIdealizedWorld.GetTerrainHeightScale();
         }
 
         private static Color32 ResolveTerrainChunkTint(TerrainChunkSourceCell cell)
@@ -1488,135 +1471,11 @@ namespace Elin_Elinikki
                 maxSurface = FpsIdealizedWorld.GetCellSurfaceHeight(EClass.pc?.pos?.cell);
             }
 
-            if (hasWallTop)
-            {
-                return Mathf.Max(maxSurface + 0.4f, maxWallTop - 0.02f);
-            }
-
-            return maxSurface + Mathf.Max(0.4f, Plugin.Settings?.IndoorCeilingHeight?.Value ?? 1.1f);
-        }
-
-        private void UpdateHybridRoofPreview(GpuViewPose pose, float terrainMaxDistance)
-        {
-            _idealizedWorld.GatherRoofStructures(pose.PlayerOrigin, terrainMaxDistance + 4f, _roofStructures);
-
-            int activeIndex = 0;
-            for (int structureIndex = 0; structureIndex < _roofStructures.Count; structureIndex++)
-            {
-                FpsResolvedRoofStructure structure = _roofStructures[structureIndex];
-                if (structure.Plan?.Quads == null)
-                {
-                    continue;
-                }
-
-                for (int quadIndex = 0; quadIndex < structure.Plan.Quads.Count; quadIndex++)
-                {
-                    FpsResolvedRoofPlane plane = ConvertStructureQuadToPlane(structure, structure.Plan.Quads[quadIndex]);
-                    Vector3 center = plane.Face.Center;
-                    if (!IsRoofPlaneVisible(plane, pose, terrainMaxDistance + 4f))
-                    {
-                        continue;
-                    }
-
-                    EnsureRoofPool(activeIndex + 1);
-                    GameObject quad = _roofQuads[activeIndex];
-                    MeshRenderer renderer = _roofRenderers[activeIndex];
-                    MeshFilter filter = _roofFilters[activeIndex];
-                    RoofVisualState visualState = _roofVisualStates[activeIndex];
-                    quad.SetActive(true);
-                    Material rendererMaterial = ResolveWallRendererMaterial(plane.DoubleSided);
-                    if (renderer.sharedMaterial != rendererMaterial)
-                    {
-                        renderer.sharedMaterial = rendererMaterial;
-                    }
-
-                    if (!visualState.MatchesGeometry(plane))
-                    {
-                        ApplyWallQuadGeometry(quad, filter, plane.Face, plane.DoubleSided);
-                        visualState.CaptureGeometry(plane);
-                    }
-
-                    if (!visualState.MatchesUv(plane))
-                    {
-                        ApplyRoofTextureUv(filter.sharedMesh, plane);
-                        visualState.CaptureUv(plane);
-                    }
-
-                    bool solidRoofDebug = UseSolidFaceDebug();
-                    if (!TryApplyRoofTexture(plane, _propertyBlock, out bool usesBakedTint, out bool useFallbackGray))
-                    {
-                        quad.SetActive(false);
-                        continue;
-                    }
-
-                    string fogCategory = plane.Kind == FpsRoofPlaneKind.InteriorCeiling ? "roof-interior" : "terrain-roof";
-                    Color baseColor = solidRoofDebug
-                        ? ResolveRoofDebugColor(plane.Kind)
-                        : useFallbackGray
-                            ? ResolveRoofFallbackColor(plane.Kind)
-                        : usesBakedTint || plane.TextureKind == FpsRoofTextureKind.PrimarySource
-                            ? Color.white
-                            : ResolveSpriteTint(plane.MaterialColor, plane.HasMaterialTint, plane.BlockSurface.Light);
-                    _propertyBlock.SetColor("_Color", ApplyAtmosphericFog(baseColor, center, terrainMaxDistance + 4f, 0.12f, fogCategory));
-                    renderer.SetPropertyBlock(_propertyBlock);
-                    _roofVisualStates[activeIndex] = visualState;
-                    activeIndex++;
-                }
-            }
-
-            for (int i = activeIndex; i < _roofQuads.Count; i++)
-            {
-                _roofQuads[i].SetActive(false);
-            }
-        }
-
-        private bool IsRoofPlaneVisible(FpsResolvedRoofPlane plane, GpuViewPose pose, float maxDistance)
-        {
-            FpsGpuFaceQuad face = plane.Face;
-            Vector3 cameraPosition = _camera != null ? _camera.transform.position : Vector3.zero;
-            if (IsPointUnderRoofFace(face, cameraPosition, 0.2f))
-            {
-                return true;
-            }
-
-            if (plane.Kind == FpsRoofPlaneKind.InteriorCeiling)
-            {
-                if (IsVisibleToCamera(face.Center, maxDistance, -1f))
-                {
-                    return true;
-                }
-
-                return IsAnyRoofVertexVisible(face, pose, maxDistance, 0.5f, 1.1f);
-            }
-
-            if (IsTerrainVisibleToCamera(face.Center, pose, maxDistance, 0.5f, 0.6f))
-            {
-                return true;
-            }
-
-            return IsAnyRoofVertexVisible(face, pose, maxDistance, 0.75f, 1.2f);
-        }
-
-        private bool IsAnyRoofVertexVisible(FpsGpuFaceQuad face, GpuViewPose pose, float maxDistance, float distancePadding, float viewportPadding)
-        {
-            return IsTerrainVisibleToCamera(face.BottomLeft, pose, maxDistance, distancePadding, viewportPadding)
-                || IsTerrainVisibleToCamera(face.BottomRight, pose, maxDistance, distancePadding, viewportPadding)
-                || IsTerrainVisibleToCamera(face.TopLeft, pose, maxDistance, distancePadding, viewportPadding)
-                || IsTerrainVisibleToCamera(face.TopRight, pose, maxDistance, distancePadding, viewportPadding);
-        }
-
-        private static bool IsPointUnderRoofFace(FpsGpuFaceQuad face, Vector3 point, float verticalPadding)
-        {
-            float minX = Mathf.Min(Mathf.Min(face.BottomLeft.x, face.BottomRight.x), Mathf.Min(face.TopLeft.x, face.TopRight.x));
-            float maxX = Mathf.Max(Mathf.Max(face.BottomLeft.x, face.BottomRight.x), Mathf.Max(face.TopLeft.x, face.TopRight.x));
-            float minZ = Mathf.Min(Mathf.Min(face.BottomLeft.z, face.BottomRight.z), Mathf.Min(face.TopLeft.z, face.TopRight.z));
-            float maxZ = Mathf.Max(Mathf.Max(face.BottomLeft.z, face.BottomRight.z), Mathf.Max(face.TopLeft.z, face.TopRight.z));
-            float minY = Mathf.Min(Mathf.Min(face.BottomLeft.y, face.BottomRight.y), Mathf.Min(face.TopLeft.y, face.TopRight.y));
-            return point.x >= minX
-                && point.x <= maxX
-                && point.z >= minZ
-                && point.z <= maxZ
-                && point.y <= minY + verticalPadding;
+            return FpsIndoorCeilingResolver.Resolve(
+                maxSurface,
+                hasWallTop,
+                maxWallTop,
+                Plugin.Settings?.IndoorCeilingHeight?.Value ?? 1.1f);
         }
 
         private int AddWallQuads(int activeWallIndex, int cellX, int cellZ, FpsResolvedWallSurface surface)
@@ -1736,7 +1595,7 @@ namespace Elin_Elinikki
             MeshRenderer renderer = _wallRenderers[activeWallIndex];
             MeshFilter filter = _wallFilters[activeWallIndex];
             quad.SetActive(true);
-            renderer.sharedMaterial = _spriteMaterial;
+            renderer.sharedMaterial = ResolveWallRendererMaterial(false);
 
             FpsGpuFaceQuad face = new FpsGpuFaceQuad(
                 ToVector3(quadDef.BottomLeft),
@@ -1914,7 +1773,7 @@ namespace Elin_Elinikki
             MeshRenderer renderer = _wallRenderers[activeWallIndex];
             MeshFilter filter = _wallFilters[activeWallIndex];
             quad.SetActive(true);
-            renderer.sharedMaterial = _spriteMaterial;
+            renderer.sharedMaterial = ResolveWallRendererMaterial(false);
 
             FpsGpuFaceQuad face = new FpsGpuFaceQuad(
                 ToVector3(quadDef.BottomLeft),
@@ -1984,7 +1843,7 @@ namespace Elin_Elinikki
             MeshRenderer renderer = _wallRenderers[activeWallIndex];
             MeshFilter filter = _wallFilters[activeWallIndex];
             quad.SetActive(true);
-            renderer.sharedMaterial = _spriteMaterial;
+            renderer.sharedMaterial = ResolveWallRendererMaterial(true);
             FpsGpuFaceQuad face = FpsGpuBlockGeometryBuilder.BuildSideQuad(cellX, cellZ, bottom, top, dir);
             ApplyWallQuadGeometry(quad, filter, face, true);
 
@@ -2021,7 +1880,7 @@ namespace Elin_Elinikki
             MeshRenderer renderer = _wallRenderers[activeWallIndex];
             MeshFilter filter = _wallFilters[activeWallIndex];
             quad.SetActive(true);
-            renderer.sharedMaterial = _spriteMaterial;
+            renderer.sharedMaterial = ResolveWallRendererMaterial(true);
 
             bool textureResolved = _spriteTextureCache.TryGetWallMountedTexture(
                 renderData,
@@ -2487,96 +2346,6 @@ namespace Elin_Elinikki
 
             block.SetTexture("_MainTex", texture);
             return true;
-        }
-
-        private bool TryApplyRoofTexture(FpsResolvedRoofPlane plane, MaterialPropertyBlock block, out bool usesBakedTint, out bool useFallbackGray)
-        {
-            usesBakedTint = false;
-            useFallbackGray = false;
-            Texture texture = null;
-            FpsRoofTextureProjectionMode roofTextureMode = Plugin.Settings?.RoofTextureProjectionMode?.Value ?? FpsRoofTextureProjectionMode.SolidGray;
-
-            if (UseSolidFaceDebug())
-            {
-                block.Clear();
-                block.SetTexture("_MainTex", Texture2D.whiteTexture);
-                return true;
-            }
-
-            if (roofTextureMode == FpsRoofTextureProjectionMode.SolidGray)
-            {
-                block.Clear();
-                block.SetTexture("_MainTex", Texture2D.whiteTexture);
-                useFallbackGray = true;
-                return true;
-            }
-
-            switch (plane.TextureKind)
-            {
-                case FpsRoofTextureKind.BlockFace:
-                    usesBakedTint = _spriteTextureCache.TryGetBlockFaceTexture(
-                        plane.BlockSurface,
-                        plane.BlockFaceKind,
-                        plane.FlipX,
-                        out texture);
-                    break;
-                case FpsRoofTextureKind.PrimarySource:
-                    if (plane.RenderData != null)
-                    {
-                        usesBakedTint = _spriteTextureCache.TryGetRoofRenderTileTexture(plane, roofTextureMode, out texture);
-                    }
-                    break;
-            }
-
-            if (texture == null)
-            {
-                block.Clear();
-                block.SetTexture("_MainTex", Texture2D.whiteTexture);
-                useFallbackGray = true;
-                return true;
-            }
-
-            block.Clear();
-            block.SetTexture("_MainTex", texture);
-            return true;
-        }
-
-        private static Color ResolveRoofFallbackColor(FpsRoofPlaneKind kind)
-        {
-            switch (kind)
-            {
-                case FpsRoofPlaneKind.Top:
-                    return new Color32(156, 156, 156, 255);
-                case FpsRoofPlaneKind.SlopeLeft:
-                    return new Color32(148, 148, 148, 255);
-                case FpsRoofPlaneKind.SlopeRight:
-                    return new Color32(140, 140, 140, 255);
-                case FpsRoofPlaneKind.Edge:
-                    return new Color32(122, 122, 122, 255);
-                case FpsRoofPlaneKind.InteriorCeiling:
-                    return new Color32(132, 132, 132, 255);
-                default:
-                    return new Color32(144, 144, 144, 255);
-            }
-        }
-
-        private static Color ResolveRoofDebugColor(FpsRoofPlaneKind kind)
-        {
-            switch (kind)
-            {
-                case FpsRoofPlaneKind.Top:
-                    return new Color32(214, 164, 72, 255);
-                case FpsRoofPlaneKind.SlopeLeft:
-                    return new Color32(196, 92, 92, 255);
-                case FpsRoofPlaneKind.SlopeRight:
-                    return new Color32(92, 150, 214, 255);
-                case FpsRoofPlaneKind.Edge:
-                    return new Color32(118, 86, 58, 255);
-                case FpsRoofPlaneKind.InteriorCeiling:
-                    return new Color32(170, 170, 190, 255);
-                default:
-                    return new Color32(220, 80, 220, 255);
-            }
         }
 
         private bool IsVisibleToCamera(Vector3 position, float maxDistance, float minConeDot)
@@ -3420,14 +3189,13 @@ namespace Elin_Elinikki
                 filter.sharedMesh = CreateWallQuadMesh($"FpsGpuRoofQuad_{_roofQuads.Count}");
 
                 MeshRenderer renderer = quad.AddComponent<MeshRenderer>();
-                renderer.sharedMaterial = _spriteMaterial;
+                renderer.sharedMaterial = _groundMaterial ?? _spriteMaterial;
                 renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 renderer.receiveShadows = false;
 
                 _roofQuads.Add(quad);
                 _roofRenderers.Add(renderer);
                 _roofFilters.Add(filter);
-                _roofVisualStates.Add(default);
                 quad.SetActive(false);
             }
         }
@@ -3704,110 +3472,6 @@ namespace Elin_Elinikki
         {
             FpsUvRect uv = FpsWallTextureUv.ComputeUvRect(quad);
             SetQuadUv(mesh, new Rect(uv.XMin, uv.YMin, uv.Width, uv.Height));
-        }
-
-        private static void ApplyRoofTextureUv(Mesh mesh, FpsResolvedRoofPlane plane)
-        {
-            if (mesh == null)
-            {
-                return;
-            }
-
-            if (plane.TextureKind == FpsRoofTextureKind.PrimarySource
-                && plane.ProjectionKind == FpsRoofTextureProjectionKind.TriSlice)
-            {
-                mesh.uv = new[]
-                {
-                    new Vector2(0f, 0f),
-                    new Vector2(1f, 0f),
-                    new Vector2(0.5f, 1f),
-                    new Vector2(0.5f, 1f)
-                };
-                return;
-            }
-
-            SetQuadUv(mesh, new Rect(0f, 0f, 1f, 1f));
-        }
-
-        private static FpsResolvedRoofPlane ConvertStructureQuadToPlane(FpsResolvedRoofStructure structure, FpsRoofStructureQuad quad)
-        {
-            FpsRoofPlaneKind planeKind = ResolveHybridRoofPlaneKind(quad.Kind);
-            FpsRoofTextureProjectionKind projectionKind =
-                quad.Kind == FpsRoofStructureQuadKind.TopSurface || quad.Kind == FpsRoofStructureQuadKind.RidgeCap
-                    ? FpsRoofTextureProjectionKind.RawTile
-                    : FpsRoofTextureProjectionKind.RectSlice;
-
-            FpsResolvedRoofPlane plane = new FpsResolvedRoofPlane
-            {
-                Lot = structure.Lot,
-                Kind = planeKind,
-                Face = new FpsGpuFaceQuad(
-                    ToVector3(quad.BottomLeft),
-                    ToVector3(quad.BottomRight),
-                    ToVector3(quad.TopLeft),
-                    ToVector3(quad.TopRight)),
-                ProjectionKind = projectionKind,
-                DoubleSided = quad.Kind == FpsRoofStructureQuadKind.BottomSurface,
-                UsePanelPlacement = false,
-                DiagnosticLabel = $"{structure.DiagnosticLabel}:{quad.Kind}"
-            };
-
-            if (structure.HasPrimarySource)
-            {
-                plane.TextureKind = FpsRoofTextureKind.PrimarySource;
-                plane.SourceOrigin = structure.PrimarySource.Origin;
-                plane.RenderData = structure.PrimarySource.RenderData;
-                plane.Tile = structure.PrimarySource.Tile;
-                plane.MaterialColor = structure.PrimarySource.MaterialColor == 0 ? 104025 : structure.PrimarySource.MaterialColor;
-                plane.HasMaterialTint = true;
-                plane.UseSelectiveMaterialTint = false;
-                plane.FlipX = false;
-                plane.TrimTransparent = false;
-                plane.BlockSurface = new FpsResolvedWallSurface
-                {
-                    Cell = null,
-                    Tile = 0,
-                    RenderData = null,
-                    MaterialColor = plane.MaterialColor,
-                    UseSnowAtlas = false,
-                    Light = structure.Light
-                };
-                plane.BlockFaceKind = FpsAtlasSampler.BlockFaceKind.Top;
-                plane.HasLotPrimarySource = true;
-                plane.LotPrimarySource = structure.PrimarySource;
-                return plane;
-            }
-
-            plane.TextureKind = FpsRoofTextureKind.BlockFace;
-            plane.SourceOrigin = FpsRoofSourceOrigin.None;
-            plane.RenderData = structure.FallbackSurface.RenderData;
-            plane.Tile = structure.FallbackSurface.Tile;
-            plane.MaterialColor = structure.FallbackSurface.MaterialColor == 0 ? 104025 : structure.FallbackSurface.MaterialColor;
-            plane.HasMaterialTint = true;
-            plane.UseSelectiveMaterialTint = false;
-            plane.FlipX = false;
-            plane.TrimTransparent = false;
-            plane.BlockSurface = structure.FallbackSurface;
-            plane.BlockFaceKind = FpsAtlasSampler.BlockFaceKind.Top;
-            plane.HasLotPrimarySource = false;
-            plane.LotPrimarySource = default;
-            return plane;
-        }
-
-        private static FpsRoofPlaneKind ResolveHybridRoofPlaneKind(FpsRoofStructureQuadKind kind)
-        {
-            switch (kind)
-            {
-                case FpsRoofStructureQuadKind.BottomSurface:
-                    return FpsRoofPlaneKind.InteriorCeiling;
-                case FpsRoofStructureQuadKind.EdgeBand:
-                case FpsRoofStructureQuadKind.GableFace:
-                    return FpsRoofPlaneKind.Edge;
-                case FpsRoofStructureQuadKind.SlopeSurface:
-                    return FpsRoofPlaneKind.SlopeLeft;
-                default:
-                    return FpsRoofPlaneKind.Top;
-            }
         }
 
         private static Vector3 ToVector3(FpsStructurePoint3 point)
@@ -4143,47 +3807,6 @@ namespace Elin_Elinikki
             }
         }
 
-        private struct RoofVisualState
-        {
-            public bool HasGeometry;
-            public bool HasUv;
-            public FpsGpuFaceQuad Face;
-            public bool DoubleSided;
-            public FpsRoofTextureKind TextureKind;
-            public FpsRoofTextureProjectionKind ProjectionKind;
-
-            public bool MatchesGeometry(FpsResolvedRoofPlane plane)
-            {
-                return HasGeometry
-                    && DoubleSided == plane.DoubleSided
-                    && Face.BottomLeft == plane.Face.BottomLeft
-                    && Face.BottomRight == plane.Face.BottomRight
-                    && Face.TopLeft == plane.Face.TopLeft
-                    && Face.TopRight == plane.Face.TopRight;
-            }
-
-            public void CaptureGeometry(FpsResolvedRoofPlane plane)
-            {
-                HasGeometry = true;
-                Face = plane.Face;
-                DoubleSided = plane.DoubleSided;
-            }
-
-            public bool MatchesUv(FpsResolvedRoofPlane plane)
-            {
-                return HasUv
-                    && TextureKind == plane.TextureKind
-                    && ProjectionKind == plane.ProjectionKind;
-            }
-
-            public void CaptureUv(FpsResolvedRoofPlane plane)
-            {
-                HasUv = true;
-                TextureKind = plane.TextureKind;
-                ProjectionKind = plane.ProjectionKind;
-            }
-        }
-
         private sealed class TerrainChunkBuildContext
         {
             public TerrainChunkBuildContext(int chunkX, int chunkZ)
@@ -4231,6 +3854,8 @@ namespace Elin_Elinikki
                 bool hasBlockSurface,
                 FpsResolvedWallSurface blockTopSurface,
                 bool allowRisers,
+                FpsTerrainChunkArchetype archetype,
+                float baseHeight,
                 bool hasNorthNeighbor,
                 float northNeighborHeight,
                 bool hasEastNeighbor,
@@ -4241,17 +3866,10 @@ namespace Elin_Elinikki
                 float westNeighborHeight,
                 bool hasRiserSurface,
                 FpsResolvedWallSurface riserSurface,
-                bool hasBaseFloorSurface,
-                FpsResolvedFloorSurface baseFloorSurface,
-                float baseFloorHeight,
-                bool hasRamp,
                 int rampDir,
                 int rampStepCount,
-                float rampBaseHeight,
                 bool hasBridgePillar,
-                float bridgeBaseHeight,
-                bool hasUndersideDeck,
-                float undersideDeckBaseHeight)
+                float bridgeBaseHeight)
             {
                 LocalX = localX;
                 LocalZ = localZ;
@@ -4261,6 +3879,8 @@ namespace Elin_Elinikki
                 HasBlockSurface = hasBlockSurface;
                 BlockTopSurface = blockTopSurface;
                 AllowRisers = allowRisers;
+                Archetype = archetype;
+                BaseHeight = baseHeight;
                 HasNorthNeighbor = hasNorthNeighbor;
                 NorthNeighborHeight = northNeighborHeight;
                 HasEastNeighbor = hasEastNeighbor;
@@ -4271,17 +3891,10 @@ namespace Elin_Elinikki
                 WestNeighborHeight = westNeighborHeight;
                 HasRiserSurface = hasRiserSurface;
                 RiserSurface = riserSurface;
-                HasBaseFloorSurface = hasBaseFloorSurface;
-                BaseFloorSurface = baseFloorSurface;
-                BaseFloorHeight = baseFloorHeight;
-                HasRamp = hasRamp;
                 RampDir = rampDir;
                 RampStepCount = rampStepCount;
-                RampBaseHeight = rampBaseHeight;
                 HasBridgePillar = hasBridgePillar;
                 BridgeBaseHeight = bridgeBaseHeight;
-                HasUndersideDeck = hasUndersideDeck;
-                UndersideDeckBaseHeight = undersideDeckBaseHeight;
             }
 
             public int LocalX { get; }
@@ -4299,6 +3912,10 @@ namespace Elin_Elinikki
             public FpsResolvedWallSurface BlockTopSurface { get; }
 
             public bool AllowRisers { get; }
+
+            public FpsTerrainChunkArchetype Archetype { get; }
+
+            public float BaseHeight { get; }
 
             public bool HasNorthNeighbor { get; }
 
@@ -4320,27 +3937,13 @@ namespace Elin_Elinikki
 
             public FpsResolvedWallSurface RiserSurface { get; }
 
-            public bool HasBaseFloorSurface { get; }
-
-            public FpsResolvedFloorSurface BaseFloorSurface { get; }
-
-            public float BaseFloorHeight { get; }
-
-            public bool HasRamp { get; }
-
             public int RampDir { get; }
 
             public int RampStepCount { get; }
 
-            public float RampBaseHeight { get; }
-
             public bool HasBridgePillar { get; }
 
             public float BridgeBaseHeight { get; }
-
-            public bool HasUndersideDeck { get; }
-
-            public float UndersideDeckBaseHeight { get; }
         }
 
         private struct TerrainChunkVisualState

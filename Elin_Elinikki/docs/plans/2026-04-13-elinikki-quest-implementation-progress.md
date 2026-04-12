@@ -10,7 +10,7 @@ Phase 1: Quest infrastructure foundation
 ### Phase 1: Quest infrastructure foundation
 - [x] Task 1.1: Copy Elin_QuestMod src/ into Elin_Elinikki/src/Quest/
 - [x] Task 1.2: Update csproj, package.xml, Plugin.cs
-- [ ] Task 1.3: Define ElinikkiQuestStage enum
+- [x] Task 1.3: Define ElinikkiQuestStage enum
 - [ ] Task 1.4: Rewrite QuestFlow as ElinikkiQuestFlow
 - [ ] Task 1.5: Fame-5000 gate in Patch_Zone_Activate_QuestPulse
 - [ ] Task 1.6: Verify build.bat debug
@@ -85,3 +85,12 @@ Phase 1: Quest infrastructure foundation
   quest.done.*, quest.active.*), producing doubled `chitsii.elinikki.quest.quest.*` keys.
   Fixed by setting FlagPrefix = "chitsii.elinikki" so full keys match the story spec
   `chitsii.elinikki.quest.*`. build.bat debug passes (0 warnings, 0 errors).
+- 2026-04-13: Task 1.3 complete. Created src/Quest/Quest/ElinikkiQuestStage.cs with the 8-stage
+  enum (NotStarted..EndingSeen) matching the Quest Stage Transitions table in
+  story/chapters/_index.md, plus static helpers (GetCurrentStage, AdvanceToStage,
+  IsAheadOfCurrent). Codex review caught a P1 issue: initially read/wrote via
+  QuestStateService.GetCurrentPhase/SetCurrentPhase, which would collide with the
+  lower-level QuestFlow.QuestPhase state machine (Bootstrap/Intro/Followup/Completed)
+  and silently bypass the spec'd `chitsii.elinikki.quest.stage` key. Fixed by introducing
+  a dedicated local key `quest.stage` via QuestStateService.BuildFlagKey + GetFlagInt/SetFlagInt.
+  AdvanceToStage enforces forward-only transitions. build.bat debug passes (0 warnings, 0 errors).

@@ -61,6 +61,10 @@
       <HintPath>elin_link\Elin_Data\Managed\Plugins.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Reflex">
+      <HintPath>elin_link\Elin_Data\Managed\Reflex.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="Plugins.BaseCore">
       <HintPath>elin_link\Elin_Data\Managed\Plugins.BaseCore.dll</HintPath>
       <Private>False</Private>

@@ -8,7 +8,7 @@ Phase 1: Quest infrastructure foundation
 ## Phases
 
 ### Phase 1: Quest infrastructure foundation
-- [ ] Task 1.1: Copy Elin_QuestMod src/ into Elin_Elinikki/src/Quest/
+- [x] Task 1.1: Copy Elin_QuestMod src/ into Elin_Elinikki/src/Quest/
 - [ ] Task 1.2: Update csproj, package.xml, Plugin.cs
 - [ ] Task 1.3: Define ElinikkiQuestStage enum
 - [ ] Task 1.4: Rewrite QuestFlow as ElinikkiQuestFlow
@@ -59,7 +59,18 @@ Phase 1: Quest infrastructure foundation
 (none yet)
 
 ## Deviations
-(none yet)
+- Task 1.1 pulled in csproj Reflex.dll reference (originally planned for Task 1.2) because
+  `QuestModDebugConsole.cs` depends on ReflexCLI attributes. Without the reference the
+  build would break between iterations. Noted so Task 1.2 scope shrinks accordingly.
+- QuestBootstrap.cs still has [BepInPlugin] with ModGuid "yourname.elin_quest_mod". This
+  means two BepInPlugin classes currently coexist in the assembly (main Elin_Elinikki.Plugin
+  and Elin_Elinikki.Quest.QuestBootstrap). Build succeeds; runtime may warn about double
+  registration. Task 1.2 will remove the BepInPlugin role from QuestBootstrap and call it
+  from the main Plugin.Awake() instead.
 
 ## Notes
-- 2026-04-13: Progress tracker initialized. Starting Phase 1 Task 1.1 next iteration.
+- 2026-04-13: Progress tracker initialized.
+- 2026-04-13: Task 1.1 complete. Copied QuestMod/src/ subdirs into Elin_Elinikki/src/Quest/,
+  renamed namespaces (Elin_QuestMod -> Elin_Elinikki.Quest), renamed class Plugin -> QuestBootstrap
+  and ModLog -> QuestModLog to avoid collision with existing Elinikki classes. Added Reflex.dll
+  reference to csproj. build.bat debug passes (0 warnings, 0 errors).

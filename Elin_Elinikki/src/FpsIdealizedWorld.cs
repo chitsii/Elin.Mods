@@ -6,10 +6,6 @@ namespace Elin_Elinikki
     internal sealed class FpsIdealizedWorld
     {
         private const float SpritePixelsPerTile = 64f;
-        private const float LooseItemBaseHeight = 0.18f;
-        private const float CharaBaseHeight = 1.05f;
-        private const float InstalledBaseHeight = 0.9f;
-        private const float TallObjectBaseHeight = 1.3f;
         private readonly FpsLightingResolver _lightingResolver = new FpsLightingResolver();
         private static bool _loggedCellObjectSpriteFailure;
         private static bool _loggedCellEffectSpriteFailure;
@@ -583,7 +579,7 @@ namespace Elin_Elinikki
             float spriteWidth = spriteSize.x;
             float spriteHeight = spriteSize.y;
             float pivotX = 0.5f;
-            float pivotY = ResolvePivotY(kind);
+            float pivotY = FpsSpritePlacementResolver.ResolvePivotY(kind);
             int materialColor = ResolveCardMaterialColor(card);
             if (renderData != null)
             {
@@ -909,26 +905,11 @@ namespace Elin_Elinikki
             return card?.GetSprite();
         }
 
-        private static float ResolveBaseHeight(Card card, BillboardKind kind)
-        {
-            switch (kind)
-            {
-                case BillboardKind.Chara:
-                    return CharaBaseHeight;
-                case BillboardKind.InstalledObject:
-                    return InstalledBaseHeight;
-                case BillboardKind.TallObject:
-                    return TallObjectBaseHeight;
-                default:
-                    return LooseItemBaseHeight;
-            }
-        }
-
         private static Vector2 ResolveCardSpriteWorldSize(Card card, Sprite sprite, RenderData renderData, BillboardKind kind)
         {
             if (sprite == null && renderData == null)
             {
-                float fallbackHeight = ResolveBaseHeight(null, kind);
+                float fallbackHeight = FpsSpritePlacementResolver.ResolveBaseHeight(kind);
                 return new Vector2(fallbackHeight, fallbackHeight);
             }
 
@@ -958,56 +939,18 @@ namespace Elin_Elinikki
                 card?.sourceCard?.H ?? 1);
         }
 
-        private static float ResolvePivotY(BillboardKind kind)
-        {
-            switch (kind)
-            {
-                case BillboardKind.Chara:
-                    return 0.04f;
-                case BillboardKind.InstalledObject:
-                    return 0.03f;
-                case BillboardKind.TallObject:
-                    return 0.02f;
-                default:
-                    return 0.01f;
-            }
-        }
-
         private static Vector2 ApplyScatterOffset(Vector2 position, Card card, BillboardKind kind)
         {
-            if (card == null)
-            {
-                return position;
-            }
-
-            if (card.freePos && kind != BillboardKind.LooseItem)
-            {
-                float fx = Mathf.Clamp(card.fx * 0.05f, -0.12f, 0.12f);
-                float fy = Mathf.Clamp(card.fy * 0.05f, -0.12f, 0.12f);
-                return new Vector2(position.x + fx, position.y + fy);
-            }
-
-            return position;
+            return card == null
+                ? position
+                : FpsSpritePlacementResolver.ApplyScatterOffset(position, card.freePos, card.fx, card.fy, kind);
         }
 
         private static Vector2 ResolveGroundScatter(Card card)
         {
-            if (card == null)
-            {
-                return default;
-            }
-
-            if (card.freePos)
-            {
-                return new Vector2(
-                    Mathf.Clamp(card.fx * 0.03f, -0.08f, 0.08f),
-                    Mathf.Clamp(card.fy * 0.03f, -0.08f, 0.08f));
-            }
-
-            int hash = card.GetHashCode();
-            float offsetX = (((hash >> 1) & 3) - 1.5f) * 0.025f;
-            float offsetZ = (((hash >> 3) & 3) - 1.5f) * 0.025f;
-            return new Vector2(offsetX, offsetZ);
+            return card == null
+                ? default
+                : FpsSpritePlacementResolver.ResolveGroundScatter(card.freePos, card.fx, card.fy, card.GetHashCode());
         }
 
         private static FpsResolvedLightSample ResolveUprightCardLight(BillboardKind kind, FpsResolvedCellLighting lighting)

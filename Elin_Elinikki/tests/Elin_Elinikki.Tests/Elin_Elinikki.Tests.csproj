@@ -32,6 +32,7 @@
     <Compile Include="..\..\src\FpsVisualStyle.cs" Link="FpsVisualStyle.cs" />
     <Compile Include="..\..\src\FpsDistanceFog.cs" Link="FpsDistanceFog.cs" />
     <Compile Include="..\..\src\BillboardKind.cs" Link="BillboardKind.cs" />
+    <Compile Include="..\..\src\FpsSpritePlacementResolver.cs" Link="FpsSpritePlacementResolver.cs" />
     <Compile Include="..\..\src\FpsSpriteVisibilityResolver.cs" Link="FpsSpriteVisibilityResolver.cs" />
     <Compile Include="..\..\src\FpsIndoorCeilingResolver.cs" Link="FpsIndoorCeilingResolver.cs" />
     <Compile Include="..\..\src\FpsVisualSupportResolver.cs" Link="FpsVisualSupportResolver.cs" />

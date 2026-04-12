@@ -80,8 +80,6 @@ namespace Elin_Elinikki
 
         public ConfigEntry<bool> EnablePreviewVignette { get; private set; }
 
-        public ConfigEntry<FpsRoofTextureProjectionMode> RoofTextureProjectionMode { get; private set; }
-
         public ConfigEntry<float> LookSensitivity { get; private set; }
 
         public ConfigEntry<float> PitchSensitivity { get; private set; }
@@ -135,7 +133,6 @@ namespace Elin_Elinikki
                 PreviewContrastBoost = configFile.Bind("Rendering", "PreviewContrastBoost", 0.06f, "Additional contrast for the FPS preview camera."),
                 PreviewBrightnessBoost = configFile.Bind("Rendering", "PreviewBrightnessBoost", 0.015f, "Additional brightness for the FPS preview camera."),
                 EnablePreviewVignette = configFile.Bind("Rendering", "EnablePreviewVignette", true, "Enable a light vignette on the FPS preview camera."),
-                RoofTextureProjectionMode = configFile.Bind("Rendering", "RoofTextureProjectionMode", FpsRoofTextureProjectionMode.Projected, "Roof texture mode. Projected uses the confirmed source->slice->projection pipeline, RawTile shows the unprojected source tile, and SolidGray disables roof textures. Legacy shear values are treated as Projected for compatibility."),
                 LookSensitivity = configFile.Bind("Input", "LookSensitivity", 0.025f, "Horizontal mouse-look sensitivity in radians per mouse delta."),
                 PitchSensitivity = configFile.Bind("Input", "PitchSensitivity", 0.015f, "Vertical mouse-look sensitivity in normalized screen offset per mouse delta."),
                 EnableGpuDiagnostics = configFile.Bind("Debug", "EnableGpuDiagnostics", false, "Log GPU wall/block/riser diagnostics to Player.log."),

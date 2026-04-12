@@ -25,9 +25,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\src\FpsStructureGeometry.cs" Link="FpsStructureGeometry.cs" />
-    <Compile Include="..\..\src\FpsRoofStructureSpecFactory.cs" Link="FpsRoofStructureSpecFactory.cs" />
-    <Compile Include="..\..\src\FpsRoofStructurePlanner.cs" Link="FpsRoofStructurePlanner.cs" />
     <Compile Include="..\..\src\FpsDoorFacingResolver.cs" Link="FpsDoorFacingResolver.cs" />
     <Compile Include="..\..\src\FpsDoorVisualLayout.cs" Link="FpsDoorVisualLayout.cs" />
     <Compile Include="..\..\src\FpsWallMountedAspect.cs" Link="FpsWallMountedAspect.cs" />
@@ -43,6 +40,7 @@
     <Compile Include="..\..\src\FpsTerrainTemplateLibrary.cs" Link="FpsTerrainTemplateLibrary.cs" />
     <Compile Include="..\..\src\FpsTerrainChunkMeshBuilder.cs" Link="FpsTerrainChunkMeshBuilder.cs" />
     <Compile Include="..\..\src\FpsViewOriginResolver.cs" Link="FpsViewOriginResolver.cs" />
+    <Compile Include="..\..\src\FpsStructureGeometry.cs" Link="FpsStructureGeometry.cs" />
     <Compile Include="..\..\src\FpsWallRunPlanner.cs" Link="FpsWallRunPlanner.cs" />
     <Compile Include="..\..\src\FpsWallStructurePlanner.cs" Link="FpsWallStructurePlanner.cs" />
     <Compile Include="..\..\src\FpsWallTextureUv.cs" Link="FpsWallTextureUv.cs" />

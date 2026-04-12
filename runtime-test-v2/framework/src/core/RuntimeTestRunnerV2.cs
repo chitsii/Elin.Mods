@@ -15,15 +15,45 @@ public sealed class RuntimeTestRunnerV2 : MonoBehaviour
     private DateTime _startedUtc;
     private float _startedRealtime;
 
-    private void Start()
+    private System.Collections.IEnumerator Start()
     {
         DontDestroyOnLoad(gameObject);
         _startedUtc = DateTime.UtcNow;
         _startedRealtime = Time.realtimeSinceStartup;
+        yield return RunAsync();
+        WriteResultFile();
+        Destroy(gameObject);
+    }
 
+    private System.Collections.IEnumerator RunAsync()
+    {
+        if (EClass.pc == null)
+        {
+            _runStatus = "failed";
+            _runFailureReason = "pc_unavailable";
+            yield break;
+        }
+
+        _pcName = EClass.pc.Name ?? string.Empty;
+        if (!string.IsNullOrEmpty(RuntimeV2Config.RequiredNameContains) &&
+            _pcName.IndexOf(RuntimeV2Config.RequiredNameContains, StringComparison.Ordinal) < 0)
+        {
+            _runStatus = "failed";
+            _runFailureReason = "save_guard_rejected";
+            yield break;
+        }
+
+        var cases = DiscoverRuntimeCases();
+        var host = new RuntimeTestHost();
+        System.Collections.IEnumerator hostRun = null;
         try
         {
-            Run();
+            hostRun = host.RunAsync(
+                cases,
+                RuntimeV2Config.CaseIdFilter,
+                RuntimeV2Config.TagFilter,
+                RuntimeV2Config.ModRoot,
+                _caseResults);
         }
         catch (Exception ex)
         {
@@ -37,46 +67,19 @@ public sealed class RuntimeTestRunnerV2 : MonoBehaviour
                 reason = ex.GetType().Name + ": " + ex.Message,
                 durationMs = 0
             });
-        }
-        finally
-        {
-            WriteResultFile();
-            Destroy(gameObject);
-        }
-    }
-
-    private void Run()
-    {
-        if (EClass.pc == null)
-        {
-            _runStatus = "failed";
-            _runFailureReason = "pc_unavailable";
-            return;
+            yield break;
         }
 
-        _pcName = EClass.pc.Name ?? string.Empty;
-        if (!string.IsNullOrEmpty(RuntimeV2Config.RequiredNameContains) &&
-            _pcName.IndexOf(RuntimeV2Config.RequiredNameContains, StringComparison.Ordinal) < 0)
+        if (hostRun != null)
         {
-            _runStatus = "failed";
-            _runFailureReason = "save_guard_rejected";
-            return;
+            yield return hostRun;
         }
-
-        var cases = DiscoverRuntimeCases();
-        var host = new RuntimeTestHost();
-        var results = host.Run(
-            cases,
-            RuntimeV2Config.CaseIdFilter,
-            RuntimeV2Config.TagFilter,
-            RuntimeV2Config.ModRoot);
-        _caseResults.AddRange(results);
 
         if (_caseResults.Count == 0)
         {
             _runStatus = "failed";
             _runFailureReason = "no_cases_selected";
-            return;
+            yield break;
         }
 
         for (int i = 0; i < _caseResults.Count; i++)

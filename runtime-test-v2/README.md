@@ -11,6 +11,8 @@
 
 ## 共有対象
 - `framework/src/core`: ホスト・アサート・コンテキスト・smoke ランナー
+- `framework/src/core`: ホスト・アサート・コンテキスト・smoke ランナー
+  - `IRuntimeCoroutineCase` を実装すると、smoke suite でも `yield return null` を使う frame-based case を追加できる
 - `framework/src/compat`: Harmony/CWL/Reflection 互換層
 - `framework/src/drama`: drama ランナーと `DramaCaseDefinition` 契約
 - `framework/suites`: 共通 csx テンプレート

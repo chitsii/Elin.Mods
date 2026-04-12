@@ -1,0 +1,5 @@
+_bin/
+_obj/
+obj/
+elin_link/
+tmp_*.png

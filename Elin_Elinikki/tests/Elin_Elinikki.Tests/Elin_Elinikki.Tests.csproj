@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="UnityEngine">
+      <HintPath>..\..\elin_link\Elin_Data\Managed\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\..\elin_link\Elin_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\src\FpsStructureGeometry.cs" Link="FpsStructureGeometry.cs" />
+    <Compile Include="..\..\src\FpsRoofStructureSpecFactory.cs" Link="FpsRoofStructureSpecFactory.cs" />
+    <Compile Include="..\..\src\FpsRoofStructurePlanner.cs" Link="FpsRoofStructurePlanner.cs" />
+    <Compile Include="..\..\src\FpsDoorFacingResolver.cs" Link="FpsDoorFacingResolver.cs" />
+    <Compile Include="..\..\src\FpsDoorVisualLayout.cs" Link="FpsDoorVisualLayout.cs" />
+    <Compile Include="..\..\src\FpsWallMountedAspect.cs" Link="FpsWallMountedAspect.cs" />
+    <Compile Include="..\..\src\FpsSurfaceMaterialSynthesis.cs" Link="FpsSurfaceMaterialSynthesis.cs" />
+    <Compile Include="..\..\src\FpsVisualStyle.cs" Link="FpsVisualStyle.cs" />
+    <Compile Include="..\..\src\FpsDistanceFog.cs" Link="FpsDistanceFog.cs" />
+    <Compile Include="..\..\src\FpsVisualSupportResolver.cs" Link="FpsVisualSupportResolver.cs" />
+    <Compile Include="..\..\src\FpsSpriteBudgetAllocator.cs" Link="FpsSpriteBudgetAllocator.cs" />
+    <Compile Include="..\..\src\FpsRenderDataWorldSizeResolver.cs" Link="FpsRenderDataWorldSizeResolver.cs" />
+    <Compile Include="..\..\src\FpsTerrainChunkMeshBuilder.cs" Link="FpsTerrainChunkMeshBuilder.cs" />
+    <Compile Include="..\..\src\FpsViewOriginResolver.cs" Link="FpsViewOriginResolver.cs" />
+    <Compile Include="..\..\src\FpsWallRunPlanner.cs" Link="FpsWallRunPlanner.cs" />
+    <Compile Include="..\..\src\FpsWallStructurePlanner.cs" Link="FpsWallStructurePlanner.cs" />
+    <Compile Include="..\..\src\FpsWallTextureUv.cs" Link="FpsWallTextureUv.cs" />
+    <Compile Include="..\..\src\FpsGpuFaceGeometryBuilders.cs" Link="FpsGpuFaceGeometryBuilders.cs" />
+  </ItemGroup>
+</Project>

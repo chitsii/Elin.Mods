@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
 // Runtime Test V2 isolated context per case.
@@ -91,6 +92,35 @@ public sealed class RuntimeTestContext
 
         _rollback.Clear();
         return errors;
+    }
+
+    public IEnumerator WaitFrames(int frameCount)
+    {
+        int remaining = frameCount < 0 ? 0 : frameCount;
+        while (remaining > 0)
+        {
+            remaining--;
+            yield return null;
+        }
+    }
+
+    public IEnumerator WaitUntil(Func<bool> predicate, int maxFrames, string failureMessage)
+    {
+        if (predicate == null)
+            throw new InvalidOperationException("predicate is null.");
+
+        int remaining = maxFrames < 0 ? 0 : maxFrames;
+        while (remaining > 0)
+        {
+            if (predicate())
+                yield break;
+
+            remaining--;
+            yield return null;
+        }
+
+        if (!predicate())
+            throw new InvalidOperationException(failureMessage ?? "WaitUntil timed out.");
     }
 
     /// <summary>

@@ -398,6 +398,9 @@ namespace Elin_Elinikki
                 "Sprites/Default",
                 "Unlit/Transparent");
             Shader spriteShader = FindPreferredShader(
+                "Unlit/Transparent Cutout",
+                "Legacy Shaders/Transparent/Cutout/Diffuse",
+                "Legacy Shaders/Transparent/Cutout/VertexLit",
                 "Sprites/Default",
                 "Unlit/Transparent",
                 "Unlit/Texture");
@@ -417,6 +420,9 @@ namespace Elin_Elinikki
                 "Sprites/Default",
                 "Unlit/Transparent");
             LogShaderResolution("sprite", spriteShader,
+                "Unlit/Transparent Cutout",
+                "Legacy Shaders/Transparent/Cutout/Diffuse",
+                "Legacy Shaders/Transparent/Cutout/VertexLit",
                 "Sprites/Default",
                 "Unlit/Transparent",
                 "Unlit/Texture");
@@ -427,6 +433,8 @@ namespace Elin_Elinikki
             _terrainOverlayMaterial = CreateTexturedMaterial(terrainShader, cullOff: true, preferAlphaTestQueue: false);
             _spriteMaterial = CreateTexturedMaterial(spriteShader, cullOff: true, preferAlphaTestQueue: true);
             _groundMaterial = CreateTexturedMaterial(spriteShader, cullOff: false, preferAlphaTestQueue: true);
+            ApplySpriteOverlayState(_spriteMaterial);
+            ApplySpriteOverlayState(_groundMaterial);
             _wallMaterial = CreateTexturedMaterial(wallShader, cullOff: false, preferAlphaTestQueue: true);
             _wallDoubleSidedMaterial = CreateTexturedMaterial(wallShader, cullOff: true, preferAlphaTestQueue: true);
             _wallDebugMaterial = CreateColorMaterial(
@@ -493,8 +501,8 @@ namespace Elin_Elinikki
             bool cullWorldBackfaces = Plugin.Settings?.EnableWorldMeshBackfaceCulling?.Value != false;
             updated |= EnsureMaterialFromPass(ref _wallMaterial, tileMap.passBlock, cullOff: false, preferAlphaTestQueue: true);
             updated |= EnsureMaterialFromPass(ref _wallDoubleSidedMaterial, tileMap.passBlock, cullOff: true, preferAlphaTestQueue: true);
-            updated |= EnsureMaterialFromPass(ref _spriteMaterial, tileMap.passObj ?? tileMap.passChara, cullOff: true, preferAlphaTestQueue: true);
-
+            ApplySpriteOverlayState(_spriteMaterial);
+            ApplySpriteOverlayState(_groundMaterial);
             if (!updated && _runtimeMaterialsInitialized)
             {
                 return;
@@ -585,9 +593,7 @@ namespace Elin_Elinikki
                 material.SetFloat("_Cutoff", 0.1f);
             }
 
-            material.renderQueue = preferAlphaTestQueue
-                ? (int)UnityEngine.Rendering.RenderQueue.AlphaTest
-                : material.renderQueue;
+            ApplyDepthStableTextureState(material, preferAlphaTestQueue);
             return material;
         }
 
@@ -659,12 +665,108 @@ namespace Elin_Elinikki
                 target.SetFloat("_Cutoff", 0.1f);
             }
 
-            if (preferAlphaTestQueue)
-            {
-                target.renderQueue = (int)UnityEngine.Rendering.RenderQueue.AlphaTest;
-            }
+            ApplyDepthStableTextureState(target, preferAlphaTestQueue);
 
             return true;
+        }
+
+        private static void ApplyDepthStableTextureState(Material material, bool preferAlphaTestQueue)
+        {
+            if (material == null)
+            {
+                return;
+            }
+
+            if (material.HasProperty("_ZWrite"))
+            {
+                material.SetInt("_ZWrite", 1);
+            }
+
+            if (material.HasProperty("_ZTest"))
+            {
+                material.SetInt("_ZTest", (int)UnityEngine.Rendering.CompareFunction.LessEqual);
+            }
+
+            if (material.HasProperty("_SrcBlend"))
+            {
+                material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
+            }
+
+            if (material.HasProperty("_DstBlend"))
+            {
+                material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
+            }
+
+            if (material.HasProperty("_AlphaClip"))
+            {
+                material.SetFloat("_AlphaClip", preferAlphaTestQueue ? 1f : 0f);
+            }
+
+            if (preferAlphaTestQueue)
+            {
+                material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.AlphaTest;
+                material.SetOverrideTag("RenderType", "TransparentCutout");
+                material.DisableKeyword("_ALPHABLEND_ON");
+                material.EnableKeyword("_ALPHATEST_ON");
+                material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+            }
+            else
+            {
+                material.SetOverrideTag("RenderType", "Opaque");
+                material.DisableKeyword("_ALPHABLEND_ON");
+                material.DisableKeyword("_ALPHATEST_ON");
+                material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+            }
+        }
+
+        private static void ApplySpriteOverlayState(Material material)
+        {
+            if (material == null)
+            {
+                return;
+            }
+
+            if (material.HasProperty("_ZWrite"))
+            {
+                material.SetInt("_ZWrite", 0);
+            }
+
+            if (material.HasProperty("_ZTest"))
+            {
+                material.SetInt("_ZTest", (int)UnityEngine.Rendering.CompareFunction.LessEqual);
+            }
+
+            if (material.HasProperty("_SrcBlend"))
+            {
+                material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
+            }
+
+            if (material.HasProperty("_DstBlend"))
+            {
+                material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
+            }
+
+            if (material.HasProperty("_Cutoff"))
+            {
+                material.SetFloat("_Cutoff", 0.1f);
+            }
+
+            if (material.HasProperty("_AlphaClip"))
+            {
+                material.SetFloat("_AlphaClip", 1f);
+            }
+
+            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            material.SetOverrideTag("RenderType", "TransparentCutout");
+            material.DisableKeyword("_ALPHABLEND_ON");
+            material.EnableKeyword("_ALPHATEST_ON");
+            material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+        }
+
+        private static int ResolveSpriteSortingOrder(float distance)
+        {
+            int bucket = Mathf.Clamp(Mathf.RoundToInt(distance * 100f), 0, 30000);
+            return 30000 - bucket;
         }
 
         private static bool CanUsePassMaterial(MeshPass pass)
@@ -1000,6 +1102,7 @@ namespace Elin_Elinikki
                     : BuildWallMountedFace(sprite, dir, textureWidthWorld, textureHeightWorld);
                 quad.SetActive(true);
                 renderer.sharedMaterial = _spriteMaterial;
+                renderer.sortingOrder = ResolveSpriteSortingOrder(sprite.Distance);
                 ApplyWallQuadGeometry(quad, filter, face, true);
 
                 _propertyBlock.Clear();
@@ -1043,6 +1146,7 @@ namespace Elin_Elinikki
                 quad.transform.localPosition = sprite.CenterWorld;
                 quad.transform.localRotation = Quaternion.identity;
                 quad.transform.localScale = new Vector3(sprite.SizeWorld.x, 1f, sprite.SizeWorld.y);
+                renderer.sortingOrder = ResolveSpriteSortingOrder(sprite.Distance);
 
                 _propertyBlock.Clear();
                 bool usesBakedTint;
@@ -1120,6 +1224,7 @@ namespace Elin_Elinikki
             }
 
             quad.SetActive(true);
+            renderer.sortingOrder = ResolveSpriteSortingOrder(sprite.Distance);
 
             Vector3 toCamera = _camera.transform.position - sprite.AnchorWorld;
             toCamera.y = 0f;

@@ -51,8 +51,10 @@ namespace Elin_Elinikki.Tests
                     new FpsTerrainChunkCell(2, 5, 0f)
                 });
 
-            Assert.Equal(new Vector2(0.25f, 0.625f), mesh.Uvs[0]);
-            Assert.Equal(new Vector2(0.3125f, 0.75f), mesh.Uvs[3]);
+            Assert.True(Mathf.Approximately(mesh.Uvs[0].x, 0.25f));
+            Assert.True(Mathf.Approximately(mesh.Uvs[0].y, 0.625f));
+            Assert.True(Mathf.Approximately(mesh.Uvs[3].x, 0.29166666f));
+            Assert.True(Mathf.Approximately(mesh.Uvs[3].y, 0.75f));
         }
 
         [Fact]
@@ -126,7 +128,7 @@ namespace Elin_Elinikki.Tests
         }
 
         [Fact]
-        public void Build_UsesSlopedTopForRampCells()
+        public void Build_UsesSteppedTopForRampCells()
         {
             FpsTerrainChunkMeshData mesh = FpsTerrainChunkMeshBuilder.Build(
                 0,
@@ -145,7 +147,8 @@ namespace Elin_Elinikki.Tests
                         false, 0f,
                         true,
                         true,
-                        1,
+                        0,
+                        3,
                         0.6f,
                         false,
                         0f,
@@ -153,8 +156,9 @@ namespace Elin_Elinikki.Tests
                         0.2f)
                 });
 
-            Assert.Contains(mesh.Vertices, v => v == new Vector3(1f, 0.6f, 0f));
-            Assert.Contains(mesh.Vertices, v => v == new Vector3(0f, 1f, 0f));
+            Assert.Contains(mesh.Vertices, v => Mathf.Approximately(v.x, 0f) && Mathf.Approximately(v.y, 0.6f) && Mathf.Approximately(v.z, 0f));
+            Assert.Contains(mesh.Vertices, v => Mathf.Approximately(v.x, 0f) && Mathf.Approximately(v.y, 0.8f) && Mathf.Approximately(v.z, 0.33333334f));
+            Assert.Contains(mesh.Vertices, v => Mathf.Approximately(v.x, 0f) && Mathf.Approximately(v.y, 1f) && Mathf.Approximately(v.z, 0.6666667f));
         }
 
         [Fact]
@@ -177,6 +181,7 @@ namespace Elin_Elinikki.Tests
                         false, 0f,
                         true,
                         false,
+                        0,
                         0,
                         0f,
                         true,
@@ -252,6 +257,7 @@ namespace Elin_Elinikki.Tests
                         true,
                         false,
                         0,
+                        0,
                         0f,
                         false,
                         0f,
@@ -284,6 +290,7 @@ namespace Elin_Elinikki.Tests
                         true,
                         true,
                         1,
+                        3,
                         0.6f,
                         false,
                         0f,
@@ -293,6 +300,39 @@ namespace Elin_Elinikki.Tests
 
             Assert.Contains(mesh.Vertices, v => v == new Vector3(0f, 0.15f, 0f));
             Assert.Contains(mesh.Vertices, v => v == new Vector3(1f, 0.15f, 1f));
+        }
+
+        [Fact]
+        public void Build_AddsClosedStepSidesForRampCells()
+        {
+            FpsTerrainChunkMeshData mesh = FpsTerrainChunkMeshBuilder.Build(
+                0,
+                0,
+                8,
+                new[]
+                {
+                    new FpsTerrainChunkCell(
+                        0,
+                        0,
+                        1f,
+                        new Color32(255, 255, 255, 255),
+                        false, 0f,
+                        false, 0f,
+                        false, 0f,
+                        false, 0f,
+                        true,
+                        true,
+                        0,
+                        3,
+                        0.6f,
+                        false,
+                        0f,
+                        true,
+                        0.15f)
+                });
+
+            Assert.Contains(mesh.Vertices, v => Mathf.Approximately(v.x, 0f) && Mathf.Approximately(v.y, 0.15f) && Mathf.Approximately(v.z, 0.33333334f));
+            Assert.Contains(mesh.Vertices, v => Mathf.Approximately(v.x, 0f) && Mathf.Approximately(v.y, 0.8f) && Mathf.Approximately(v.z, 0.33333334f));
         }
 
         private static Vector3 ComputeTriangleNormal(FpsTerrainChunkMeshData mesh, int quadIndex)

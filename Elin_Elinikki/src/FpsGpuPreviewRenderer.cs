@@ -15,6 +15,7 @@ namespace Elin_Elinikki
         private const int MaxPreviewRadius = 32;
         private const int TerrainChunkSize = 8;
         private const int TerrainTileTextureSize = 16;
+        private const int TerrainTextureSlotCount = 3;
         private const float MaxProjectedOriginDeviation = 0.35f;
         private const float MaxDungeonCrawlerAxisDeviation = 1.5f;
         private const float GpuEyeHeightScale = 1.0f;
@@ -860,12 +861,15 @@ namespace Elin_Elinikki
             bool allowRisers = cell != null && !cell.HasFullBlock;
             bool hasRamp = cell != null && cell.HasRamp;
             int rampDir = hasRamp ? cell.blockDir : 0;
+            int rampStepCount = 0;
+            FpsResolvedFloorSurface baseFloorSurface = default;
             float cellBaseHeight = cell != null ? GetCellBaseHeight(cell) + RenderHeightOffset : 0f;
             float rampBaseHeight = surfaceHeight;
             if (hasRamp && cell.sourceBlock?.tileType != null)
             {
                 float rampDrop = cell.sourceBlock.tileType.slopeHeight * FpsIdealizedWorld.GetTerrainHeightScale();
                 rampBaseHeight = Mathf.Max(cellBaseHeight, surfaceHeight - rampDrop);
+                rampStepCount = Mathf.Clamp(Mathf.RoundToInt(cell.sourceBlock.tileType.slopeHeight / 2f), 2, 6);
             }
             bool hasBridgePillar = cell != null
                 && cell.HasBridge
@@ -879,6 +883,13 @@ namespace Elin_Elinikki
             bool hasWestNeighbor = TryGetTerrainNeighborHeight(cellX - 1, cellZ, out float westNeighborHeight);
             FpsResolvedWallSurface riserSurface = default;
             bool hasRiserSurface = allowRisers && _idealizedWorld.TryResolveTerrainRiser(EClass._map.cells[cellX, cellZ], out riserSurface);
+            bool hasBaseFloorSurface = cell != null
+                && cell.HasBridge
+                && surfaceHeight > cellBaseHeight + 0.02f
+                && _idealizedWorld.TryResolveBaseFloor(cell, cellZ * EClass._map.Size + cellX, out baseFloorSurface);
+            float baseFloorHeight = hasBaseFloorSurface
+                ? cell.height * FpsIdealizedWorld.GetTerrainHeightScale() + ((baseFloorSurface.Floor != null ? baseFloorSurface.Floor.tileType.FloorHeight : 0f)) + RenderHeightOffset
+                : 0f;
             context.Cells.Add(new TerrainChunkSourceCell(
                 cellX - chunkX * TerrainChunkSize,
                 cellZ - chunkZ * TerrainChunkSize,
@@ -898,8 +909,12 @@ namespace Elin_Elinikki
                 westNeighborHeight + RenderHeightOffset,
                 hasRiserSurface,
                 riserSurface,
+                hasBaseFloorSurface,
+                baseFloorSurface,
+                baseFloorHeight,
                 hasRamp,
                 rampDir,
+                rampStepCount,
                 rampBaseHeight,
                 hasBridgePillar,
                 bridgeBaseHeight,
@@ -1024,8 +1039,11 @@ namespace Elin_Elinikki
                     hash = hash * 31 + (cell.HasWestNeighbor ? 1 : 0);
                     hash = hash * 31 + cell.WestNeighborHeight.GetHashCode();
                     hash = hash * 31 + (cell.HasRiserSurface ? 1 : 0);
+                    hash = hash * 31 + (cell.HasBaseFloorSurface ? 1 : 0);
+                    hash = hash * 31 + cell.BaseFloorHeight.GetHashCode();
                     hash = hash * 31 + (cell.HasRamp ? 1 : 0);
                     hash = hash * 31 + cell.RampDir;
+                    hash = hash * 31 + cell.RampStepCount;
                     hash = hash * 31 + cell.RampBaseHeight.GetHashCode();
                     hash = hash * 31 + (cell.HasBridgePillar ? 1 : 0);
                     hash = hash * 31 + cell.BridgeBaseHeight.GetHashCode();
@@ -1050,6 +1068,12 @@ namespace Elin_Elinikki
                         hash = hash * 31 + cell.RiserSurface.Tile;
                         hash = hash * 31 + cell.RiserSurface.MaterialColor;
                     }
+
+                    if (cell.HasBaseFloorSurface)
+                    {
+                        hash = hash * 31 + cell.BaseFloorSurface.BaseTile;
+                        hash = hash * 31 + cell.BaseFloorSurface.MaterialColor;
+                    }
                 }
 
                 return hash;
@@ -1073,6 +1097,7 @@ namespace Elin_Elinikki
                         : cell.HasFloorSurface
                             ? cell.FloorSurface.Light.PackedLight
                             : 0);
+                    hash = hash * 31 + (cell.HasBaseFloorSurface ? cell.BaseFloorSurface.Light.PackedLight : 0);
                 }
 
                 return hash;
@@ -1106,11 +1131,14 @@ namespace Elin_Elinikki
                     cell.AllowRisers && cell.HasRiserSurface,
                     cell.HasRamp,
                     cell.RampDir,
+                    cell.RampStepCount,
                     cell.RampBaseHeight,
                     cell.HasBridgePillar,
                     cell.BridgeBaseHeight,
                     cell.HasUndersideDeck,
-                    cell.UndersideDeckBaseHeight));
+                    cell.UndersideDeckBaseHeight,
+                    cell.HasBaseFloorSurface,
+                    cell.BaseFloorHeight));
             }
 
             FpsTerrainChunkMeshData data = FpsTerrainChunkMeshBuilder.Build(
@@ -1140,7 +1168,7 @@ namespace Elin_Elinikki
 
         private Texture2D BuildTerrainChunkTexture(TerrainChunkBuildContext chunk)
         {
-            int textureWidth = TerrainChunkSize * TerrainTileTextureSize * 2;
+            int textureWidth = TerrainChunkSize * TerrainTileTextureSize * TerrainTextureSlotCount;
             int textureHeight = TerrainChunkSize * TerrainTileTextureSize;
             Color32[] pixels = new Color32[textureWidth * textureHeight];
 
@@ -1156,7 +1184,7 @@ namespace Elin_Elinikki
                     pixels,
                     textureWidth,
                     textureHeight,
-                    cell.LocalX * TerrainTileTextureSize * 2,
+                    cell.LocalX * TerrainTileTextureSize * TerrainTextureSlotCount,
                     cell.LocalZ * TerrainTileTextureSize,
                     sourceTexture,
                     ApplySurfaceStyle(Color.white, FpsVisualSurfaceKind.TerrainTop, 0, false));
@@ -1167,10 +1195,22 @@ namespace Elin_Elinikki
                         pixels,
                         textureWidth,
                         textureHeight,
-                        cell.LocalX * TerrainTileTextureSize * 2 + TerrainTileTextureSize,
+                        cell.LocalX * TerrainTileTextureSize * TerrainTextureSlotCount + TerrainTileTextureSize,
                         cell.LocalZ * TerrainTileTextureSize,
                         riserTexture,
                         ApplySurfaceStyle(Color.white, FpsVisualSurfaceKind.TerrainSide, 0, false));
+                }
+
+                if (TryResolveTerrainChunkBaseFloorSource(cell, out Texture2D baseFloorTexture))
+                {
+                    BlitTerrainChunkTile(
+                        pixels,
+                        textureWidth,
+                        textureHeight,
+                        cell.LocalX * TerrainTileTextureSize * TerrainTextureSlotCount + TerrainTileTextureSize * 2,
+                        cell.LocalZ * TerrainTileTextureSize,
+                        baseFloorTexture,
+                        ApplySurfaceStyle(Color.white, FpsVisualSurfaceKind.TerrainTop, 0, false));
                 }
             }
 
@@ -1224,6 +1264,13 @@ namespace Elin_Elinikki
                 return false;
             }
 
+            if (_spriteTextureCache.TryGetBlockFaceTexture(cell.RiserSurface, true, out Texture riserTexture)
+                && riserTexture is Texture2D riserTexture2D)
+            {
+                texture = riserTexture2D;
+                return true;
+            }
+
             if (cell.HasFloorSurface
                 && _floorAtlasBaker.TryGetCompositeTexture(cell.FloorSurface, out Texture floorTexture)
                 && floorTexture is Texture2D floorTexture2D)
@@ -1232,10 +1279,21 @@ namespace Elin_Elinikki
                 return true;
             }
 
-            if (_spriteTextureCache.TryGetBlockFaceTexture(cell.RiserSurface, true, out Texture riserTexture)
-                && riserTexture is Texture2D riserTexture2D)
+            return false;
+        }
+
+        private bool TryResolveTerrainChunkBaseFloorSource(TerrainChunkSourceCell cell, out Texture2D texture)
+        {
+            texture = null;
+            if (!cell.HasBaseFloorSurface)
             {
-                texture = riserTexture2D;
+                return false;
+            }
+
+            if (_floorAtlasBaker.TryGetCompositeTexture(cell.BaseFloorSurface, out Texture floorTexture)
+                && floorTexture is Texture2D floorTexture2D)
+            {
+                texture = floorTexture2D;
                 return true;
             }
 
@@ -1267,6 +1325,7 @@ namespace Elin_Elinikki
 
                     int sampleX = Mathf.Clamp(Mathf.FloorToInt((x / (float)TerrainTileTextureSize) * sourceWidth), 0, sourceWidth - 1);
                     Color32 color = source[sampleY * sourceWidth + sampleX];
+                    color.a = 255;
                     destination[destinationY * destinationWidth + destinationX] = MultiplyColor(color, tint);
                 }
             }
@@ -1297,13 +1356,9 @@ namespace Elin_Elinikki
                 return 0f;
             }
 
-            float baseHeight = cell.height * FpsIdealizedWorld.GetTerrainHeightScale();
-            if (cell.sourceFloor != null)
-            {
-                baseHeight += cell.sourceFloor.tileType.FloorHeight;
-            }
-
-            return baseHeight;
+            // Base height is the structural support level of the cell.
+            // Do not include floor/platform thickness here, or elevated decks and ramps lose their underside.
+            return cell.height * FpsIdealizedWorld.GetTerrainHeightScale();
         }
 
         private static Color32 ResolveTerrainChunkTint(TerrainChunkSourceCell cell)
@@ -4186,8 +4241,12 @@ namespace Elin_Elinikki
                 float westNeighborHeight,
                 bool hasRiserSurface,
                 FpsResolvedWallSurface riserSurface,
+                bool hasBaseFloorSurface,
+                FpsResolvedFloorSurface baseFloorSurface,
+                float baseFloorHeight,
                 bool hasRamp,
                 int rampDir,
+                int rampStepCount,
                 float rampBaseHeight,
                 bool hasBridgePillar,
                 float bridgeBaseHeight,
@@ -4212,8 +4271,12 @@ namespace Elin_Elinikki
                 WestNeighborHeight = westNeighborHeight;
                 HasRiserSurface = hasRiserSurface;
                 RiserSurface = riserSurface;
+                HasBaseFloorSurface = hasBaseFloorSurface;
+                BaseFloorSurface = baseFloorSurface;
+                BaseFloorHeight = baseFloorHeight;
                 HasRamp = hasRamp;
                 RampDir = rampDir;
+                RampStepCount = rampStepCount;
                 RampBaseHeight = rampBaseHeight;
                 HasBridgePillar = hasBridgePillar;
                 BridgeBaseHeight = bridgeBaseHeight;
@@ -4257,9 +4320,17 @@ namespace Elin_Elinikki
 
             public FpsResolvedWallSurface RiserSurface { get; }
 
+            public bool HasBaseFloorSurface { get; }
+
+            public FpsResolvedFloorSurface BaseFloorSurface { get; }
+
+            public float BaseFloorHeight { get; }
+
             public bool HasRamp { get; }
 
             public int RampDir { get; }
+
+            public int RampStepCount { get; }
 
             public float RampBaseHeight { get; }
 

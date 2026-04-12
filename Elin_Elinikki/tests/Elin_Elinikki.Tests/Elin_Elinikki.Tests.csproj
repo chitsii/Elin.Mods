@@ -37,6 +37,7 @@
     <Compile Include="..\..\src\FpsVisualSupportResolver.cs" Link="FpsVisualSupportResolver.cs" />
     <Compile Include="..\..\src\FpsSpriteBudgetAllocator.cs" Link="FpsSpriteBudgetAllocator.cs" />
     <Compile Include="..\..\src\FpsRenderDataWorldSizeResolver.cs" Link="FpsRenderDataWorldSizeResolver.cs" />
+    <Compile Include="..\..\src\FpsTerrainTemplateLibrary.cs" Link="FpsTerrainTemplateLibrary.cs" />
     <Compile Include="..\..\src\FpsTerrainChunkMeshBuilder.cs" Link="FpsTerrainChunkMeshBuilder.cs" />
     <Compile Include="..\..\src\FpsViewOriginResolver.cs" Link="FpsViewOriginResolver.cs" />
     <Compile Include="..\..\src\FpsWallRunPlanner.cs" Link="FpsWallRunPlanner.cs" />

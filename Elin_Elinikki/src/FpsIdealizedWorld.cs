@@ -207,6 +207,63 @@ namespace Elin_Elinikki
             return true;
         }
 
+        public bool TryResolveBaseFloor(Cell cell, int index, out FpsResolvedFloorSurface surface)
+        {
+            surface = default;
+            if (cell == null || cell.sourceFloor == null)
+            {
+                return false;
+            }
+
+            FpsResolvedCellLighting lighting = _lightingResolver.ResolveCellLighting(cell);
+            SourceFloor.Row sourceFloor = cell.sourceFloor;
+            SourceMaterial.Row matFloor = cell.matFloor;
+            int floorDir = cell.floorDir;
+            bool floorSnowAtlas = cell.IsSnowTile && !cell.sourceFloor.ignoreSnow;
+            if (floorSnowAtlas)
+            {
+                if (cell.IsFloorWater)
+                {
+                    sourceFloor = FLOOR.sourceIce;
+                    floorSnowAtlas = false;
+                }
+                else
+                {
+                    if (cell.sourceObj != null && cell.sourceObj.snowTile > 0)
+                    {
+                        sourceFloor = FLOOR.sourceSnow2;
+                        floorDir = cell.sourceObj.snowTile - 1;
+                    }
+                    else if (index % 3 == 0 && Rand.bytes[index % Rand.MaxBytes] < 8 && !cell.HasObj && cell.FirstThing == null)
+                    {
+                        sourceFloor = FLOOR.sourceSnow2;
+                        floorDir = Rand.bytes[index % Rand.MaxBytes] % 3 + 10;
+                    }
+                    else
+                    {
+                        sourceFloor = FLOOR.sourceSnow;
+                        matFloor = MATERIAL.sourceSnow;
+                    }
+                }
+            }
+
+            surface = new FpsResolvedFloorSurface
+            {
+                Cell = cell,
+                Floor = sourceFloor,
+                Material = matFloor,
+                BaseTile = sourceFloor._tiles[floorDir % sourceFloor._tiles.Length],
+                MaterialColor = sourceFloor.GetColorInt(matFloor),
+                AutoTileOverlay = cell.autotile != 0 && sourceFloor.autotile != 0
+                    ? (26 + sourceFloor.autotile / 2) * 32 + sourceFloor.autotile % 2 * 16 + cell.autotile
+                    : -1,
+                UseSnowAtlas = floorSnowAtlas,
+                UseWaterAutoTileAtlas = sourceFloor.tileType.IsWater,
+                Light = lighting.FloorLight
+            };
+            return true;
+        }
+
         public bool TryResolveWall(Cell cell, out FpsResolvedWallSurface surface)
         {
             surface = default;

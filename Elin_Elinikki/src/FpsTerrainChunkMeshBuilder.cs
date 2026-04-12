@@ -12,7 +12,7 @@ namespace Elin_Elinikki
         }
 
         public FpsTerrainChunkCell(int localX, int localZ, float height, Color32 tint)
-            : this(localX, localZ, height, tint, false, 0f, false, 0f, false, 0f, false, 0f, true, false, 0, 0f, false, 0f, false, 0f)
+            : this(localX, localZ, height, tint, false, 0f, false, 0f, false, 0f, false, 0f, true, false, 0, 0, 0f, false, 0f, false, 0f, false, 0f)
         {
         }
 
@@ -30,7 +30,7 @@ namespace Elin_Elinikki
             bool hasWestNeighbor,
             float westNeighborHeight,
             bool allowRisers)
-            : this(localX, localZ, height, tint, hasNorthNeighbor, northNeighborHeight, hasEastNeighbor, eastNeighborHeight, hasSouthNeighbor, southNeighborHeight, hasWestNeighbor, westNeighborHeight, allowRisers, false, 0, 0f, false, 0f, false, 0f)
+            : this(localX, localZ, height, tint, hasNorthNeighbor, northNeighborHeight, hasEastNeighbor, eastNeighborHeight, hasSouthNeighbor, southNeighborHeight, hasWestNeighbor, westNeighborHeight, allowRisers, false, 0, 0, 0f, false, 0f, false, 0f, false, 0f)
         {
         }
 
@@ -50,11 +50,63 @@ namespace Elin_Elinikki
             bool allowRisers,
             bool hasRamp,
             int rampDir,
+            int rampStepCount,
             float rampBaseHeight,
             bool hasBridgePillar,
             float bridgeBaseHeight,
             bool hasUndersideDeck,
             float undersideDeckBaseHeight)
+            : this(
+                localX,
+                localZ,
+                height,
+                tint,
+                hasNorthNeighbor,
+                northNeighborHeight,
+                hasEastNeighbor,
+                eastNeighborHeight,
+                hasSouthNeighbor,
+                southNeighborHeight,
+                hasWestNeighbor,
+                westNeighborHeight,
+                allowRisers,
+                hasRamp,
+                rampDir,
+                rampStepCount,
+                rampBaseHeight,
+                hasBridgePillar,
+                bridgeBaseHeight,
+                hasUndersideDeck,
+                undersideDeckBaseHeight,
+                false,
+                0f)
+        {
+        }
+
+        public FpsTerrainChunkCell(
+            int localX,
+            int localZ,
+            float height,
+            Color32 tint,
+            bool hasNorthNeighbor,
+            float northNeighborHeight,
+            bool hasEastNeighbor,
+            float eastNeighborHeight,
+            bool hasSouthNeighbor,
+            float southNeighborHeight,
+            bool hasWestNeighbor,
+            float westNeighborHeight,
+            bool allowRisers,
+            bool hasRamp,
+            int rampDir,
+            int rampStepCount,
+            float rampBaseHeight,
+            bool hasBridgePillar,
+            float bridgeBaseHeight,
+            bool hasUndersideDeck,
+            float undersideDeckBaseHeight,
+            bool hasBaseFloorSurface,
+            float baseFloorHeight)
         {
             LocalX = localX;
             LocalZ = localZ;
@@ -71,11 +123,14 @@ namespace Elin_Elinikki
             AllowRisers = allowRisers;
             HasRamp = hasRamp;
             RampDir = rampDir;
+            RampStepCount = rampStepCount;
             RampBaseHeight = rampBaseHeight;
             HasBridgePillar = hasBridgePillar;
             BridgeBaseHeight = bridgeBaseHeight;
             HasUndersideDeck = hasUndersideDeck;
             UndersideDeckBaseHeight = undersideDeckBaseHeight;
+            HasBaseFloorSurface = hasBaseFloorSurface;
+            BaseFloorHeight = baseFloorHeight;
         }
 
         public int LocalX { get; }
@@ -108,6 +163,8 @@ namespace Elin_Elinikki
 
         public int RampDir { get; }
 
+        public int RampStepCount { get; }
+
         public float RampBaseHeight { get; }
 
         public bool HasBridgePillar { get; }
@@ -117,6 +174,10 @@ namespace Elin_Elinikki
         public bool HasUndersideDeck { get; }
 
         public float UndersideDeckBaseHeight { get; }
+
+        public bool HasBaseFloorSurface { get; }
+
+        public float BaseFloorHeight { get; }
     }
 
     internal sealed class FpsTerrainChunkMeshData
@@ -133,6 +194,7 @@ namespace Elin_Elinikki
     internal static class FpsTerrainChunkMeshBuilder
     {
         private const float HeightEpsilon = 0.02f;
+        private const int TextureSlotCount = 3;
 
         public static FpsTerrainChunkMeshData Build(int chunkOriginX, int chunkOriginZ, int chunkSize, IReadOnlyList<FpsTerrainChunkCell> cells)
         {
@@ -150,7 +212,7 @@ namespace Elin_Elinikki
             List<Vector2> uvs = new List<Vector2>(cells.Count * 8);
             List<int> triangles = new List<int>(cells.Count * 12);
             List<Color32> colors = new List<Color32>(cells.Count * 8);
-            float uvStepX = 1f / (chunkSize * 2f);
+            float uvStepX = 1f / (chunkSize * TextureSlotCount);
             float uvStepY = 1f / chunkSize;
 
             for (int i = 0; i < cells.Count; i++)
@@ -159,29 +221,51 @@ namespace Elin_Elinikki
                 float worldX = chunkOriginX + cell.LocalX;
                 float worldZ = chunkOriginZ + cell.LocalZ;
                 float y = cell.Height;
-                float topUMin = (cell.LocalX * 2) * uvStepX;
-                float topUMax = (cell.LocalX * 2 + 1) * uvStepX;
-                float sideUMin = (cell.LocalX * 2 + 1) * uvStepX;
-                float sideUMax = (cell.LocalX * 2 + 2) * uvStepX;
+                float topUMin = (cell.LocalX * TextureSlotCount) * uvStepX;
+                float topUMax = (cell.LocalX * TextureSlotCount + 1) * uvStepX;
+                float sideUMin = (cell.LocalX * TextureSlotCount + 1) * uvStepX;
+                float sideUMax = (cell.LocalX * TextureSlotCount + 2) * uvStepX;
+                float baseUMin = (cell.LocalX * TextureSlotCount + 2) * uvStepX;
+                float baseUMax = (cell.LocalX * TextureSlotCount + 3) * uvStepX;
                 float vMin = cell.LocalZ * uvStepY;
                 float vMax = (cell.LocalZ + 1) * uvStepY;
 
                 if (cell.HasRamp)
                 {
-                    AddRampTop(vertices, uvs, triangles, colors, worldX, worldZ, cell.RampDir, cell.RampBaseHeight, y, topUMin, topUMax, vMin, vMax, cell.Tint);
-                    AddRampVolume(vertices, uvs, triangles, colors, worldX, worldZ, cell.RampDir, cell.UndersideDeckBaseHeight, cell.RampBaseHeight, y, sideUMin, sideUMax, vMin, vMax, cell.Tint);
-                }
-                else
-                {
-                    AddQuad(
+                    AddStairVolume(
                         vertices,
                         uvs,
                         triangles,
                         colors,
+                        worldX,
+                        worldZ,
+                        cell.RampDir,
+                        cell.RampStepCount,
+                        cell.UndersideDeckBaseHeight,
+                        cell.RampBaseHeight,
+                        y,
+                        topUMin,
+                        topUMax,
+                        sideUMin,
+                        sideUMax,
+                        cell.HasBaseFloorSurface,
+                        cell.BaseFloorHeight,
+                        baseUMin,
+                        baseUMax,
+                        vMin,
+                        vMax,
+                        cell.Tint);
+                }
+                else
+                {
+                    AddTemplate(
+                        vertices,
+                        uvs,
+                        triangles,
+                        colors,
+                        FpsTerrainTemplateLibrary.Get(FpsTerrainTemplateKind.Top),
                         new Vector3(worldX, y, worldZ),
-                        new Vector3(worldX + 1f, y, worldZ),
-                        new Vector3(worldX, y, worldZ + 1f),
-                        new Vector3(worldX + 1f, y, worldZ + 1f),
+                        new Vector3(1f, 1f, 1f),
                         topUMin,
                         topUMax,
                         vMin,
@@ -190,17 +274,33 @@ namespace Elin_Elinikki
 
                     if (cell.HasUndersideDeck && y > cell.UndersideDeckBaseHeight + HeightEpsilon)
                     {
-                        AddQuad(
+                        AddTemplate(
                             vertices,
                             uvs,
                             triangles,
                             colors,
-                            new Vector3(worldX + 1f, cell.UndersideDeckBaseHeight, worldZ),
+                            FpsTerrainTemplateLibrary.Get(FpsTerrainTemplateKind.Bottom),
                             new Vector3(worldX, cell.UndersideDeckBaseHeight, worldZ),
-                            new Vector3(worldX + 1f, cell.UndersideDeckBaseHeight, worldZ + 1f),
-                            new Vector3(worldX, cell.UndersideDeckBaseHeight, worldZ + 1f),
+                            new Vector3(1f, 1f, 1f),
                             sideUMin,
                             sideUMax,
+                            vMin,
+                            vMax,
+                            cell.Tint);
+                    }
+
+                    if (cell.HasBaseFloorSurface)
+                    {
+                        AddTemplate(
+                            vertices,
+                            uvs,
+                            triangles,
+                            colors,
+                            FpsTerrainTemplateLibrary.Get(FpsTerrainTemplateKind.Top),
+                            new Vector3(worldX, cell.BaseFloorHeight, worldZ),
+                            new Vector3(1f, 1f, 1f),
+                            baseUMin,
+                            baseUMax,
                             vMin,
                             vMax,
                             cell.Tint);
@@ -211,15 +311,14 @@ namespace Elin_Elinikki
                 {
                     if (cell.HasNorthNeighbor && cell.Height > cell.NorthNeighborHeight + HeightEpsilon)
                     {
-                        AddQuad(
+                        AddTemplate(
                             vertices,
                             uvs,
                             triangles,
                             colors,
+                            FpsTerrainTemplateLibrary.Get(FpsTerrainTemplateKind.NorthSide),
                             new Vector3(worldX, cell.NorthNeighborHeight, worldZ),
-                            new Vector3(worldX + 1f, cell.NorthNeighborHeight, worldZ),
-                            new Vector3(worldX, y, worldZ),
-                            new Vector3(worldX + 1f, y, worldZ),
+                            new Vector3(1f, y - cell.NorthNeighborHeight, 1f),
                             sideUMin,
                             sideUMax,
                             vMin,
@@ -229,15 +328,14 @@ namespace Elin_Elinikki
 
                     if (cell.HasEastNeighbor && cell.Height > cell.EastNeighborHeight + HeightEpsilon)
                     {
-                        AddQuad(
+                        AddTemplate(
                             vertices,
                             uvs,
                             triangles,
                             colors,
-                            new Vector3(worldX + 1f, cell.EastNeighborHeight, worldZ),
-                            new Vector3(worldX + 1f, cell.EastNeighborHeight, worldZ + 1f),
-                            new Vector3(worldX + 1f, y, worldZ),
-                            new Vector3(worldX + 1f, y, worldZ + 1f),
+                            FpsTerrainTemplateLibrary.Get(FpsTerrainTemplateKind.EastSide),
+                            new Vector3(worldX, cell.EastNeighborHeight, worldZ),
+                            new Vector3(1f, y - cell.EastNeighborHeight, 1f),
                             sideUMin,
                             sideUMax,
                             vMin,
@@ -247,15 +345,14 @@ namespace Elin_Elinikki
 
                     if (cell.HasSouthNeighbor && cell.Height > cell.SouthNeighborHeight + HeightEpsilon)
                     {
-                        AddQuad(
+                        AddTemplate(
                             vertices,
                             uvs,
                             triangles,
                             colors,
-                            new Vector3(worldX + 1f, cell.SouthNeighborHeight, worldZ + 1f),
-                            new Vector3(worldX, cell.SouthNeighborHeight, worldZ + 1f),
-                            new Vector3(worldX + 1f, y, worldZ + 1f),
-                            new Vector3(worldX, y, worldZ + 1f),
+                            FpsTerrainTemplateLibrary.Get(FpsTerrainTemplateKind.SouthSide),
+                            new Vector3(worldX, cell.SouthNeighborHeight, worldZ),
+                            new Vector3(1f, y - cell.SouthNeighborHeight, 1f),
                             sideUMin,
                             sideUMax,
                             vMin,
@@ -265,15 +362,14 @@ namespace Elin_Elinikki
 
                     if (cell.HasWestNeighbor && cell.Height > cell.WestNeighborHeight + HeightEpsilon)
                     {
-                        AddQuad(
+                        AddTemplate(
                             vertices,
                             uvs,
                             triangles,
                             colors,
-                            new Vector3(worldX, cell.WestNeighborHeight, worldZ + 1f),
+                            FpsTerrainTemplateLibrary.Get(FpsTerrainTemplateKind.WestSide),
                             new Vector3(worldX, cell.WestNeighborHeight, worldZ),
-                            new Vector3(worldX, y, worldZ + 1f),
-                            new Vector3(worldX, y, worldZ),
+                            new Vector3(1f, y - cell.WestNeighborHeight, 1f),
                             sideUMin,
                             sideUMax,
                             vMin,
@@ -333,7 +429,48 @@ namespace Elin_Elinikki
             triangles.Add(vertexStart + 1);
         }
 
-        private static void AddRampTop(
+        private static void AddTemplate(
+            List<Vector3> vertices,
+            List<Vector2> uvs,
+            List<int> triangles,
+            List<Color32> colors,
+            FpsTerrainMeshTemplate template,
+            Vector3 origin,
+            Vector3 scale,
+            float uMin,
+            float uMax,
+            float vMin,
+            float vMax,
+            Color32 tint)
+        {
+            int vertexStart = vertices.Count;
+            Vector3[] sourceVertices = template.Vertices;
+            for (int i = 0; i < sourceVertices.Length; i++)
+            {
+                Vector3 v = sourceVertices[i];
+                vertices.Add(new Vector3(
+                    origin.x + v.x * scale.x,
+                    origin.y + v.y * scale.y,
+                    origin.z + v.z * scale.z));
+            }
+
+            uvs.Add(new Vector2(uMin, vMin));
+            uvs.Add(new Vector2(uMax, vMin));
+            uvs.Add(new Vector2(uMin, vMax));
+            uvs.Add(new Vector2(uMax, vMax));
+            colors.Add(tint);
+            colors.Add(tint);
+            colors.Add(tint);
+            colors.Add(tint);
+
+            int[] sourceTriangles = template.Triangles;
+            for (int i = 0; i < sourceTriangles.Length; i++)
+            {
+                triangles.Add(vertexStart + sourceTriangles[i]);
+            }
+        }
+
+        private static void AddStairVolume(
             List<Vector3> vertices,
             List<Vector2> uvs,
             List<int> triangles,
@@ -341,51 +478,255 @@ namespace Elin_Elinikki
             float worldX,
             float worldZ,
             int rampDir,
+            int rampStepCount,
+            float baseHeight,
             float lowHeight,
             float highHeight,
-            float uMin,
-            float uMax,
+            float topUMin,
+            float topUMax,
+            float sideUMin,
+            float sideUMax,
+            bool hasBaseFloorSurface,
+            float baseFloorHeight,
+            float baseUMin,
+            float baseUMax,
             float vMin,
             float vMax,
             Color32 tint)
         {
-            float northY = highHeight;
-            float eastY = highHeight;
-            float southY = highHeight;
-            float westY = highHeight;
-            switch ((rampDir % 4 + 4) % 4)
-            {
-                case 0:
-                    northY = lowHeight;
-                    break;
-                case 1:
-                    eastY = lowHeight;
-                    break;
-                case 2:
-                    southY = lowHeight;
-                    break;
-                case 3:
-                    westY = lowHeight;
-                    break;
-            }
+            int normalizedDir = (rampDir % 4 + 4) % 4;
+            int stepCount = Mathf.Max(1, rampStepCount);
+            float totalRise = Mathf.Max(0f, highHeight - lowHeight);
+            float treadRise = stepCount > 1 ? totalRise / (stepCount - 1) : 0f;
+            float treadDepth = 1f / stepCount;
 
             AddQuad(
                 vertices,
                 uvs,
                 triangles,
                 colors,
-                new Vector3(worldX, northY, worldZ),
-                new Vector3(worldX + 1f, eastY, worldZ),
-                new Vector3(worldX, westY, worldZ + 1f),
-                new Vector3(worldX + 1f, southY, worldZ + 1f),
-                uMin,
-                uMax,
+                new Vector3(worldX + 1f, baseHeight, worldZ),
+                new Vector3(worldX, baseHeight, worldZ),
+                new Vector3(worldX + 1f, baseHeight, worldZ + 1f),
+                new Vector3(worldX, baseHeight, worldZ + 1f),
+                sideUMin,
+                sideUMax,
                 vMin,
                 vMax,
                 tint);
+
+            if (hasBaseFloorSurface)
+            {
+                AddQuad(
+                    vertices,
+                    uvs,
+                    triangles,
+                    colors,
+                    new Vector3(worldX, baseFloorHeight, worldZ),
+                    new Vector3(worldX + 1f, baseFloorHeight, worldZ),
+                    new Vector3(worldX, baseFloorHeight, worldZ + 1f),
+                    new Vector3(worldX + 1f, baseFloorHeight, worldZ + 1f),
+                    baseUMin,
+                    baseUMax,
+                    vMin,
+                    vMax,
+                    tint);
+            }
+
+            for (int stepIndex = 0; stepIndex < stepCount; stepIndex++)
+            {
+                float start = treadDepth * stepIndex;
+                float end = treadDepth * (stepIndex + 1);
+                float treadHeight = stepCount > 1
+                    ? lowHeight + treadRise * stepIndex
+                    : highHeight;
+
+                float stepUMin = Mathf.Lerp(topUMin, topUMax, start);
+                float stepUMax = Mathf.Lerp(topUMin, topUMax, end);
+                float stepVMin = Mathf.Lerp(vMin, vMax, start);
+                float stepVMax = Mathf.Lerp(vMin, vMax, end);
+
+                switch (normalizedDir)
+                {
+                    case 0:
+                        AddQuad(
+                            vertices, uvs, triangles, colors,
+                            new Vector3(worldX, treadHeight, worldZ + start),
+                            new Vector3(worldX + 1f, treadHeight, worldZ + start),
+                            new Vector3(worldX, treadHeight, worldZ + end),
+                            new Vector3(worldX + 1f, treadHeight, worldZ + end),
+                            topUMin, topUMax, stepVMin, stepVMax, tint);
+                        AddQuad(
+                            vertices, uvs, triangles, colors,
+                            new Vector3(worldX, baseHeight, worldZ + start),
+                            new Vector3(worldX, baseHeight, worldZ + end),
+                            new Vector3(worldX, treadHeight, worldZ + start),
+                            new Vector3(worldX, treadHeight, worldZ + end),
+                            sideUMin, sideUMax, stepVMin, stepVMax, tint);
+                        AddQuad(
+                            vertices, uvs, triangles, colors,
+                            new Vector3(worldX + 1f, baseHeight, worldZ + start),
+                            new Vector3(worldX + 1f, treadHeight, worldZ + start),
+                            new Vector3(worldX + 1f, baseHeight, worldZ + end),
+                            new Vector3(worldX + 1f, treadHeight, worldZ + end),
+                            sideUMin, sideUMax, stepVMin, stepVMax, tint);
+                        break;
+                    case 1:
+                        AddQuad(
+                            vertices, uvs, triangles, colors,
+                            new Vector3(worldX + start, treadHeight, worldZ),
+                            new Vector3(worldX + end, treadHeight, worldZ),
+                            new Vector3(worldX + start, treadHeight, worldZ + 1f),
+                            new Vector3(worldX + end, treadHeight, worldZ + 1f),
+                            stepUMin, stepUMax, vMin, vMax, tint);
+                        AddQuad(
+                            vertices, uvs, triangles, colors,
+                            new Vector3(worldX + start, baseHeight, worldZ),
+                            new Vector3(worldX + end, baseHeight, worldZ),
+                            new Vector3(worldX + start, treadHeight, worldZ),
+                            new Vector3(worldX + end, treadHeight, worldZ),
+                            stepUMin, stepUMax, vMin, vMax, tint);
+                        AddQuad(
+                            vertices, uvs, triangles, colors,
+                            new Vector3(worldX + end, baseHeight, worldZ + 1f),
+                            new Vector3(worldX + start, baseHeight, worldZ + 1f),
+                            new Vector3(worldX + end, treadHeight, worldZ + 1f),
+                            new Vector3(worldX + start, treadHeight, worldZ + 1f),
+                            stepUMin, stepUMax, vMin, vMax, tint);
+                        break;
+                    case 2:
+                        AddQuad(
+                            vertices, uvs, triangles, colors,
+                            new Vector3(worldX + 1f, treadHeight, worldZ + 1f - start),
+                            new Vector3(worldX, treadHeight, worldZ + 1f - start),
+                            new Vector3(worldX + 1f, treadHeight, worldZ + 1f - end),
+                            new Vector3(worldX, treadHeight, worldZ + 1f - end),
+                            topUMin, topUMax, stepVMin, stepVMax, tint);
+                        AddQuad(
+                            vertices, uvs, triangles, colors,
+                            new Vector3(worldX + 1f, baseHeight, worldZ + 1f - start),
+                            new Vector3(worldX + 1f, treadHeight, worldZ + 1f - start),
+                            new Vector3(worldX + 1f, baseHeight, worldZ + 1f - end),
+                            new Vector3(worldX + 1f, treadHeight, worldZ + 1f - end),
+                            sideUMin, sideUMax, stepVMin, stepVMax, tint);
+                        AddQuad(
+                            vertices, uvs, triangles, colors,
+                            new Vector3(worldX, baseHeight, worldZ + 1f - end),
+                            new Vector3(worldX, baseHeight, worldZ + 1f - start),
+                            new Vector3(worldX, treadHeight, worldZ + 1f - end),
+                            new Vector3(worldX, treadHeight, worldZ + 1f - start),
+                            sideUMin, sideUMax, stepVMin, stepVMax, tint);
+                        break;
+                    default:
+                        AddQuad(
+                            vertices, uvs, triangles, colors,
+                            new Vector3(worldX + 1f - start, treadHeight, worldZ + 1f),
+                            new Vector3(worldX + 1f - end, treadHeight, worldZ + 1f),
+                            new Vector3(worldX + 1f - start, treadHeight, worldZ),
+                            new Vector3(worldX + 1f - end, treadHeight, worldZ),
+                            stepUMin, stepUMax, vMin, vMax, tint);
+                        AddQuad(
+                            vertices, uvs, triangles, colors,
+                            new Vector3(worldX + 1f - start, baseHeight, worldZ + 1f),
+                            new Vector3(worldX + 1f - start, treadHeight, worldZ + 1f),
+                            new Vector3(worldX + 1f - end, baseHeight, worldZ + 1f),
+                            new Vector3(worldX + 1f - end, treadHeight, worldZ + 1f),
+                            stepUMin, stepUMax, vMin, vMax, tint);
+                        AddQuad(
+                            vertices, uvs, triangles, colors,
+                            new Vector3(worldX + 1f - end, baseHeight, worldZ),
+                            new Vector3(worldX + 1f - start, baseHeight, worldZ),
+                            new Vector3(worldX + 1f - end, treadHeight, worldZ),
+                            new Vector3(worldX + 1f - start, treadHeight, worldZ),
+                            stepUMin, stepUMax, vMin, vMax, tint);
+                        break;
+                }
+
+                float previousHeight = stepIndex == 0
+                    ? lowHeight
+                    : lowHeight + treadRise * (stepIndex - 1);
+                if (stepIndex > 0 && treadHeight > previousHeight + HeightEpsilon)
+                {
+                    AddStairRiser(
+                        vertices,
+                        uvs,
+                        triangles,
+                        colors,
+                        worldX,
+                        worldZ,
+                        normalizedDir,
+                        start,
+                        previousHeight,
+                        treadHeight,
+                        sideUMin,
+                        sideUMax,
+                        vMin,
+                        vMax,
+                        tint);
+                }
+            }
+
+            AddStairBoundary(
+                vertices, uvs, triangles, colors,
+                worldX, worldZ, normalizedDir, baseHeight, lowHeight, highHeight,
+                sideUMin, sideUMax, vMin, vMax, tint);
         }
 
-        private static void AddRampVolume(
+        private static void AddStairRiser(
+            List<Vector3> vertices,
+            List<Vector2> uvs,
+            List<int> triangles,
+            List<Color32> colors,
+            float worldX,
+            float worldZ,
+            int rampDir,
+            float boundary,
+            float lowerHeight,
+            float upperHeight,
+            float uMin,
+            float uMax,
+            float vMin,
+            float vMax,
+            Color32 tint)
+        {
+            switch (rampDir)
+            {
+                case 0:
+                    AddQuad(vertices, uvs, triangles, colors,
+                        new Vector3(worldX, lowerHeight, worldZ + boundary),
+                        new Vector3(worldX + 1f, lowerHeight, worldZ + boundary),
+                        new Vector3(worldX, upperHeight, worldZ + boundary),
+                        new Vector3(worldX + 1f, upperHeight, worldZ + boundary),
+                        uMin, uMax, vMin, vMax, tint);
+                    break;
+                case 1:
+                    AddQuad(vertices, uvs, triangles, colors,
+                        new Vector3(worldX + boundary, lowerHeight, worldZ + 1f),
+                        new Vector3(worldX + boundary, lowerHeight, worldZ),
+                        new Vector3(worldX + boundary, upperHeight, worldZ + 1f),
+                        new Vector3(worldX + boundary, upperHeight, worldZ),
+                        uMin, uMax, vMin, vMax, tint);
+                    break;
+                case 2:
+                    AddQuad(vertices, uvs, triangles, colors,
+                        new Vector3(worldX + 1f, lowerHeight, worldZ + 1f - boundary),
+                        new Vector3(worldX, lowerHeight, worldZ + 1f - boundary),
+                        new Vector3(worldX + 1f, upperHeight, worldZ + 1f - boundary),
+                        new Vector3(worldX, upperHeight, worldZ + 1f - boundary),
+                        uMin, uMax, vMin, vMax, tint);
+                    break;
+                default:
+                    AddQuad(vertices, uvs, triangles, colors,
+                        new Vector3(worldX + 1f - boundary, lowerHeight, worldZ),
+                        new Vector3(worldX + 1f - boundary, lowerHeight, worldZ + 1f),
+                        new Vector3(worldX + 1f - boundary, upperHeight, worldZ),
+                        new Vector3(worldX + 1f - boundary, upperHeight, worldZ + 1f),
+                        uMin, uMax, vMin, vMax, tint);
+                    break;
+            }
+        }
+
+        private static void AddStairBoundary(
             List<Vector3> vertices,
             List<Vector2> uvs,
             List<int> triangles,
@@ -402,101 +743,65 @@ namespace Elin_Elinikki
             float vMax,
             Color32 tint)
         {
-            AddQuad(
-                vertices,
-                uvs,
-                triangles,
-                colors,
-                new Vector3(worldX + 1f, baseHeight, worldZ),
-                new Vector3(worldX, baseHeight, worldZ),
-                new Vector3(worldX + 1f, baseHeight, worldZ + 1f),
-                new Vector3(worldX, baseHeight, worldZ + 1f),
-                uMin,
-                uMax,
-                vMin,
-                vMax,
-                tint);
-
-            float northLeft = highHeight;
-            float northRight = highHeight;
-            float southLeft = highHeight;
-            float southRight = highHeight;
-            switch ((rampDir % 4 + 4) % 4)
+            switch (rampDir)
             {
                 case 0:
-                    northLeft = lowHeight;
-                    northRight = lowHeight;
+                    AddQuad(vertices, uvs, triangles, colors,
+                        new Vector3(worldX, baseHeight, worldZ),
+                        new Vector3(worldX + 1f, baseHeight, worldZ),
+                        new Vector3(worldX, lowHeight, worldZ),
+                        new Vector3(worldX + 1f, lowHeight, worldZ),
+                        uMin, uMax, vMin, vMax, tint);
+                    AddQuad(vertices, uvs, triangles, colors,
+                        new Vector3(worldX + 1f, baseHeight, worldZ + 1f),
+                        new Vector3(worldX, baseHeight, worldZ + 1f),
+                        new Vector3(worldX + 1f, highHeight, worldZ + 1f),
+                        new Vector3(worldX, highHeight, worldZ + 1f),
+                        uMin, uMax, vMin, vMax, tint);
                     break;
                 case 1:
-                    northRight = lowHeight;
-                    southRight = lowHeight;
+                    AddQuad(vertices, uvs, triangles, colors,
+                        new Vector3(worldX + 1f, baseHeight, worldZ),
+                        new Vector3(worldX + 1f, baseHeight, worldZ + 1f),
+                        new Vector3(worldX + 1f, lowHeight, worldZ),
+                        new Vector3(worldX + 1f, lowHeight, worldZ + 1f),
+                        uMin, uMax, vMin, vMax, tint);
+                    AddQuad(vertices, uvs, triangles, colors,
+                        new Vector3(worldX, baseHeight, worldZ + 1f),
+                        new Vector3(worldX, baseHeight, worldZ),
+                        new Vector3(worldX, highHeight, worldZ + 1f),
+                        new Vector3(worldX, highHeight, worldZ),
+                        uMin, uMax, vMin, vMax, tint);
                     break;
                 case 2:
-                    southLeft = lowHeight;
-                    southRight = lowHeight;
+                    AddQuad(vertices, uvs, triangles, colors,
+                        new Vector3(worldX + 1f, baseHeight, worldZ + 1f),
+                        new Vector3(worldX, baseHeight, worldZ + 1f),
+                        new Vector3(worldX + 1f, lowHeight, worldZ + 1f),
+                        new Vector3(worldX, lowHeight, worldZ + 1f),
+                        uMin, uMax, vMin, vMax, tint);
+                    AddQuad(vertices, uvs, triangles, colors,
+                        new Vector3(worldX, baseHeight, worldZ),
+                        new Vector3(worldX + 1f, baseHeight, worldZ),
+                        new Vector3(worldX, highHeight, worldZ),
+                        new Vector3(worldX + 1f, highHeight, worldZ),
+                        uMin, uMax, vMin, vMax, tint);
                     break;
-                case 3:
-                    northLeft = lowHeight;
-                    southLeft = lowHeight;
+                default:
+                    AddQuad(vertices, uvs, triangles, colors,
+                        new Vector3(worldX, baseHeight, worldZ + 1f),
+                        new Vector3(worldX, baseHeight, worldZ),
+                        new Vector3(worldX, lowHeight, worldZ + 1f),
+                        new Vector3(worldX, lowHeight, worldZ),
+                        uMin, uMax, vMin, vMax, tint);
+                    AddQuad(vertices, uvs, triangles, colors,
+                        new Vector3(worldX + 1f, baseHeight, worldZ),
+                        new Vector3(worldX + 1f, baseHeight, worldZ + 1f),
+                        new Vector3(worldX + 1f, highHeight, worldZ),
+                        new Vector3(worldX + 1f, highHeight, worldZ + 1f),
+                        uMin, uMax, vMin, vMax, tint);
                     break;
             }
-
-            AddQuad(
-                vertices,
-                uvs,
-                triangles,
-                colors,
-                new Vector3(worldX, baseHeight, worldZ),
-                new Vector3(worldX + 1f, baseHeight, worldZ),
-                new Vector3(worldX, northLeft, worldZ),
-                new Vector3(worldX + 1f, northRight, worldZ),
-                uMin,
-                uMax,
-                vMin,
-                vMax,
-                tint);
-            AddQuad(
-                vertices,
-                uvs,
-                triangles,
-                colors,
-                new Vector3(worldX + 1f, baseHeight, worldZ),
-                new Vector3(worldX + 1f, baseHeight, worldZ + 1f),
-                new Vector3(worldX + 1f, northRight, worldZ),
-                new Vector3(worldX + 1f, southRight, worldZ + 1f),
-                uMin,
-                uMax,
-                vMin,
-                vMax,
-                tint);
-            AddQuad(
-                vertices,
-                uvs,
-                triangles,
-                colors,
-                new Vector3(worldX + 1f, baseHeight, worldZ + 1f),
-                new Vector3(worldX, baseHeight, worldZ + 1f),
-                new Vector3(worldX + 1f, southRight, worldZ + 1f),
-                new Vector3(worldX, southLeft, worldZ + 1f),
-                uMin,
-                uMax,
-                vMin,
-                vMax,
-                tint);
-            AddQuad(
-                vertices,
-                uvs,
-                triangles,
-                colors,
-                new Vector3(worldX, baseHeight, worldZ + 1f),
-                new Vector3(worldX, baseHeight, worldZ),
-                new Vector3(worldX, southLeft, worldZ + 1f),
-                new Vector3(worldX, northLeft, worldZ),
-                uMin,
-                uMax,
-                vMin,
-                vMax,
-                tint);
         }
 
         private static void AddPillar(

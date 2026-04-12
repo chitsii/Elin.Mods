@@ -1,6 +1,7 @@
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using Elin_Elinikki.Quest;
 using HarmonyLib;
 using UnityEngine;
 
@@ -28,6 +29,7 @@ namespace Elin_Elinikki
             ElinikkiSelfTestRunner.EnsureCreated();
             ElinikkiVisualDumpManager.EnsureCreated();
             ElinikkiAutomationManager.EnsureCreated();
+            QuestBootstrap.Initialize(Logger);
             Logger.LogInfo($"{ModName} v{ModVersion} loaded.");
         }
 

@@ -9,7 +9,7 @@ Phase 1: Quest infrastructure foundation
 
 ### Phase 1: Quest infrastructure foundation
 - [x] Task 1.1: Copy Elin_QuestMod src/ into Elin_Elinikki/src/Quest/
-- [ ] Task 1.2: Update csproj, package.xml, Plugin.cs
+- [x] Task 1.2: Update csproj, package.xml, Plugin.cs
 - [ ] Task 1.3: Define ElinikkiQuestStage enum
 - [ ] Task 1.4: Rewrite QuestFlow as ElinikkiQuestFlow
 - [ ] Task 1.5: Fame-5000 gate in Patch_Zone_Activate_QuestPulse
@@ -74,3 +74,14 @@ Phase 1: Quest infrastructure foundation
   renamed namespaces (Elin_QuestMod -> Elin_Elinikki.Quest), renamed class Plugin -> QuestBootstrap
   and ModLog -> QuestModLog to avoid collision with existing Elinikki classes. Added Reflex.dll
   reference to csproj. build.bat debug passes (0 warnings, 0 errors).
+- 2026-04-13: Task 1.2 complete. Rewrote QuestBootstrap.cs as a static non-MonoBehaviour class,
+  removed [BepInPlugin] attribute so it is no longer a standalone BepInEx plugin. Added
+  QuestStateService.SetDefaultPrefix() so the flag prefix decouples from the BepInEx ModGuid
+  "chitsii.elin_elinikki". Main Plugin.Awake() now calls QuestBootstrap.Initialize(Logger)
+  after Harmony PatchAll (which already picks up patches in Elin_Elinikki.Quest.Patches via
+  whole-assembly scan). package.xml unchanged — it already describes Elinikki correctly.
+  Codex review flagged a P1 issue: initially set FlagPrefix to "chitsii.elinikki.quest" but
+  QuestStateService built-in local keys already carry a `quest.` segment (quest.current_phase,
+  quest.done.*, quest.active.*), producing doubled `chitsii.elinikki.quest.quest.*` keys.
+  Fixed by setting FlagPrefix = "chitsii.elinikki" so full keys match the story spec
+  `chitsii.elinikki.quest.*`. build.bat debug passes (0 warnings, 0 errors).

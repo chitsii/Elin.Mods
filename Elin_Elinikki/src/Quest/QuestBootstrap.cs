@@ -1,39 +1,58 @@
 using System;
-using BepInEx;
+using BepInEx.Logging;
 using Elin_Elinikki.Quest.Drama;
-using HarmonyLib;
+using Elin_Elinikki.Quest.Quest;
 #if DEBUG
 using Elin_Elinikki.Quest.DebugTools;
 #endif
 
 namespace Elin_Elinikki.Quest
 {
-    // NOTE: BepInPlugin attribute intentionally left in place for Task 1.2 integration.
-    // Task 1.2 will remove this class's BepInPlugin role and call QuestBootstrap from
-    // the main Elin_Elinikki.Plugin lifecycle. ModGuid will be replaced at the same time.
-    [BepInPlugin(ModGuid, "Quest Mod Skeleton", "0.1.0")]
-    public sealed class QuestBootstrap : BaseUnityPlugin
+    /// <summary>
+    /// Quest subsystem bootstrapper. Not a BepInEx plugin — the main
+    /// <see cref="Elin_Elinikki.Plugin"/> is the sole plugin entry point. Main
+    /// Plugin.Awake() calls <see cref="Initialize"/> after its Harmony PatchAll,
+    /// which already picks up the patches under Elin_Elinikki.Quest.Patches
+    /// because PatchAll scans the whole assembly.
+    /// </summary>
+    public static class QuestBootstrap
     {
-        public const string ModGuid = "yourname.elin_quest_mod";
+        /// <summary>
+        /// Canonical flag prefix for all Elinikki quest flags. The spec in
+        /// `story/chapters/_index.md` writes full keys as `chitsii.elinikki.quest.*`,
+        /// and QuestStateService already supplies the `quest.` segment in its local
+        /// keys (e.g. `quest.current_phase`, `quest.done.*`, `quest.active.*`).
+        /// So the prefix must be `chitsii.elinikki` — adding a trailing `.quest`
+        /// would double up to `chitsii.elinikki.quest.quest.*`.
+        /// Keep this in sync with `story/chapters/_index.md` if the spec changes.
+        /// </summary>
+        public const string FlagPrefix = "chitsii.elinikki";
 
-        private void Awake()
+        private static bool _initialized;
+
+        public static void Initialize(ManualLogSource logger)
         {
-            QuestModLog.SetLogger(Logger);
+            if (_initialized)
+            {
+                return;
+            }
+
+            QuestModLog.SetLogger(logger);
 
             try
             {
-                DramaRuntime.ConfigureResolver(new QuestDramaResolver(new GameQuestDramaRuntimeContext()));
-
-                var harmony = new Harmony(ModGuid);
-                harmony.PatchAll();
+                QuestStateService.SetDefaultPrefix(FlagPrefix);
+                DramaRuntime.ConfigureResolver(
+                    new QuestDramaResolver(new GameQuestDramaRuntimeContext()));
 #if DEBUG
                 QuestModDebugConsole.Register();
 #endif
-                QuestModLog.Info("Quest mod skeleton initialized.");
+                QuestModLog.Info("Elinikki quest subsystem initialized. flag prefix=" + FlagPrefix);
+                _initialized = true;
             }
             catch (Exception ex)
             {
-                QuestModLog.Error("Harmony patch failed: " + ex.Message);
+                QuestModLog.Error("Quest subsystem init failed: " + ex.Message);
             }
         }
     }

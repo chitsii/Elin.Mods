@@ -17,8 +17,29 @@ namespace Elin_Elinikki.Quest.Quest
         private const string LocalBootstrap = "quest.bootstrap";
         private const string LocalDispatch = "quest.dispatch";
 
+        // Default prefix override. Set by host mod (e.g. QuestBootstrap.Initialize)
+        // so that flag keys do not depend on the BepInEx ModGuid, which may contain
+        // characters unsuitable for flag namespaces.
+        private static string _defaultPrefixOverride;
+
+        /// <summary>
+        /// Sets the default prefix used when building flag keys. Host mods should call
+        /// this once at startup with their canonical flag prefix (e.g.
+        /// "chitsii.elinikki.quest"). Passing null or empty restores the fallback that
+        /// reads from the main Plugin's ModGuid.
+        /// </summary>
+        public static void SetDefaultPrefix(string prefix)
+        {
+            _defaultPrefixOverride = string.IsNullOrWhiteSpace(prefix) ? null : prefix;
+        }
+
         public static string GetDefaultPrefix()
         {
+            if (!string.IsNullOrWhiteSpace(_defaultPrefixOverride))
+            {
+                return NormalizePrefix(_defaultPrefixOverride);
+            }
+
             string modId = Plugin.ModGuid;
             if (string.IsNullOrWhiteSpace(modId))
             {

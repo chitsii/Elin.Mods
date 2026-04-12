@@ -11,7 +11,7 @@ Phase 1: Quest infrastructure foundation
 - [x] Task 1.1: Copy Elin_QuestMod src/ into Elin_Elinikki/src/Quest/
 - [x] Task 1.2: Update csproj, package.xml, Plugin.cs
 - [x] Task 1.3: Define ElinikkiQuestStage enum
-- [ ] Task 1.4: Rewrite QuestFlow as ElinikkiQuestFlow
+- [x] Task 1.4: Rewrite QuestFlow as ElinikkiQuestFlow
 - [ ] Task 1.5: Fame-5000 gate in Patch_Zone_Activate_QuestPulse
 - [ ] Task 1.6: Verify build.bat debug
 
@@ -94,3 +94,41 @@ Phase 1: Quest infrastructure foundation
   and silently bypass the spec'd `chitsii.elinikki.quest.stage` key. Fixed by introducing
   a dedicated local key `quest.stage` via QuestStateService.BuildFlagKey + GetFlagInt/SetFlagInt.
   AdvanceToStage enforces forward-only transitions. build.bat debug passes (0 warnings, 0 errors).
+- 2026-04-13: Task 1.4 complete. Replaced the template QuestFlow.cs with ElinikkiQuestFlow.cs.
+  Also created ElinikkiZoneIds.cs with canonical zone content-id constants. Removed the old
+  QuestFlow.cs entirely (its Intro/Followup dispatch pattern does not apply to a single-quest
+  chapter mod). Updated Patch_Zone_Activate_QuestPulse and GameQuestDramaRuntimeContext to call
+  ElinikkiQuestFlow.Pulse() instead of QuestFlow.Pulse().
+
+  Drama integration: extended QuestDramaResolver with Elinikki-specific keys:
+    - `state.elinikki.stage.at_least.<stage_name>` (TryResolveBool)
+    - `cmd.elinikki.stage.advance.<stage_name>` (TryExecute)
+  Both parse snake_case stage names via SnakeCaseToPascalCase + Enum.TryParse.
+  This lets drama scripts gate content by current stage and trigger drama-driven transitions
+  (Accepted, YuuFound, EndingSeen).
+
+  Zone rule model: ZoneStageRule with (Predecessor, Target, RequirePreviousZoneId). Rules are
+  registered in QuestBootstrap.Initialize via ElinikkiQuestFlow.RegisterDefaultZoneRules().
+  Pulse() reads the current zone, looks up rules, and fires the first one whose predecessor
+  matches current stage AND whose previous-zone gate (if set) matches the player's last zone.
+
+  Codex review took 3 rounds on this task:
+    * Round 1: [P1] drama runtime had no way to reach TryAdvanceStage — fixed by extending
+      QuestDramaResolver with Elinikki-specific keys.
+    * Round 1: [P1] zone stage map was empty (no callers to RegisterZoneStage) — fixed by
+      adding ElinikkiZoneIds constants and RegisterDefaultZoneRules() called from
+      QuestBootstrap.Initialize.
+    * Round 1: [P2] zone rule semantics were too permissive for reused zones — fixed by
+      adding the Predecessor gate in ZoneStageRule.
+    * Round 2: [P1] off-by-one. Initially attached "LayerNClear" to the entry of the same
+      layer (e.g. entering Waterstone from Accepted -> Layer1Clear), but Pulse() runs on
+      the DESTINATION zone so that fires on the first frame of chapter 1, not when chapter
+      1 ends. Fixed by moving rules to the NEXT zone (entering Echo from Accepted ->
+      Layer1Clear, entering Bloom from Layer1Clear -> Layer2Clear, entering YuuCamp from
+      Layer2Clear -> Layer3Clear).
+    * Round 3: [P2] NefiaEntrance rule would fire on any teleport back to the entrance
+      (recall, world map, etc.) once the player reached YuuFound. Fixed by adding an optional
+      RequirePreviousZoneId to ZoneStageRule plus a _lastObservedZoneId snapshot in Pulse(),
+      so the Returned transition only fires when coming directly from YuuCamp.
+
+  build.bat debug passes (0 warnings, 0 errors) after each round.

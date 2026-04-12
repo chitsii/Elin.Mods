@@ -44,6 +44,7 @@ namespace Elin_Elinikki.Quest
                 QuestStateService.SetDefaultPrefix(FlagPrefix);
                 DramaRuntime.ConfigureResolver(
                     new QuestDramaResolver(new GameQuestDramaRuntimeContext()));
+                ElinikkiQuestFlow.RegisterDefaultZoneRules();
 #if DEBUG
                 QuestModDebugConsole.Register();
 #endif

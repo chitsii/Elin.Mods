@@ -1,10 +1,21 @@
 using System;
+using Elin_Elinikki.Quest.Quest;
 
 namespace Elin_Elinikki.Quest.Drama
 {
     /// <summary>
-    /// QuestMod local resolver for drama dependency keys.
-    /// Each copied mod can keep its own resolver/context implementation.
+    /// Elinikki drama dependency resolver. Handles both the generic template
+    /// keys inherited from Elin_QuestMod (cmd.quest.*, state.quest.*, fx.pc.*,
+    /// cue.*) and the Elinikki-specific stage machine keys:
+    ///
+    /// - <c>state.elinikki.stage.at_least.&lt;stage_name&gt;</c> — returns true
+    ///   if the current quest stage is at least the named stage. Stage names
+    ///   are the <see cref="ElinikkiQuestStage"/> members, snake_case lower
+    ///   (e.g. <c>accepted</c>, <c>layer1_clear</c>, <c>yuu_found</c>).
+    /// - <c>cmd.elinikki.stage.advance.&lt;stage_name&gt;</c> — advances the
+    ///   quest to the named stage via <see cref="ElinikkiQuestFlow.TryAdvanceStage"/>.
+    ///   Forward-only: a key targeting an earlier stage is a no-op (returns true
+    ///   so the drama continues).
     /// </summary>
     public sealed class QuestDramaResolver : IDramaDependencyResolver
     {
@@ -20,6 +31,20 @@ namespace Elin_Elinikki.Quest.Drama
             value = false;
             if (string.IsNullOrEmpty(key))
             {
+                return false;
+            }
+
+            const string elinikkiStageAtLeastPrefix = "state.elinikki.stage.at_least.";
+            if (key.StartsWith(elinikkiStageAtLeastPrefix, StringComparison.Ordinal))
+            {
+                string stageName = key.Substring(elinikkiStageAtLeastPrefix.Length);
+                if (TryParseStage(stageName, out ElinikkiQuestStage target))
+                {
+                    ElinikkiQuestStage current = ElinikkiQuestStageExtensions.GetCurrentStage();
+                    value = (int)current >= (int)target;
+                    return true;
+                }
+
                 return false;
             }
 
@@ -78,6 +103,23 @@ namespace Elin_Elinikki.Quest.Drama
         {
             if (string.IsNullOrEmpty(key))
             {
+                return false;
+            }
+
+            const string elinikkiStageAdvancePrefix = "cmd.elinikki.stage.advance.";
+            if (key.StartsWith(elinikkiStageAdvancePrefix, StringComparison.Ordinal))
+            {
+                string stageName = key.Substring(elinikkiStageAdvancePrefix.Length);
+                if (TryParseStage(stageName, out ElinikkiQuestStage target))
+                {
+                    // TryAdvanceStage returns false when target is not strictly
+                    // greater than the current stage; that is still a "success"
+                    // from the drama's perspective (the requested state holds),
+                    // so we return true regardless.
+                    ElinikkiQuestFlow.TryAdvanceStage(target);
+                    return true;
+                }
+
                 return false;
             }
 
@@ -203,6 +245,54 @@ namespace Elin_Elinikki.Quest.Drama
 
             _ctx.PlayPcEffect(effectPart, soundPart);
             return true;
+        }
+
+        /// <summary>
+        /// Parses a stage name from a drama key suffix. Accepts snake_case
+        /// lower (e.g. <c>layer1_clear</c>, <c>yuu_found</c>) and maps to the
+        /// corresponding <see cref="ElinikkiQuestStage"/> member. Returns
+        /// false if the suffix is empty or does not match any stage.
+        /// </summary>
+        private static bool TryParseStage(string stageName, out ElinikkiQuestStage stage)
+        {
+            stage = ElinikkiQuestStage.NotStarted;
+            if (string.IsNullOrWhiteSpace(stageName))
+            {
+                return false;
+            }
+
+            // Normalize snake_case -> PascalCase for Enum.TryParse.
+            // e.g. layer1_clear -> Layer1Clear, yuu_found -> YuuFound.
+            string normalized = SnakeCaseToPascalCase(stageName);
+            return Enum.TryParse(normalized, ignoreCase: true, result: out stage)
+                && Enum.IsDefined(typeof(ElinikkiQuestStage), stage);
+        }
+
+        private static string SnakeCaseToPascalCase(string snake)
+        {
+            if (string.IsNullOrEmpty(snake))
+            {
+                return string.Empty;
+            }
+
+            var parts = snake.Split('_');
+            var sb = new System.Text.StringBuilder();
+            for (int i = 0; i < parts.Length; i++)
+            {
+                string part = parts[i];
+                if (part.Length == 0)
+                {
+                    continue;
+                }
+
+                sb.Append(char.ToUpperInvariant(part[0]));
+                if (part.Length > 1)
+                {
+                    sb.Append(part.Substring(1));
+                }
+            }
+
+            return sb.ToString();
         }
     }
 

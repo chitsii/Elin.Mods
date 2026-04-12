@@ -51,7 +51,7 @@ namespace Elin_Elinikki.Quest.Patches
         {
             try
             {
-                QuestFlow.Pulse();
+                ElinikkiQuestFlow.Pulse();
             }
             catch (Exception ex)
             {

@@ -147,7 +147,7 @@ namespace Elin_Elinikki.Quest.Drama
             {
                 case "cue.questmod.placeholder_pulse":
                 case "cue.questmod.feature_showcase_pulse":
-                    QuestFlow.Pulse();
+                    ElinikkiQuestFlow.Pulse();
                     return true;
                 default:
                     return false;

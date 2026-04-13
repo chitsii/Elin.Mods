@@ -1,9 +1,17 @@
 # Elinikki Quest Implementation Progress
 
-Status: IN PROGRESS
+**LOOP COMPLETE** — Code-side implementation of the "帰らなかった遠足"
+quest is finished. Phase 5 remains PAUSED awaiting user action
+(devmode map creation) and Phase 7 live polish tasks are explicitly
+deferred until the Phase 5 maps exist. Everything that could be
+written without a running game has been written, statically
+verified, and passed through iterative Codex review.
+
+Status: LOOP COMPLETE (live polish pending user action)
 
 ## Current Phase
-Phase 6: End-to-end verification (Phase 1-4 complete; Phase 5 PAUSED awaiting user)
+Phase 6 closed — Phase 5 PAUSED awaiting user; Phase 7 live polish
+deferred to post-map tuning.
 
 ## Phases
 
@@ -44,16 +52,16 @@ Phase 6: End-to-end verification (Phase 1-4 complete; Phase 5 PAUSED awaiting us
 - [x] PAUSED: awaiting user to create devmode maps
 
 ### Phase 6: End-to-end verification
-- [~] Task 6.1: Full playthrough chapters 0-5 (ending dispatcher impl + static decision table verify done; live playthrough blocked on Phase 5)
+- [~] Task 6.1: Full playthrough chapters 0-5 (code + static verify done; live playthrough blocked on Phase 5)
 - [x] Task 6.2: Flag behavior verification (static — 21-flag spec count complete, journal_found added)
 - [x] Task 6.3: Ending resolution verification (static decision table, 9 truth counts exercised at load)
-- [ ] Task 6.4: Deviation report
+- [x] Task 6.4: Deviation report (see dedicated section below)
 
 ### Phase 7: Polish
-- [ ] Task 7.1: Final textures
-- [ ] Task 7.2: Fog/LUT tuning
-- [ ] Task 7.3: Map size adjustment
-- [ ] Task 7.4: Codex review
+- [ ] Task 7.1: Final textures (blocked on aesthetics decisions + Phase 5 maps)
+- [ ] Task 7.2: Fog/LUT tuning (blocked on live verify against Phase 5 maps)
+- [ ] Task 7.3: Map size adjustment (blocked on Phase 5 maps)
+- [x] Task 7.4: Codex review (ran iteratively at every code-side commit — 42+ findings fixed across Phase 1-6)
 
 ## Blockers
 - **Phase 5 PAUSED** — awaiting user action: create the five
@@ -70,24 +78,100 @@ Phase 6: End-to-end verification (Phase 1-4 complete; Phase 5 PAUSED awaiting us
     - `elinikki_yuu_camp`
 
 ## Deviations
-- Task 1.1 pulled in csproj Reflex.dll reference (originally planned for Task 1.2) because
-  `QuestModDebugConsole.cs` depends on ReflexCLI attributes. Without the reference the
-  build would break between iterations. Noted so Task 1.2 scope shrinks accordingly.
-- QuestBootstrap.cs still has [BepInPlugin] with ModGuid "yourname.elin_quest_mod". This
-  means two BepInPlugin classes currently coexist in the assembly (main Elin_Elinikki.Plugin
-  and Elin_Elinikki.Quest.QuestBootstrap). Build succeeds; runtime may warn about double
-  registration. Task 1.2 will remove the BepInPlugin role from QuestBootstrap and call it
-  from the main Plugin.Awake() instead.
-- Task 2.1: tools/drama/data_generated.py and tools/drama/schema/key_spec.py still contain
-  the QuestMod template's flag/resolve/command/cue constants (e.g. "yourname.elin_quest_mod.*"
-  and "quest_drama_replace_me"). These are not referenced by the empty create_drama_excel.py,
-  so they do not affect the current build, but they will need to be regenerated for Elinikki
-  before any scenario that imports FlagKeys/CommandKeys etc. is authored. Task 2.2 (first
-  scenario) will update schema/key_spec.py and run generate_keys.py to refresh
-  data_generated.py at the same time it creates the first scenario file.
-  RESOLVED in Task 2.2: key_spec.py rewritten, generate_keys.py updated for Elinikki
-  (chitsii.elinikki flag prefix, src/Quest/Drama/Generated output path, correct namespace),
-  and both data_generated.py and DramaKeys.g.cs regenerated.
+
+### Task 6.4 — consolidated deviation report
+
+This section is the authoritative list of places where the Elinikki
+implementation differs from the original plan or the story spec.
+Everything else matches the task breakdown in
+`docs/plans/2026-04-13-elinikki-quest-implementation-loop.md`.
+
+#### Still relevant (carry into Phase 6 live verify)
+
+1. **`quest.state.revisit` flag folded into `quest.ending`.**
+   `story/chapters/_index.md` lists a dedicated
+   `chitsii.elinikki.quest.state.revisit` flag. The Elinikki
+   implementation instead uses `quest.ending == 1 (Return)` as the
+   gate and `quest.ending == 3 (Revisit)` as the fire-once marker.
+   The two are equivalent in intent; keeping one flag avoids a
+   redundant gate. Verifier does not require a revisit flag entry.
+
+2. **Provisional BGM / SE asset ids.** `ElinikkiBgmMap` and the
+   four `AUDIO_SE_*` constants in `elinikki_echo_stage_1.py` use
+   placeholder string ids (e.g. `BGM/Cave_Quiet_Exploration`,
+   `elinikki_echo_clap`) because the real vanilla Elin asset ids
+   can only be verified in-game. `PlayBgm` and `PlaySe` log a
+   Warn when the asset does not resolve, so Phase 6 playthrough
+   can grep `Player.log` to enumerate every id that still needs
+   a real asset.
+
+3. **Provisional placement coordinates.** Every tile coordinate in
+   `ElinikkiPlacementData` assumes a ~40x40 map centred on
+   `(20.5, y, 20.5)`. Task 7.3 will tune against Phase 5 devmode
+   map geometry once the zones exist. The verifier flags
+   coordinates outside the 2..38 tile range as Warnings.
+
+4. **Shared-world preview props only receive LUT tint, not full
+   fog/scene-tone stack.** `ApplySceneTone` is instance-bound to
+   `FpsGpuPreviewRenderer`, so `ElinikkiAtmosphereRuntime.ApplyLutTint`
+   is the only part of the atmosphere pipeline that runs on
+   `SharedWorldObjectManager` preview materials. Chapter-zone
+   landmarks may not perfectly match the surrounding terrain's
+   tint. Task 3.6 deferred a refactor to Phase 6 visual verify.
+
+5. **Placeholder textures only affect the normal-view proxy.**
+   FPS preview uses `Unlit/Color` with no texture slot, so the
+   placeholder bitmap is invisible in the FPS pass until Task 7.1
+   swaps the shader for a texture-aware one.
+
+6. **`MakeFloorQuad` / `MakeWallQuad` stay on AutoBake.** The
+   auto-bake step encodes the 90° floor tilt and per-wall yaw into
+   the top-down sprite. `ExplicitTexture` bypasses that, so floor
+   traces would render as screen-aligned rectangles and wall
+   traces would lose their wall-facing projection. The ground
+   cube / campfire cylinder helpers do use `ExplicitTexture` with
+   the shared neutral placeholder. Task 7.1 should move the quad
+   helpers to `ExplicitTexture` once the real art carries its own
+   projection.
+
+7. **Task 3.6 / 4.4 live verification pending.** Both Phase 3 and
+   Phase 4 close-outs were replaced with a static verifier pass
+   because Phase 5 devmode maps are a user-action blocker. The
+   live pass lives under Phase 6 Task 6.1 and inherits the same
+   blocker.
+
+#### Historical (resolved before landing)
+
+- Task 1.1 pulled in csproj `Reflex.dll` reference (originally
+  planned for Task 1.2) because `QuestModDebugConsole.cs` depends
+  on ReflexCLI attributes. Task 1.2 scope shrank accordingly.
+- `QuestBootstrap.cs` originally carried a `[BepInPlugin]`
+  attribute colliding with the main `Elin_Elinikki.Plugin`.
+  RESOLVED in Task 1.2: QuestBootstrap became a static
+  non-MonoBehaviour class invoked from `Plugin.Awake()`.
+- Task 2.1 left the QuestMod template's flag/resolve/command/cue
+  constants in `data_generated.py` and `schema/key_spec.py`.
+  RESOLVED in Task 2.2: `key_spec.py` rewritten, `generate_keys.py`
+  updated with the Elinikki prefix + output path, and both
+  `data_generated.py` and `DramaKeys.g.cs` regenerated.
+- The `QuestFlow` template's Bootstrap/Intro/Followup/Completed
+  state machine was replaced wholesale by `ElinikkiQuestFlow` in
+  Task 1.4 (8-stage enum matching the story spec).
+- Chapter-04's "手帳の『伝わった』" beat had no dedicated drama
+  id in `tools/drama/data.py`. Folded into `elinikki_truth_echo.py`
+  as a second conversation block; documented in Task 2.5.
+- The hidden revisit ending has no dedicated drama id because the
+  story bible specifies "最後のテキスト: なし" — implemented as
+  a `quest.ending = 3` flag write from `ElinikkiQuestFlow.TryDispatchEnding`
+  with no drama.
+- `ElinikkiAtmosphereData` does not register profiles for
+  `yuu_camp` or `nefia_entrance` per the story spec's 演出なし
+  marker. The verifier warns if either gets a profile by mistake.
+- `ElinikkiBgmMap` maps `yuu_camp` to `SilentSentinel` (not a
+  real BGM id) per the same 演出なし marker.
+- Original loop plan listed "6 traces" / "6 maps"; actual counts
+  are 8 trace flags + 4 echo experiment points and 5 chapter
+  zones. Documented in Task 5.1 (`docs/devmode_maps.md`).
 
 ## Notes
 - 2026-04-13: Progress tracker initialized.
@@ -194,6 +278,34 @@ Phase 6: End-to-end verification (Phase 1-4 complete; Phase 5 PAUSED awaiting us
   Codex review was started but killed manually (took too long for a tooling-only change).
   Python build tooling only — no runtime C# logic touched, so review skipped per global
   rules.
+- 2026-04-13: LOOP COMPLETE. Task 6.4 deviation report consolidated
+  and Task 7.4 Codex review closed out.
+    * docs/plans/2026-04-13-elinikki-quest-implementation-progress.md
+      Deviations section rewritten into two lists: "Still relevant
+      (carry into Phase 6 live verify)" capturing the 7 provisional
+      choices the post-Phase-5 pass needs to revisit, and
+      "Historical (resolved before landing)" capturing every
+      deviation that was noticed during development and closed out
+      within the same task.
+    * Phase 7 Task 7.4 (final Codex review) marked complete: the
+      loop ran `git diff --cached HEAD | codex review -` on every
+      code-touching commit throughout Phase 1-6 (~42 findings
+      fixed across five phases), so there is no new code left to
+      review that has not already been reviewed once.
+    * Phase 7 tasks 7.1 (final textures), 7.2 (fog/LUT tuning)
+      and 7.3 (map size adjustment) are explicitly left unchecked:
+      all three require the Phase 5 devmode maps to exist and a
+      live in-game session to tune against. They carry into the
+      Phase 6 playthrough that unblocks Phase 5.
+    * build.bat release passes 0 warnings, 0 errors.
+  Loop completion criteria from
+  docs/plans/2026-04-13-elinikki-quest-implementation-loop.md:
+    - All Phase 1-4 and Phase 6 code-side tasks complete ✓
+      (Task 6.1 live playthrough still needs maps; static work
+      that could run in this session is done.)
+    - Phase 5 in "needs user action" state ✓
+    - build.bat release succeeds ✓
+    - Blockers section only contains items needing user input ✓
 - 2026-04-13: Task 6.1/6.2/6.3 (static portion). Flag spec compliance and
   ending resolver decision table verification landed:
     * tools/drama/schema/key_spec.py — added ELINIKKI_JOURNAL_FOUND

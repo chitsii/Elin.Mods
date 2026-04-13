@@ -194,12 +194,18 @@ namespace Elin_Elinikki.Quest.Drama
 
                 if (data is BGMData bgm)
                 {
+                    // Start playback first, then latch the drama
+                    // audio flags. Elin's built-in drama BGM action
+                    // uses the same order: a failing PlayBGM call
+                    // must not leave the drama layer in a "custom
+                    // BGM active" state, because SoundManager's
+                    // funcCanPlayBGM and ActorEx.keepAmbientBGM both
+                    // key off those flags and would suppress the
+                    // zone playlist + ambient actors for no reason.
+                    manager.PlayBGM(bgm);
+
                     LayerDrama.haltPlaylist = true;
                     LayerDrama.maxBGMVolume = true;
-                    // Mark the drama's bgmChanged flag so ActorEx's
-                    // keepAmbientBGM check suppresses nearby
-                    // jukebox/ambient actors under the custom track.
-                    // The built-in drama BGM command does the same.
                     try
                     {
                         var dramaInstance = LayerDrama.Instance?.drama;
@@ -215,7 +221,6 @@ namespace Elin_Elinikki.Quest.Drama
                             + markEx.Message);
                     }
 
-                    manager.PlayBGM(bgm);
                     QuestModLog.Info("QuestBridge.PlayBgm: started (" + bgmId + ")");
                     return true;
                 }
@@ -260,6 +265,22 @@ namespace Elin_Elinikki.Quest.Drama
                 }
 
                 manager.StopBGM();
+
+                // Elin's built-in stopBGM action also clears
+                // currentBGM. Without this, AI_PlayMusic and other
+                // core systems still apply ducking/jingle timing
+                // against a track that has already been stopped.
+                try
+                {
+                    manager.currentBGM = null;
+                }
+                catch (Exception clearEx)
+                {
+                    QuestModLog.Warn(
+                        "QuestBridge.StopBgm: currentBGM clear failed: "
+                        + clearEx.Message);
+                }
+
                 QuestModLog.Info("QuestBridge.StopBgm: stopped BGM (playlist stays halted)");
             }
             catch (Exception ex)

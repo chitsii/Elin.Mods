@@ -263,6 +263,17 @@ namespace Elin_Elinikki.Quest.Quest
                     ElinikkiQuestStageExtensions.GetCurrentStage();
                 TryDispatchReunion(zoneId, reunionStage);
 
+                // Return journey dispatch: the YuuCamp -> NefiaEntrance
+                // zone rule just promoted YuuFound -> Returned, so the
+                // return journey drama can play on the same activation
+                // the player walks back into the entrance. The drama
+                // does not advance the stage and marks itself done via
+                // cmd.quest.complete.elinikki_return_journey so
+                // subsequent Pulses skip it.
+                ElinikkiQuestStage returnStage =
+                    ElinikkiQuestStageExtensions.GetCurrentStage();
+                TryDispatchReturnJourney(zoneId, returnStage);
+
                 // Ending dispatch runs after AdvanceForZone because
                 // the zone rules may have just promoted the stage to
                 // Returned on this same activation. Re-read the
@@ -272,6 +283,11 @@ namespace Elin_Elinikki.Quest.Quest
                 // ending can gate on an actual outside-the-Nefia
                 // re-entry rather than any re-activation of an
                 // Elinikki map (save reloads, zone edits, etc.).
+                // TryDispatchEnding itself checks that the return
+                // journey drama has already finished — on the first
+                // Returned activation that gate fails and the
+                // ending waits until the next pulse after the drama
+                // completes.
                 ElinikkiQuestStage updatedStage =
                     ElinikkiQuestStageExtensions.GetCurrentStage();
                 TryDispatchEnding(zoneId, previousZoneId, updatedStage);
@@ -356,16 +372,33 @@ namespace Elin_Elinikki.Quest.Quest
                 // start the matching drama. The drama advances the
                 // stage to EndingSeen and sets the ending flag; if
                 // it fails to start (UI busy, drama asset missing),
-                // the next Pulse will retry ONLY on an entrance
-                // re-activation — otherwise a busy first attempt
-                // could pop the ending in the player's home or on
-                // the world map the next time any zone activates.
+                // the next Pulse or hourly RetryPulse will retry —
+                // the zone gate below (zone == NefiaEntrance)
+                // keeps the ending from popping outside the
+                // entrance map.
                 if (stage != ElinikkiQuestStage.Returned
                     || currentEnding != ElinikkiEndingKind.None
                     || !string.Equals(
                            zoneId,
                            ElinikkiZoneIds.NefiaEntrance,
                            StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                // Return journey drama must finish first. The
+                // chapter-5 walk-out narration runs before the
+                // ending scene; without this gate the ending
+                // would race the return journey on the first
+                // Returned activation (TryDispatchReturnJourney
+                // starts the walk-out drama, UI becomes busy,
+                // TryDispatchEnding is skipped this tick, and
+                // only on the next pulse — after the walk-out
+                // finishes — do we actually want the ending to
+                // run). IsDramaDone flips once the return
+                // journey drama emits
+                // cmd.quest.complete.elinikki_return_journey.
+                if (!DramaContext.IsDramaDone(ReturnJourneyDramaId))
                 {
                     return;
                 }
@@ -409,6 +442,22 @@ namespace Elin_Elinikki.Quest.Quest
         /// Layer3Clear gate).
         /// </summary>
         private const string ReunionDramaId = "elinikki_reunion";
+
+        /// <summary>
+        /// Drama id for the chapter-5 return journey narration that
+        /// plays once the player walks from YuuCamp back into the
+        /// Nefia entrance. Unlike the reunion drama this one does
+        /// NOT advance <c>quest.stage</c> — the stage advances to
+        /// <see cref="ElinikkiQuestStage.Returned"/> via the zone
+        /// rule on the same activation, and the drama just narrates
+        /// the walk-out. The drama marks itself complete with
+        /// <c>cmd.quest.complete.elinikki_return_journey</c> so
+        /// <see cref="IQuestDramaRuntimeContext.IsDramaDone"/>
+        /// flips to true; that flag is the gate both for
+        /// re-dispatching this drama and for releasing
+        /// <see cref="TryDispatchEnding"/>.
+        /// </summary>
+        private const string ReturnJourneyDramaId = "elinikki_return_journey";
 
         /// <summary>
         /// Chapter-4 reunion dispatcher. Runs from <see cref="Pulse"/>
@@ -466,6 +515,78 @@ namespace Elin_Elinikki.Quest.Quest
             catch (Exception ex)
             {
                 QuestModLog.Warn("Reunion dispatch failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Chapter-5 return journey dispatcher. Runs from
+        /// <see cref="Pulse"/> after the zone rules have promoted
+        /// YuuFound -> Returned on the first NefiaEntrance entry
+        /// out of YuuCamp. Conditions:
+        /// <list type="bullet">
+        /// <item><description>The active zone is
+        /// <see cref="ElinikkiZoneIds.NefiaEntrance"/>.</description></item>
+        /// <item><description>The current stage is exactly
+        /// <see cref="ElinikkiQuestStage.Returned"/> — i.e. the
+        /// player just walked out.</description></item>
+        /// <item><description>The drama has not already been
+        /// marked complete (<see cref="IQuestDramaRuntimeContext.IsDramaDone"/>).
+        /// This is the single source of "walk-out narration
+        /// already played", checked both here and in
+        /// <see cref="TryDispatchEnding"/>.</description></item>
+        /// <item><description>No other UI layer is active.</description></item>
+        /// </list>
+        /// Uses <see cref="IQuestDramaRuntimeContext.TryStartDramaUntilComplete"/>
+        /// so an interrupted drama retries on the next Pulse /
+        /// RetryPulse until
+        /// <c>cmd.quest.complete.elinikki_return_journey</c>
+        /// fires at the drama's final step. The <c>IsDramaDone</c>
+        /// check is redundant with the same check inside
+        /// <c>TryStartDramaUntilComplete</c>, but keeping it here
+        /// lets us skip the log-chatty "skipped complete" branch
+        /// on every Pulse once the walk-out is done.
+        /// Fail-soft: any exception is caught and logged so a
+        /// drama runtime failure cannot break <see cref="Pulse"/>.
+        /// </summary>
+        private static void TryDispatchReturnJourney(
+            string zoneId,
+            ElinikkiQuestStage stage)
+        {
+            try
+            {
+                if (stage != ElinikkiQuestStage.Returned)
+                {
+                    return;
+                }
+
+                if (!string.Equals(
+                        zoneId,
+                        ElinikkiZoneIds.NefiaEntrance,
+                        StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                if (DramaContext.IsDramaDone(ReturnJourneyDramaId))
+                {
+                    return;
+                }
+
+                if (IsUiBusy())
+                {
+                    return;
+                }
+
+                QuestModLog.Info(
+                    "Elinikki return journey dispatch. zone=" + zoneId +
+                    " stage=" + stage +
+                    " drama=" + ReturnJourneyDramaId);
+
+                DramaContext.TryStartDramaUntilComplete(ReturnJourneyDramaId);
+            }
+            catch (Exception ex)
+            {
+                QuestModLog.Warn("Return journey dispatch failed: " + ex.Message);
             }
         }
 
@@ -530,6 +651,28 @@ namespace Elin_Elinikki.Quest.Quest
                 // ran. TryDispatchReunion has its own zone / stage
                 // / UI-busy guards.
                 TryDispatchReunion(zoneId, currentStage);
+
+                // Return journey drama retry: same pattern as the
+                // reunion retry. The walk-out narration may have
+                // been interrupted on its first Zone.Activate
+                // attempt (UI busy, save at the doorway, etc.).
+                // The gate inside TryDispatchReturnJourney keeps
+                // this cheap when the drama is already complete.
+                TryDispatchReturnJourney(zoneId, currentStage);
+
+                // Ending retry: after the return journey drama
+                // finishes, the player is still standing in the
+                // NefiaEntrance and no Zone.Activate will fire
+                // until they leave. Without an hourly retry the
+                // ending drama would never auto-start and the
+                // player would have to manually re-enter the
+                // zone. TryDispatchEnding's own guards (zone,
+                // stage, ending flag, IsDramaDone of the return
+                // journey) keep this safe; the previousZoneId
+                // argument is passed as null because the revisit
+                // branch requires a non-null previousZoneId and
+                // will early-out on its own.
+                TryDispatchEnding(zoneId, previousZoneId: null, stage: currentStage);
             }
             catch (Exception ex)
             {

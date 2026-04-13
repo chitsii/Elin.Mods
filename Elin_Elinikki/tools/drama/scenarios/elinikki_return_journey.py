@@ -2,9 +2,19 @@
 """
 Chapter-5 return journey drama: four waves of conversation on the walk out.
 
-Chapter 5 sections 1-2 (story/chapters/chapter-05.md). Triggered on
-entry to the nefia entrance map after yuu_found. The stage advance to
-Returned happens through the zone transition hook, not via this drama.
+Chapter 5 sections 1-2 (story/chapters/chapter-05.md). Triggered from
+``ElinikkiQuestFlow.TryDispatchReturnJourney`` on entry to the nefia
+entrance map while stage == Returned. The stage advance to Returned
+happens through the zone transition hook (the YuuCamp -> NefiaEntrance
+rule), not via this drama — the drama only narrates the walk-out and
+does not touch ``quest.stage``.
+
+At the end the drama emits ``cmd.quest.complete.elinikki_return_journey``
+so ``IQuestDramaRuntimeContext.IsDramaDone`` flips to true. That is the
+gate the C# side uses to (a) stop re-dispatching the return journey
+on subsequent Pulses and (b) unlock ``TryDispatchEnding`` — the ending
+dispatcher waits for the return journey to finish so the ending drama
+plays in the right order.
 
 Four conversation waves, paced as separate labels so a future C# side
 can re-enter at a specific wave if needed. For now all four run back
@@ -315,4 +325,11 @@ def define_elinikki_return_journey(builder: DramaBuilder) -> None:
     builder.jump(end)
 
     builder.step(end)
+    # Mark the drama complete via the generic quest-done command. The
+    # C# side consults IsDramaDone("elinikki_return_journey") from
+    # TryDispatchReturnJourney (to stop re-starting the drama) and
+    # from TryDispatchEnding (to release the ending gate). Without
+    # this call the dispatcher would keep re-launching the drama on
+    # every Pulse while the player lingers in the entrance zone.
+    builder.resolve_run("cmd.quest.complete.elinikki_return_journey")
     builder.drama_end(0.3)

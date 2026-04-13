@@ -26,7 +26,7 @@ Phase 3: SharedWorldObject zone-aware placement (Phase 1-2 complete)
 
 ### Phase 3: SharedWorldObject zone-aware placement
 - [x] Task 3.1: Zone transition hook
-- [ ] Task 3.2: Object placement data per layer
+- [x] Task 3.2: Object placement data per layer
 - [ ] Task 3.3: RemoveDefinitionsByPrefix + Upsert pipeline
 - [ ] Task 3.4: Fog/color/LUT per zone
 - [ ] Task 3.5: Placeholder textures
@@ -183,6 +183,46 @@ Phase 3: SharedWorldObject zone-aware placement (Phase 1-2 complete)
   Codex review was started but killed manually (took too long for a tooling-only change).
   Python build tooling only — no runtime C# logic touched, so review skipped per global
   rules.
+- 2026-04-13: Task 3.2 complete. Per-layer placement data authored:
+    * src/Quest/Placement/ElinikkiPlacementData.cs — internal static
+      factory that returns the 12 trace/marker primitive definitions
+      for layer_waterstone (4), layer_echo (5), layer_bloom (2), and
+      yuu_camp (1). All ids share the "elinikki/" prefix. All positions
+      are in cell-center tile-space (.5 offsets) so
+      FpsIdealizedWorld.GetSurfaceHeightAt samples the right cell.
+      Visibility = Both so the markers render in the normal top-down
+      view as well as the GPU FPS preview.
+    * Helper factories MakeFloorQuad / MakeWallQuad / MakeGroundCube
+      encapsulate Unity-primitive conventions that bit me during code
+      review:
+        - Unity's primitive Quad has normal -Z (per the official
+          PrimitiveObjects manual page). Rotating (90°, 0°, 0°)
+          remaps the normal to +Y so the front face points up;
+          after the rotation the quad's local Y becomes world Z, so
+          footprint depth must be passed via scale.y (scale.z is
+          unused because the quad has no local thickness).
+        - Wall quads take a per-placement yawDegrees parameter and
+          derive their normal-view proxy footprint from it so rotated
+          walls (echo/trace_shadow) read with their width on the
+          correct world axis.
+        - Unity's primitive Cylinder is 2 units tall by default, so
+          the campfire uses Scale.y = 0.175 for a visible 0.35-tile
+          height and lifts TilePosition.y to half of that so the
+          cylinder sits on the surface.
+        - Ground cubes are centered on their pivot, so TilePosition.y
+          must equal Scale.y / 2 for the cube bottom to rest on the
+          sampled surface.
+    * Coordinates are a provisional ~40x40 layout; Task 3.6 will
+      tune against Phase 5's real devmode maps.
+  Codex review took 6 rounds. Real issues addressed: scale.y depth
+  for floor quads, wall yaw per placement, AttachToSurface=true for
+  walls, cell-center tile-space offsets, Unity Cylinder/cube pivot
+  compensation, Visibility=Both, and wall proxy footprint rotation.
+  Codex flipped three times on the Unity Quad front-face direction;
+  resolved via the Unity manual (confirmed normal = -Z) and the math
+  in the helper's doc comment. Later iterations are not re-run against
+  codex on that point to avoid an infinite flip-flop loop.
+  Verified: build.bat debug passes 0 warnings, 0 errors.
 - 2026-04-13: Task 3.1 complete. Zone transition hook scaffold added:
     * src/Quest/Placement/ElinikkiZonePlacementManager.cs — static swap
       driver that tracks the last observed zone id and classifies each

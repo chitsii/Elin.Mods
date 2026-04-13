@@ -293,28 +293,26 @@ namespace Elin_Elinikki.Quest.Drama
         {
             try
             {
-                // Drop every drama-audio hold so Elin's scene
+                // Drop the drama-audio holds so Elin's scene
                 // playlist can start its next track on the very
                 // next funcCanPlayBGM check. Clearing currentBGM
                 // matches the built-in stopBGM action and makes
                 // AI_PlayMusic stop ducking the stale entry.
+                //
+                // NOTE: drama.bgmChanged stays latched at true.
+                // Built-in DramaManager does the same when it
+                // hands control back to the Playlist action,
+                // because ActorEx.GetVolume's keepAmbientBGM
+                // check only suppresses jukebox/ambient actors
+                // while bgmChanged is true. Clearing the flag
+                // here would re-enable those ambient sources
+                // while a LayerDrama is still mid-scene — e.g.
+                // when Patch_Zone_Activate_QuestPulse has already
+                // started a drama on the same Zone.Activate —
+                // and the ambient audio would bleed back under
+                // the dialogue.
                 LayerDrama.haltPlaylist = false;
                 LayerDrama.maxBGMVolume = false;
-
-                try
-                {
-                    var dramaInstance = LayerDrama.Instance?.drama;
-                    if (dramaInstance != null)
-                    {
-                        dramaInstance.bgmChanged = false;
-                    }
-                }
-                catch (Exception markEx)
-                {
-                    QuestModLog.Warn(
-                        "QuestBridge.ResumeNormalPlaylist: bgmChanged clear failed: "
-                        + markEx.Message);
-                }
 
                 var manager = SoundManager.current;
                 if (manager == null)

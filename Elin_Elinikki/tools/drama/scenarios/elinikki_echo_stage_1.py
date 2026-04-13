@@ -15,6 +15,16 @@ from tools.drama.data import Actors, FlagKeys
 from tools.drama.drama_builder import DramaBuilder
 
 
+# Elinikki audio command prefixes. Resolved by QuestDramaResolver
+# into SoundManager / SE playback at drama execution time. The id
+# segment is the Elin sound asset name (currently placeholder —
+# verified and tuned in Task 6.1 playthrough).
+AUDIO_SE_FOOTSTEP_ECHO = "cmd.elinikki.audio.se.play.elinikki_echo_footstep"
+AUDIO_SE_CLAP = "cmd.elinikki.audio.se.play.elinikki_echo_clap"
+AUDIO_SE_CLAP_RETURN = "cmd.elinikki.audio.se.play.elinikki_echo_return"
+AUDIO_SE_PATTERN_RETURN = "cmd.elinikki.audio.se.play.elinikki_echo_pattern"
+
+
 def define_elinikki_echo_stage_1(builder: DramaBuilder) -> None:
     mina = builder.register_actor(Actors.MINA, "Mina", "Mina")
     sora = builder.register_actor(Actors.SORA, "Sora", "Sora")
@@ -25,6 +35,11 @@ def define_elinikki_echo_stage_1(builder: DramaBuilder) -> None:
     builder.drama_start(bg_id="bg3", fade_duration=0.2)
     builder.step(start)
     builder.set_dialog_style("Window")
+    # Stage 1 is the awareness beat: the player's own footsteps
+    # come back a beat too late. Trigger the footstep echo SE once
+    # as the drama opens so the conversation below can react to
+    # what the player "just heard" in-fiction.
+    builder.resolve_run(AUDIO_SE_FOOTSTEP_ECHO)
     builder.conversation(
         [
             (

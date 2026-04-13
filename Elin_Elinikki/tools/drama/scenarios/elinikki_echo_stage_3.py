@@ -12,6 +12,10 @@ Sets chitsii.elinikki.quest.state.echo_experiment = 3 on completion.
 
 from tools.drama.data import Actors, FlagKeys
 from tools.drama.drama_builder import DramaBuilder
+from tools.drama.scenarios.elinikki_echo_stage_1 import (
+    AUDIO_SE_CLAP,
+    AUDIO_SE_CLAP_RETURN,
+)
 
 
 def define_elinikki_echo_stage_3(builder: DramaBuilder) -> None:
@@ -40,6 +44,20 @@ def define_elinikki_echo_stage_3(builder: DramaBuilder) -> None:
                 "",
                 sora,
             ),
+        ]
+    )
+    # Sora claps three times, then the 3-second echo plays three
+    # claps back. The built-in SE plays once per resolve_run, so
+    # schedule three clap SE plays and three return SE plays to
+    # match the "回数まで合ってる" line below.
+    builder.resolve_run(AUDIO_SE_CLAP)
+    builder.resolve_run(AUDIO_SE_CLAP)
+    builder.resolve_run(AUDIO_SE_CLAP)
+    builder.resolve_run(AUDIO_SE_CLAP_RETURN)
+    builder.resolve_run(AUDIO_SE_CLAP_RETURN)
+    builder.resolve_run(AUDIO_SE_CLAP_RETURN)
+    builder.conversation(
+        [
             (
                 "echo3_sora_count",
                 "ソラ:「三秒後……三回、返ってきた」",

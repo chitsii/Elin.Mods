@@ -35,7 +35,7 @@ Phase 4: Audio integration (Phase 1-3 complete)
 ### Phase 4: Audio integration
 - [x] Task 4.1: Drama commands for BGM/SE
 - [x] Task 4.2: BGM mapping per layer
-- [ ] Task 4.3: Echo SE trigger points
+- [x] Task 4.3: Echo SE trigger points
 - [ ] Task 4.4: In-game audio verification
 
 ### Phase 5: Custom map data (needs user action)
@@ -183,6 +183,32 @@ Phase 4: Audio integration (Phase 1-3 complete)
   Codex review was started but killed manually (took too long for a tooling-only change).
   Python build tooling only — no runtime C# logic touched, so review skipped per global
   rules.
+- 2026-04-13: Task 4.3 complete. Echo experiment SE trigger points:
+    * tools/drama/scenarios/elinikki_echo_stage_1.py exports four
+      AUDIO_SE_* constants that the other echo stage scripts
+      import:
+        AUDIO_SE_FOOTSTEP_ECHO   cmd.elinikki.audio.se.play.elinikki_echo_footstep
+        AUDIO_SE_CLAP            cmd.elinikki.audio.se.play.elinikki_echo_clap
+        AUDIO_SE_CLAP_RETURN     cmd.elinikki.audio.se.play.elinikki_echo_return
+        AUDIO_SE_PATTERN_RETURN  cmd.elinikki.audio.se.play.elinikki_echo_pattern
+    * Stage 1 fires the footstep-echo SE once at drama open so
+      the awareness dialogue reacts to what the player "just
+      heard" in-fiction.
+    * Stage 2 fires AUDIO_SE_CLAP + AUDIO_SE_CLAP_RETURN twice
+      (the two clap/return pairs Sora uses to notice the 3s→2s
+      mismatch).
+    * Stage 3 fires three clap SE plays followed by three return
+      plays so the "回数まで合ってる" line is anchored to actual
+      audio.
+    * Stage 4 fires the full PHM climax cadence: five clap plays
+      then one pattern-return, matching the "2→pause→3" sequence
+      from the story spec.
+    * The SE ids themselves (elinikki_echo_footstep etc.) are
+      placeholders until Task 6.1 in-game verification picks the
+      actual vanilla Elin sound assets or adds new ones; PlaySe
+      logs a Warn when the id does not resolve, so missing
+      placeholders fail loud without breaking the drama.
+  build.bat debug: 0 warnings, 0 errors.
 - 2026-04-13: Task 4.2 complete. Per-layer BGM mapping + zone-hook swap:
     * src/Quest/Placement/ElinikkiBgmMap.cs — static dictionary of
       zone id -> BGM asset id with a SilentSentinel marker for

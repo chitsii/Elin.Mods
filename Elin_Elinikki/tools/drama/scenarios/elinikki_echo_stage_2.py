@@ -12,6 +12,10 @@ Sets chitsii.elinikki.quest.state.echo_experiment = 2 on completion.
 
 from tools.drama.data import Actors, FlagKeys
 from tools.drama.drama_builder import DramaBuilder
+from tools.drama.scenarios.elinikki_echo_stage_1 import (
+    AUDIO_SE_CLAP,
+    AUDIO_SE_CLAP_RETURN,
+)
 
 
 def define_elinikki_echo_stage_2(builder: DramaBuilder) -> None:
@@ -33,6 +37,13 @@ def define_elinikki_echo_stage_2(builder: DramaBuilder) -> None:
                 "",
                 sora,
             ),
+        ]
+    )
+    # Sora's first clap + the 3-second echo return.
+    builder.resolve_run(AUDIO_SE_CLAP)
+    builder.resolve_run(AUDIO_SE_CLAP_RETURN)
+    builder.conversation(
+        [
             (
                 "echo2_sora_result_a",
                 "ソラ:「三秒。返ってきた」",
@@ -40,6 +51,13 @@ def define_elinikki_echo_stage_2(builder: DramaBuilder) -> None:
                 "",
                 sora,
             ),
+        ]
+    )
+    # Second clap + the mismatched 2-second return.
+    builder.resolve_run(AUDIO_SE_CLAP)
+    builder.resolve_run(AUDIO_SE_CLAP_RETURN)
+    builder.conversation(
+        [
             (
                 "echo2_sora_result_b",
                 "ソラ:「もう一度……今度は二秒だ」",

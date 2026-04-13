@@ -18,6 +18,10 @@ conversation with Yuu.
 
 from tools.drama.data import Actors, FlagKeys
 from tools.drama.drama_builder import DramaBuilder
+from tools.drama.scenarios.elinikki_echo_stage_1 import (
+    AUDIO_SE_CLAP,
+    AUDIO_SE_PATTERN_RETURN,
+)
 
 
 def define_elinikki_echo_stage_4(builder: DramaBuilder) -> None:
@@ -46,6 +50,20 @@ def define_elinikki_echo_stage_4(builder: DramaBuilder) -> None:
                 "",
                 sora,
             ),
+        ]
+    )
+    # The PHM climax clap pattern: two claps, pause, three claps.
+    # Task 6.1 in-game tuning will verify the SE timing; for now
+    # issue five clap plays in sequence and one pattern return
+    # to cover the "2→pause→3" cadence the story describes.
+    builder.resolve_run(AUDIO_SE_CLAP)
+    builder.resolve_run(AUDIO_SE_CLAP)
+    builder.resolve_run(AUDIO_SE_CLAP)
+    builder.resolve_run(AUDIO_SE_CLAP)
+    builder.resolve_run(AUDIO_SE_CLAP)
+    builder.resolve_run(AUDIO_SE_PATTERN_RETURN)
+    builder.conversation(
+        [
             (
                 "echo4_sora_return",
                 "ソラ:「三秒──二回返ってきた。間。三回返ってきた」",

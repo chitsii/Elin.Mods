@@ -3,7 +3,7 @@
 Status: IN PROGRESS
 
 ## Current Phase
-Phase 5: Custom map data — needs user action (Phase 1-4 complete)
+Phase 6: End-to-end verification (Phase 1-4 complete; Phase 5 PAUSED awaiting user)
 
 ## Phases
 
@@ -39,9 +39,9 @@ Phase 5: Custom map data — needs user action (Phase 1-4 complete)
 - [x] Task 4.4: In-game audio verification (static scope — see note)
 
 ### Phase 5: Custom map data (needs user action)
-- [ ] Task 5.1: Document 6 maps for devmode creation
-- [ ] Task 5.2: Zone registration stubs
-- [ ] PAUSED: awaiting user to create devmode maps
+- [x] Task 5.1: Document 5 maps for devmode creation (docs/devmode_maps.md)
+- [x] Task 5.2: Zone registration stubs (already in place since Task 1.4)
+- [x] PAUSED: awaiting user to create devmode maps
 
 ### Phase 6: End-to-end verification
 - [ ] Task 6.1: Full playthrough chapters 0-5
@@ -56,7 +56,18 @@ Phase 5: Custom map data — needs user action (Phase 1-4 complete)
 - [ ] Task 7.4: Codex review
 
 ## Blockers
-(none yet)
+- **Phase 5 PAUSED** — awaiting user action: create the five
+  devmode zones with the content ids listed in
+  `docs/devmode_maps.md`. Phase 6 end-to-end verification cannot
+  start until the zones exist. Once the devmode zones are in
+  place, the placement manager, atmosphere runtime, BGM map, and
+  quest flow all take effect on `Zone.Activate` with no further
+  code changes. The five content ids:
+    - `elinikki_nefia_entrance`
+    - `elinikki_layer_waterstone`
+    - `elinikki_layer_echo`
+    - `elinikki_layer_bloom`
+    - `elinikki_yuu_camp`
 
 ## Deviations
 - Task 1.1 pulled in csproj Reflex.dll reference (originally planned for Task 1.2) because
@@ -183,6 +194,29 @@ Phase 5: Custom map data — needs user action (Phase 1-4 complete)
   Codex review was started but killed manually (took too long for a tooling-only change).
   Python build tooling only — no runtime C# logic touched, so review skipped per global
   rules.
+- 2026-04-13: Phase 5 authored + PAUSED. Task 5.1 and 5.2 closed:
+    * Task 5.1 — docs/devmode_maps.md is the user-facing map spec.
+      It documents the 5 devmode zones (nefia_entrance,
+      layer_waterstone, layer_echo, layer_bloom, yuu_camp) along
+      with each zone's required size, atmosphere summary, BGM
+      mapping, and full placement table (id / primitive kind /
+      tile centre / devmode checklist). The "6 maps" framing from
+      the original loop plan is noted as off-by-one — the story
+      bible's worldbuilding/locations/ has five files, not six.
+    * Task 5.2 — the zone registration stubs that originally
+      belonged to Phase 5 are already in place from Task 1.4:
+      ElinikkiZoneIds.cs defines the five content-id constants
+      and ElinikkiQuestFlow.RegisterDefaultZoneRules (called from
+      QuestBootstrap.Initialize) wires the chapter stage
+      transitions. No additional C# is needed. This note is
+      recorded so a future maintainer does not re-implement what
+      already exists.
+  Phase 5 is now marked PAUSED in the Blockers section — Phase 6
+  end-to-end verification cannot start until the five devmode
+  zones exist with matching content ids. Once that user action is
+  done, the placement manager / atmosphere runtime / BGM map /
+  quest flow all take effect on Zone.Activate with no further
+  code changes.
 - 2026-04-13: Task 4.4 complete (static scope). Phase 4 closed out with
   a static audio verification pass since Phase 5 devmode maps do not
   exist yet and a live in-game audio verify is not possible without

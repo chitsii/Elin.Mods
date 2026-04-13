@@ -146,6 +146,26 @@ namespace Elin_Elinikki
             _instance.ClearHandles();
         }
 
+        /// <summary>
+        /// Removes every definition whose id starts with
+        /// <paramref name="prefix"/>. Public entry point for external
+        /// subsystems (notably <c>ElinikkiZonePlacementManager</c>)
+        /// that own a subset of the definition table and need to wipe
+        /// it atomically on state changes such as zone transitions.
+        /// A null or empty prefix is treated as a no-op to prevent
+        /// accidental blanket wipes of the whole table — call
+        /// <see cref="Clear"/> explicitly if that is what you want.
+        /// </summary>
+        public static void RemoveDefinitionsByPrefix(string prefix)
+        {
+            if (_instance == null || string.IsNullOrEmpty(prefix))
+            {
+                return;
+            }
+
+            _instance.RemoveDefinitionsByPrefixInstance(prefix);
+        }
+
         private void Awake()
         {
             if (_instance != null && _instance != this)
@@ -253,7 +273,7 @@ namespace Elin_Elinikki
         {
             if (Plugin.Settings?.EnableDreamTestSet?.Value != true)
             {
-                RemoveDefinitionsByPrefix(DemoPrefix);
+                RemoveDefinitionsByPrefixInstance(DemoPrefix);
                 _demoMap = null;
                 return;
             }
@@ -264,7 +284,7 @@ namespace Elin_Elinikki
             }
 
             _demoMap = EClass._map;
-            RemoveDefinitionsByPrefix(DemoPrefix);
+            RemoveDefinitionsByPrefixInstance(DemoPrefix);
 
             int size = EClass._map.Size;
             float centerX = Mathf.Clamp(EClass.pc.pos.x + 1.35f, 1.5f, size - 2.5f);
@@ -727,7 +747,7 @@ namespace Elin_Elinikki
             }
         }
 
-        private void RemoveDefinitionsByPrefix(string prefix)
+        private void RemoveDefinitionsByPrefixInstance(string prefix)
         {
             _scratchIds.Clear();
             foreach (KeyValuePair<string, SharedWorldPrimitiveDefinition> pair in _definitions)

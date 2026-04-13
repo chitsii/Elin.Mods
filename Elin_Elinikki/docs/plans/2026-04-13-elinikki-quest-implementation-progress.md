@@ -27,7 +27,7 @@ Phase 3: SharedWorldObject zone-aware placement (Phase 1-2 complete)
 ### Phase 3: SharedWorldObject zone-aware placement
 - [x] Task 3.1: Zone transition hook
 - [x] Task 3.2: Object placement data per layer
-- [ ] Task 3.3: RemoveDefinitionsByPrefix + Upsert pipeline
+- [x] Task 3.3: RemoveDefinitionsByPrefix + Upsert pipeline
 - [ ] Task 3.4: Fog/color/LUT per zone
 - [ ] Task 3.5: Placeholder textures
 - [ ] Task 3.6: Verify FPS visual output
@@ -183,6 +183,29 @@ Phase 3: SharedWorldObject zone-aware placement (Phase 1-2 complete)
   Codex review was started but killed manually (took too long for a tooling-only change).
   Python build tooling only — no runtime C# logic touched, so review skipped per global
   rules.
+- 2026-04-13: Task 3.3 complete. Remove + Upsert pipeline wired up:
+    * src/SharedWorldObjectManager.cs — added public static
+      RemoveDefinitionsByPrefix(prefix) entry point. The existing
+      private instance method was renamed
+      RemoveDefinitionsByPrefixInstance to avoid a static/instance
+      name collision, and the two internal callers in
+      EnsureDreamTestSet switched to the new name.
+    * src/Quest/Placement/ElinikkiZonePlacementManager.cs — replaced
+      the Task 3.1 logging no-op with the real swap pipeline:
+      RemoveDefinitionsByPrefix(PlacementPrefix) always runs first
+      (idempotent, scoped to the "elinikki/" prefix), then if the
+      incoming zone is Elinikki the manager iterates
+      ElinikkiPlacementData.GetDefinitionsForZone and calls
+      SharedWorldObjectManager.Upsert for each definition. A
+      fail-loud check rejects any definition whose id is missing the
+      shared prefix so the next zone clear would not wipe it.
+    * Null-zoneId handling: the clear now runs even when
+      Zone.source?.id is null so leaving a chapter zone into a
+      runtime-generated / not-yet-attached zone cannot leak the old
+      trace set into the next map. Only non-null zone ids rotate
+      _lastZoneId so the next real activation can still classify.
+  Codex review: 1 round, 1 P2 fixed (null-zone leak). Clean on the
+  second pass. build.bat debug passes 0 warnings, 0 errors.
 - 2026-04-13: Task 3.2 complete. Per-layer placement data authored:
     * src/Quest/Placement/ElinikkiPlacementData.cs — internal static
       factory that returns the 12 trace/marker primitive definitions

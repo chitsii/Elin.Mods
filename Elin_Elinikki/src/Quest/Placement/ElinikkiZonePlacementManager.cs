@@ -12,11 +12,15 @@ namespace Elin_Elinikki.Quest.Placement
     /// layer's trace set, and entering any other zone (world map, a
     /// non-quest Nefia, etc.) removes any prior Elinikki set.
     ///
-    /// Task 3.1 scaffold: this class is intentionally minimal. It only
-    /// tracks the last observed zone id and logs the transition. The
-    /// actual Remove + Upsert pipeline is wired up in Task 3.3 using the
-    /// <see cref="PlacementPrefix"/> shared id prefix. Task 3.2 fills in
-    /// the per-layer placement data this method will drive.
+    /// <para>Task 3.3 wiring: on every zone activation the manager
+    /// first wipes the prior Elinikki set with
+    /// <see cref="SharedWorldObjectManager.RemoveDefinitionsByPrefix"/>
+    /// using <see cref="PlacementPrefix"/> as the filter, then — if the
+    /// new zone is Elinikki-owned — re-upserts the per-layer
+    /// definitions returned by <see cref="ElinikkiPlacementData"/>.
+    /// Running the clear unconditionally keeps the operation idempotent
+    /// and makes a late zone notification (e.g. save reload back into
+    /// the same chapter zone) self-heal rather than duplicate entries.</para>
     ///
     /// Previous-zone tracking is kept deliberately isolated from
     /// <c>ElinikkiQuestFlow._lastObservedZoneId</c>: quest progress and
@@ -66,36 +70,88 @@ namespace Elin_Elinikki.Quest.Placement
         /// Called by the Zone.Activate postfix patch with the content id
         /// of the zone the player has just entered. A null or empty
         /// <paramref name="zoneId"/> (startup, headless session, zone
-        /// whose source failed to load) is treated as a no-op: the
-        /// manager keeps whatever prior state it had so the next real
-        /// activation can still classify the transition correctly.
+        /// whose source failed to load) still triggers a cleanup of
+        /// any prior Elinikki definitions — otherwise leaving a chapter
+        /// zone into a runtime-generated map without a resolved source
+        /// id would leak the old trace set into the next map. The last
+        /// observed zone id is only rotated when a real id was
+        /// supplied, so the next real activation can still classify
+        /// its transition against the last known chapter zone.
         /// </summary>
         public static void OnZoneActivated(string zoneId)
         {
-            if (string.IsNullOrEmpty(zoneId))
+            string previousZoneId = _lastZoneId;
+            bool haveZoneId = !string.IsNullOrEmpty(zoneId);
+
+            if (haveZoneId)
             {
-                return;
+                _lastZoneId = zoneId;
             }
 
-            string previousZoneId = _lastZoneId;
-            _lastZoneId = zoneId;
-
-            bool isInElinikkiZone = ElinikkiZoneIdSet.Contains(zoneId);
+            bool isInElinikkiZone = haveZoneId && ElinikkiZoneIdSet.Contains(zoneId);
             bool wasInElinikkiZone = !string.IsNullOrEmpty(previousZoneId)
                                      && ElinikkiZoneIdSet.Contains(previousZoneId);
 
             QuestModLog.Info(
-                "Zone placement refresh. zone=" + zoneId +
+                "Zone placement refresh. zone=" + (zoneId ?? "<null>") +
                 " prev=" + (previousZoneId ?? "<null>") +
                 " elinikki=" + isInElinikkiZone +
                 " wasElinikki=" + wasInElinikkiZone);
 
-            // Task 3.1 scaffold: logging only. Task 3.3 will replace this
-            // with the concrete RemoveDefinitionsByPrefix + Upsert pipeline,
-            // using Task 3.2's per-layer placement data as its input.
-            // Leaving the hook live now means the in-game telemetry is
-            // available immediately and the Task 3.3 change set is limited
-            // to filling in the body of this method.
+            // Always start from a clean slate for the Elinikki set,
+            // including the null-zone-id path: a runtime-generated or
+            // source-less zone must still drop the stale placements or
+            // they keep rendering in the wrong map until the next real
+            // activation resolves. RemoveDefinitionsByPrefix is
+            // idempotent and scoped to PlacementPrefix so it cannot
+            // affect other subsystems' definitions (notably
+            // SharedWorldObjectManager's own "demo/" dream-test set,
+            // which uses a different prefix).
+            SharedWorldObjectManager.RemoveDefinitionsByPrefix(PlacementPrefix);
+
+            // Leaving an Elinikki zone (or entering a zone with no
+            // resolved id): the clear above is all we need.
+            if (!isInElinikkiZone)
+            {
+                return;
+            }
+
+            // Entering an Elinikki zone: upsert the per-layer definitions
+            // from ElinikkiPlacementData. Each definition's id already
+            // starts with PlacementPrefix, so the next clear on a zone
+            // exit will wipe exactly this set.
+            int upserted = 0;
+            foreach (SharedWorldPrimitiveDefinition definition
+                     in ElinikkiPlacementData.GetDefinitionsForZone(zoneId))
+            {
+                if (definition == null)
+                {
+                    continue;
+                }
+
+                if (string.IsNullOrEmpty(definition.Id)
+                    || !definition.Id.StartsWith(PlacementPrefix, StringComparison.Ordinal))
+                {
+                    // Fail-loud: a definition that escapes the shared
+                    // prefix would survive the next zone clear and
+                    // stack up over repeated visits. The story spec
+                    // requires every Elinikki placement to share the
+                    // prefix so the swap pipeline is symmetric, so an
+                    // offender is a data bug, not a runtime concern.
+                    QuestModLog.Error(
+                        "Rejected placement definition for zone " + zoneId +
+                        ": id '" + (definition.Id ?? "<null>") +
+                        "' is missing the '" + PlacementPrefix + "' prefix.");
+                    continue;
+                }
+
+                SharedWorldObjectManager.Upsert(definition);
+                upserted++;
+            }
+
+            QuestModLog.Info(
+                "Zone placement upsert complete. zone=" + zoneId +
+                " count=" + upserted);
         }
 
         /// <summary>

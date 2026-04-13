@@ -1,17 +1,20 @@
 # Elinikki Quest Implementation Progress
 
-**IN PROGRESS (trigger-side follow-up)** — 2026-04-13 の LOOP
-COMPLETE 宣言は時期尚早だった。Phase 2 drama script × 22 本のうち
-21 本に trigger 側 C# コードが存在せず、現状ゲーム内で絶対に発火
-しない状態。Task 6.1a として trigger wiring サブフェーズを追加し、
-全 drama が trigger されるまで LOOP COMPLETE 宣言を差し戻す。
+**LOOP COMPLETE (re-declared)** — Task 6.1a trigger-side wiring
+サブフェーズの 5 サブタスクが全て完了し、Phase 2 の 22 本 drama
+が全て実行経路を持つようになった。2026-04-13 の最初の LOOP
+COMPLETE は trigger ギャップで差し戻されたが、2026-04-14 までに
+reunion / return journey / truth menu / trace examiner / echo
+stage の wiring を全て実装して再宣言。Phase 5 (devmode maps) と
+Phase 7 live polish は引き続きユーザーアクション待ち。
 
-Status: IN PROGRESS (trigger-side follow-up)
+Status: LOOP COMPLETE (trigger wiring finished 2026-04-14;
+live playthrough still blocked on Phase 5 maps)
 
 ## Current Phase
-Phase 6 reopened — Task 6.1a (trigger-side wiring) を追加。Phase 5
-は引き続き PAUSED awaiting user (devmode maps)、Phase 7 live polish
-は Phase 5 maps 後に deferred のまま。
+Phase 6 code-side closed (both original + follow-up). Phase 5
+remains PAUSED awaiting user; Phase 7 live polish deferred to
+post-map tuning.
 
 ## Phases
 

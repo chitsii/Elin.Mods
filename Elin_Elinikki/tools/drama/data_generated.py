@@ -13,6 +13,7 @@ class FlagKeys:
     ELINIKKI_TRACE_FLOWERS = "chitsii.elinikki.quest.event.trace_flowers"
     ELINIKKI_TRACE_WEAVE = "chitsii.elinikki.quest.event.trace_weave"
     ELINIKKI_ECHO_EXPERIMENT = "chitsii.elinikki.quest.state.echo_experiment"
+    ELINIKKI_JOURNAL_FOUND = "chitsii.elinikki.quest.state.journal_found"
     ELINIKKI_TRUTH_MARKS = "chitsii.elinikki.quest.event.truth_marks"
     ELINIKKI_TRUTH_CHANNEL = "chitsii.elinikki.quest.event.truth_channel"
     ELINIKKI_TRUTH_STONES = "chitsii.elinikki.quest.event.truth_stones"

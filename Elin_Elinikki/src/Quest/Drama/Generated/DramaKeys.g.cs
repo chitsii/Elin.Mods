@@ -13,6 +13,7 @@ namespace Elin_Elinikki.Quest.DramaKeys
         public const string ELINIKKI_TRACE_FLOWERS = "chitsii.elinikki.quest.event.trace_flowers";
         public const string ELINIKKI_TRACE_WEAVE = "chitsii.elinikki.quest.event.trace_weave";
         public const string ELINIKKI_ECHO_EXPERIMENT = "chitsii.elinikki.quest.state.echo_experiment";
+        public const string ELINIKKI_JOURNAL_FOUND = "chitsii.elinikki.quest.state.journal_found";
         public const string ELINIKKI_TRUTH_MARKS = "chitsii.elinikki.quest.event.truth_marks";
         public const string ELINIKKI_TRUTH_CHANNEL = "chitsii.elinikki.quest.event.truth_channel";
         public const string ELINIKKI_TRUTH_STONES = "chitsii.elinikki.quest.event.truth_stones";

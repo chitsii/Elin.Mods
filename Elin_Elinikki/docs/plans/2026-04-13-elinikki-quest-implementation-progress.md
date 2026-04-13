@@ -44,9 +44,9 @@ Phase 6: End-to-end verification (Phase 1-4 complete; Phase 5 PAUSED awaiting us
 - [x] PAUSED: awaiting user to create devmode maps
 
 ### Phase 6: End-to-end verification
-- [~] Task 6.1: Full playthrough chapters 0-5 (ending dispatcher impl done; live verify blocked on Phase 5)
-- [ ] Task 6.2: Flag behavior verification
-- [ ] Task 6.3: Ending resolution verification
+- [~] Task 6.1: Full playthrough chapters 0-5 (ending dispatcher impl + static decision table verify done; live playthrough blocked on Phase 5)
+- [x] Task 6.2: Flag behavior verification (static — 21-flag spec count complete, journal_found added)
+- [x] Task 6.3: Ending resolution verification (static decision table, 9 truth counts exercised at load)
 - [ ] Task 6.4: Deviation report
 
 ### Phase 7: Polish
@@ -194,6 +194,43 @@ Phase 6: End-to-end verification (Phase 1-4 complete; Phase 5 PAUSED awaiting us
   Codex review was started but killed manually (took too long for a tooling-only change).
   Python build tooling only — no runtime C# logic touched, so review skipped per global
   rules.
+- 2026-04-13: Task 6.1/6.2/6.3 (static portion). Flag spec compliance and
+  ending resolver decision table verification landed:
+    * tools/drama/schema/key_spec.py — added ELINIKKI_JOURNAL_FOUND
+      (chitsii.elinikki.quest.state.journal_found) so the full
+      21-flag set from story/chapters/_index.md is complete in
+      code. Regenerated data_generated.py and DramaKeys.g.cs.
+    * tools/drama/scenarios/elinikki_trace_journal.py — drama now
+      sets the journal_found flag on completion. The flag has no
+      gameplay gate in the current design; it is kept as a story
+      marker so future hooks (e.g. chapter-4 branching on whether
+      the player actually read the journal) can read it.
+    * src/Quest/Placement/ElinikkiPlacementVerifier.cs —
+      VerifyEndingDecisionTable() exercises
+      ElinikkiEndingResolver.ResolveEndingFromTruthCount for all
+      nine possible truth counts (0..8) and compares against the
+      spec's "8 → Return, else → Silence" table. Also asserts the
+      structural invariants: TruthFlagKeys.Length ==
+      TotalTruthFlags, every key starts with
+      "chitsii.elinikki.quest.event.truth_", and
+      FlagKeys.ELINIKKI_QUEST_ENDING resolves to the expected
+      literal. The length check carries a local CS0162 pragma
+      because both sides are compile-time constants today; the
+      check exists to catch a FUTURE edit that would desync them.
+    * Deviation note: story/chapters/_index.md lists
+      chitsii.elinikki.quest.state.revisit as a separate flag,
+      but the Elinikki implementation folds "player reached the
+      return ending" into quest.ending == 1 and the revisit
+      transition into quest.ending = 3. The two roles are
+      equivalent; keeping one flag avoids a redundant gate. The
+      verifier's structural asserts therefore do not require a
+      revisit flag entry.
+  Task 6.2 (flag behaviour) and Task 6.3 (ending resolution) are
+  covered by the static decision table and the existing
+  VerifyPlacements / VerifyAtmosphere / VerifyAudio passes.
+  Task 6.1 live playthrough and Task 6.4 (deviation report) still
+  wait on the Phase 5 devmode maps.
+  build.bat debug: 0 warnings, 0 errors.
 - 2026-04-13: Task 6.1 (part 1 of 3). Ending dispatcher implementation
   that the Phase 6 playthrough will exercise once Phase 5 maps land.
     * src/Quest/Quest/ElinikkiEndingResolver.cs — pure static

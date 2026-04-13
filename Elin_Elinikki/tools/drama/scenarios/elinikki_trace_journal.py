@@ -3,13 +3,16 @@
 Chapter-1 journal discovery drama: Yuu's notebook.
 
 Chapter 1 section 7 (story/chapters/chapter-01.md). Unlike the other
-chapter-1 traces, the journal does NOT set a quest.event.trace_* flag —
-it's a pure story beat that plants the "伝わった" foreshadow for the
-chapter 4 reunion. Replay suppression is handled by the C# examine
-trigger.
+chapter-1 traces, the journal does NOT set a quest.event.trace_* flag
+— instead it sets quest.state.journal_found, the spec's pure story
+marker. There is no gameplay gate on the journal flag in the current
+design, but the flag is authored so the story bible's 21-flag count
+stays complete and future hooks (e.g. chapter-4 dialogue branching
+on whether the player actually read the journal) have a hook to read.
+Replay suppression is handled by the C# examine trigger.
 """
 
-from tools.drama.data import Actors
+from tools.drama.data import Actors, FlagKeys
 from tools.drama.drama_builder import DramaBuilder
 
 
@@ -65,4 +68,5 @@ def define_elinikki_trace_journal(builder: DramaBuilder) -> None:
     builder.jump(end)
 
     builder.step(end)
+    builder.set_flag(FlagKeys.ELINIKKI_JOURNAL_FOUND, 1)
     builder.drama_end(0.3)

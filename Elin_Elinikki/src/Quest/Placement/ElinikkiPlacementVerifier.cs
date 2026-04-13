@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Elin_Elinikki.Quest.DramaKeys;
 using Elin_Elinikki.Quest.Quest;
 
 namespace Elin_Elinikki.Quest.Placement
@@ -81,6 +82,7 @@ namespace Elin_Elinikki.Quest.Placement
                 VerifyAtmosphere(result);
                 VerifyPlaceholderTextureConstructs(result);
                 VerifyAudio(result);
+                VerifyEndingDecisionTable(result);
             }
             catch (Exception ex)
             {
@@ -360,6 +362,134 @@ namespace Elin_Elinikki.Quest.Placement
                 QuestModLog.Error(
                     "NefiaEntrance unexpectedly has a BGM map entry (" + entranceId +
                     "); the shared chapter 0/5 entrance should use Elin's normal playlist");
+            }
+        }
+
+        /// <summary>
+        /// Task 6.1/6.3 ending-resolver consistency check. Exercises
+        /// <see cref="ElinikkiEndingResolver.ResolveEndingFromTruthCount"/>
+        /// against the decision table spelled out in
+        /// <c>story/chapters/_index.md</c> so a future refactor of
+        /// that method gets caught at mod load instead of waiting
+        /// for the Phase 6 live playthrough.
+        ///
+        /// <para>The table the story spec demands:</para>
+        /// <list type="bullet">
+        /// <item><description><c>count == 0</c> → Silence (nothing
+        /// heard)</description></item>
+        /// <item><description><c>1 ≤ count ≤ 7</c> → Silence
+        /// (partial-knowledge bucket, shares the silence
+        /// drama)</description></item>
+        /// <item><description><c>count == 8</c> → Return (every
+        /// truth heard)</description></item>
+        /// </list>
+        /// Plus a set of structural invariants:
+        /// <list type="bullet">
+        /// <item><description><see cref="ElinikkiEndingResolver.TruthFlagKeys"/>
+        /// length matches <c>TotalTruthFlags</c>.</description></item>
+        /// <item><description>every key in that array starts with
+        /// the <c>chitsii.elinikki.quest.event.truth_</c> prefix so a
+        /// typo in the source does not silently drop a flag from
+        /// the count.</description></item>
+        /// <item><description><see cref="FlagKeys.ELINIKKI_QUEST_ENDING"/>
+        /// resolves to a non-empty string (generated constant
+        /// sanity).</description></item>
+        /// </list>
+        /// </summary>
+        private static void VerifyEndingDecisionTable(VerifyResult result)
+        {
+            // Structural: the key array length must equal the
+            // constant used by the count loop. A mismatch between
+            // these two would silently drop a truth flag from
+            // counting without any runtime symptom until the
+            // decision table misfires at the ending.
+            //
+            // Both sides are compile-time constants today, so the
+            // compiler would flag the equality body as unreachable
+            // under CS0162. The whole point of the check is to
+            // catch a FUTURE edit that introduces a divergence
+            // between them, so suppress the warning locally.
+#pragma warning disable CS0162
+            if (ElinikkiEndingResolver.TruthFlagKeys.Length
+                != ElinikkiEndingResolver.TotalTruthFlags)
+            {
+                result.ErrorCount++;
+                QuestModLog.Error(
+                    "TruthFlagKeys length (" +
+                    ElinikkiEndingResolver.TruthFlagKeys.Length +
+                    ") does not match TotalTruthFlags (" +
+                    ElinikkiEndingResolver.TotalTruthFlags + ")");
+            }
+#pragma warning restore CS0162
+
+            // Structural: every truth flag key must carry the
+            // expected prefix. A typo here would read someone
+            // else's flag and silently miscount.
+            const string truthPrefix = "chitsii.elinikki.quest.event.truth_";
+            for (int i = 0; i < ElinikkiEndingResolver.TruthFlagKeys.Length; i++)
+            {
+                string key = ElinikkiEndingResolver.TruthFlagKeys[i];
+                if (string.IsNullOrEmpty(key))
+                {
+                    result.ErrorCount++;
+                    QuestModLog.Error("TruthFlagKeys[" + i + "] is null/empty");
+                    continue;
+                }
+                if (!key.StartsWith(truthPrefix, StringComparison.Ordinal))
+                {
+                    result.ErrorCount++;
+                    QuestModLog.Error(
+                        "TruthFlagKeys[" + i + "] missing prefix: " + key);
+                }
+            }
+
+            // Structural: the quest.ending flag constant must exist
+            // and point at the right key. QuestStateService writes
+            // through this constant on every ending transition.
+            if (string.IsNullOrEmpty(FlagKeys.ELINIKKI_QUEST_ENDING))
+            {
+                result.ErrorCount++;
+                QuestModLog.Error("FlagKeys.ELINIKKI_QUEST_ENDING is null/empty");
+            }
+            else if (FlagKeys.ELINIKKI_QUEST_ENDING != "chitsii.elinikki.quest.ending")
+            {
+                result.ErrorCount++;
+                QuestModLog.Error(
+                    "FlagKeys.ELINIKKI_QUEST_ENDING unexpected value: " +
+                    FlagKeys.ELINIKKI_QUEST_ENDING);
+            }
+
+            // Behavioural: exercise the decision table for each of
+            // the 9 possible truth counts (0 through 8) and assert
+            // the expected ending kind. Any future logic change
+            // that re-introduces a third ending bucket (1..7) will
+            // have to update this table alongside the spec.
+            var expected = new (int truthCount, ElinikkiEndingKind ending)[]
+            {
+                (0, ElinikkiEndingKind.Silence),
+                (1, ElinikkiEndingKind.Silence),
+                (2, ElinikkiEndingKind.Silence),
+                (3, ElinikkiEndingKind.Silence),
+                (4, ElinikkiEndingKind.Silence),
+                (5, ElinikkiEndingKind.Silence),
+                (6, ElinikkiEndingKind.Silence),
+                (7, ElinikkiEndingKind.Silence),
+                (8, ElinikkiEndingKind.Return),
+            };
+
+            for (int i = 0; i < expected.Length; i++)
+            {
+                var probe = expected[i];
+                ElinikkiEndingKind actual =
+                    ElinikkiEndingResolver.ResolveEndingFromTruthCount(probe.truthCount);
+                if (actual != probe.ending)
+                {
+                    result.ErrorCount++;
+                    QuestModLog.Error(
+                        "Ending decision mismatch: truthCount=" + probe.truthCount +
+                        " expected=" + probe.ending +
+                        " actual=" + actual);
+                }
             }
         }
 

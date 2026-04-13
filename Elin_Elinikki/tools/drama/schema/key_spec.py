@@ -90,6 +90,18 @@ KEY_SPECS = [
         description="Echo experiment stage (int 0-4, chapter 2).",
     ),
 
+    # Journal-found state. Set by the chapter-1 trace_journal drama
+    # when the player picks up Yuu's notebook. Matches the
+    # story/chapters/_index.md "quest.state.journal_found" entry —
+    # a pure story marker with no gameplay gate in the current
+    # design, kept so the spec's 21-flag count is complete.
+    KeySpec(
+        "flag",
+        "ELINIKKI_JOURNAL_FOUND",
+        "chitsii.elinikki.quest.state.journal_found",
+        description="Yuu's journal picked up (chapter 1).",
+    ),
+
     # Truth flags. Set when the player asks Yuu about the corresponding
     # trace in the chapter-4 reunion. Read at chapter 5 to resolve the
     # ending (8/8 -> return, 0/8 -> silence, 1-7/8 -> silence with

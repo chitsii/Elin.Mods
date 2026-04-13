@@ -251,11 +251,162 @@ namespace Elin_Elinikki.Quest.Quest
 
                 TryStartIntroQuest(currentStage);
                 AdvanceForZone(zoneId, previousZoneId, currentStage);
+
+                // Ending dispatch runs after AdvanceForZone because
+                // the zone rules may have just promoted the stage to
+                // Returned on this same activation. Re-read the
+                // current stage so the dispatcher sees the updated
+                // value instead of the one snapshotted at Pulse entry.
+                // previousZoneId is passed through so the revisit
+                // ending can gate on an actual outside-the-Nefia
+                // re-entry rather than any re-activation of an
+                // Elinikki map (save reloads, zone edits, etc.).
+                ElinikkiQuestStage updatedStage =
+                    ElinikkiQuestStageExtensions.GetCurrentStage();
+                TryDispatchEnding(zoneId, previousZoneId, updatedStage);
             }
             catch (Exception ex)
             {
                 QuestModLog.Warn("Quest pulse failed: " + ex.Message);
             }
+        }
+
+        /// <summary>
+        /// Chapter-5 ending dispatcher. Runs from <see cref="Pulse"/>
+        /// after the zone stage rules have fired, so the stage
+        /// parameter reflects any promotion that just happened on
+        /// this activation. Two triggers:
+        /// <list type="bullet">
+        /// <item><description><b>First visit ending</b>: stage is
+        /// Returned and <c>quest.ending</c> is still None. Count the
+        /// eight truth flags, pick Return vs Silence, and start the
+        /// matching ending drama. The drama itself sets the ending
+        /// flag and advances the stage to <c>EndingSeen</c>.</description></item>
+        /// <item><description><b>Revisit ending</b>: the player has
+        /// already seen the Return ending (<c>quest.ending == 1</c>
+        /// and <c>stage == EndingSeen</c>) and re-enters any
+        /// Elinikki chapter zone. The story bible explicitly says
+        /// the revisit ending has "最後のテキスト: なし" — it is an
+        /// environmental beat, no drama. The dispatcher just
+        /// overwrites <c>quest.ending</c> to <see cref="ElinikkiEndingKind.Revisit"/>
+        /// so the ending bucket is reachable.</description></item>
+        /// </list>
+        /// Fail-soft: any exception is caught and logged without
+        /// propagating, because this runs inside the same try/catch
+        /// as the main <see cref="Pulse"/> body.
+        /// </summary>
+        private static void TryDispatchEnding(
+            string zoneId,
+            string previousZoneId,
+            ElinikkiQuestStage stage)
+        {
+            try
+            {
+                // Revisit detection first — it is the only path that
+                // applies after the main ending fires, so checking it
+                // up front lets the first-visit branch stay scoped to
+                // the Returned -> EndingSeen window.
+                //
+                // The revisit trigger is "re-enter the Nefia after
+                // seeing the return ending", and nefia-entrance.md
+                // explicitly names the entrance map as the place the
+                // revisit beat occurs. The gate therefore requires
+                // THREE things:
+                //   * the NEW zone is an Elinikki quest zone
+                //     (entrance or any chapter layer);
+                //   * the PREVIOUS zone is a concrete, non-quest
+                //     zone (not null);
+                //   * the previous zone was NOT itself a quest zone.
+                // The "non-null previous zone" check is critical:
+                // _lastObservedZoneId resets to null at session
+                // start, so a save reload while standing in the
+                // Nefia would otherwise pass as "came from outside"
+                // and spend the hidden ending without any real
+                // exit/re-entry. A null previous zone simply means
+                // "no prior activation observed yet"; we cannot
+                // prove it was a real re-entry, so we skip.
+                ElinikkiEndingKind currentEnding = ElinikkiEndingResolver.GetCurrentEnding();
+                if (currentEnding == ElinikkiEndingKind.Return
+                    && stage == ElinikkiQuestStage.EndingSeen
+                    && IsElinikkiQuestZone(zoneId)
+                    && !string.IsNullOrEmpty(previousZoneId)
+                    && !IsElinikkiQuestZone(previousZoneId))
+                {
+                    ElinikkiEndingResolver.SetCurrentEnding(ElinikkiEndingKind.Revisit);
+                    QuestModLog.Info(
+                        "Elinikki revisit ending reached on zone " + zoneId +
+                        " from " + (previousZoneId ?? "<null>"));
+                    return;
+                }
+
+                // First-visit ending: the player just returned to
+                // the entrance with stage=Returned and has not
+                // picked an ending yet. Pick by truth count and
+                // start the matching drama. The drama advances the
+                // stage to EndingSeen and sets the ending flag; if
+                // it fails to start (UI busy, drama asset missing),
+                // the next Pulse will retry ONLY on an entrance
+                // re-activation — otherwise a busy first attempt
+                // could pop the ending in the player's home or on
+                // the world map the next time any zone activates.
+                if (stage != ElinikkiQuestStage.Returned
+                    || currentEnding != ElinikkiEndingKind.None
+                    || !string.Equals(
+                           zoneId,
+                           ElinikkiZoneIds.NefiaEntrance,
+                           StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                int truthCount = ElinikkiEndingResolver.CountTruthFlags();
+                ElinikkiEndingKind resolved =
+                    ElinikkiEndingResolver.ResolveEndingFromTruthCount(truthCount);
+                string dramaId = resolved == ElinikkiEndingKind.Return
+                    ? ReturnEndingDramaId
+                    : SilenceEndingDramaId;
+
+                QuestModLog.Info(
+                    "Elinikki ending dispatch. truthCount=" + truthCount +
+                    " ending=" + resolved +
+                    " drama=" + dramaId);
+
+                if (IsUiBusy())
+                {
+                    return;
+                }
+
+                DramaContext.TryStartDramaUntilComplete(dramaId);
+            }
+            catch (Exception ex)
+            {
+                QuestModLog.Warn("Ending dispatch failed: " + ex.Message);
+            }
+        }
+
+        private const string ReturnEndingDramaId = "elinikki_ending_return";
+        private const string SilenceEndingDramaId = "elinikki_ending_silence";
+
+        /// <summary>
+        /// True when <paramref name="zoneId"/> is any zone owned by
+        /// the Elinikki quest, including the shared Nefia entrance.
+        /// Used by <see cref="TryDispatchEnding"/> to pick up the
+        /// hidden revisit ending — the story spec explicitly
+        /// names the entrance as the revisit location, so turning
+        /// back at the door still counts as a re-entry.
+        /// </summary>
+        private static bool IsElinikkiQuestZone(string zoneId)
+        {
+            if (string.IsNullOrEmpty(zoneId))
+            {
+                return false;
+            }
+
+            return zoneId == ElinikkiZoneIds.NefiaEntrance
+                || zoneId == ElinikkiZoneIds.LayerWaterstone
+                || zoneId == ElinikkiZoneIds.LayerEcho
+                || zoneId == ElinikkiZoneIds.LayerBloom
+                || zoneId == ElinikkiZoneIds.YuuCamp;
         }
 
         /// <summary>

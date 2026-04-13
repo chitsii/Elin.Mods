@@ -44,7 +44,7 @@ Phase 6: End-to-end verification (Phase 1-4 complete; Phase 5 PAUSED awaiting us
 - [x] PAUSED: awaiting user to create devmode maps
 
 ### Phase 6: End-to-end verification
-- [ ] Task 6.1: Full playthrough chapters 0-5
+- [~] Task 6.1: Full playthrough chapters 0-5 (ending dispatcher impl done; live verify blocked on Phase 5)
 - [ ] Task 6.2: Flag behavior verification
 - [ ] Task 6.3: Ending resolution verification
 - [ ] Task 6.4: Deviation report
@@ -194,6 +194,41 @@ Phase 6: End-to-end verification (Phase 1-4 complete; Phase 5 PAUSED awaiting us
   Codex review was started but killed manually (took too long for a tooling-only change).
   Python build tooling only — no runtime C# logic touched, so review skipped per global
   rules.
+- 2026-04-13: Task 6.1 (part 1 of 3). Ending dispatcher implementation
+  that the Phase 6 playthrough will exercise once Phase 5 maps land.
+    * src/Quest/Quest/ElinikkiEndingResolver.cs — pure static
+      helper. TruthFlagKeys[] + TotalTruthFlags constant,
+      CountTruthFlags() reads the 8 chitsii.elinikki.quest.event.
+      truth_* flags via QuestStateService.GetFlagInt,
+      ResolveEndingFromTruthCount() applies the
+      "8 → Return / else → Silence" rule from chapters/_index.md's
+      Ending Resolution Logic, and GetCurrentEnding / SetCurrentEnding
+      wrap the quest.ending flag.
+    * src/Quest/Quest/ElinikkiQuestFlow.cs — Pulse() now calls
+      TryDispatchEnding after AdvanceForZone with the updated
+      stage. Two triggers:
+        - First-visit ending: stage == Returned and
+          quest.ending == None and zone == NefiaEntrance →
+          count truth flags, pick elinikki_ending_return or
+          elinikki_ending_silence, dispatch via
+          TryStartDramaUntilComplete. Gated on NefiaEntrance so a
+          busy-UI retry cannot pop the ending in an unrelated
+          zone.
+        - Revisit ending: stage == EndingSeen and
+          quest.ending == Return and the player just arrived at an
+          Elinikki quest zone (entrance or chapter layer) from
+          OUTSIDE the quest zones. Gate requires a non-null
+          previous zone so save reloads inside the Nefia cannot
+          spend the hidden ending.
+      The story spec's SilentSentinel partial-knowledge bucket is
+      covered by the "else → Silence" branch; truth counts 1..7
+      reuse the silence drama as documented.
+  Codex review took 3 rounds: 3 P2 fixed (retry zone guard,
+  revisit entrance inclusion, previous-zone null gate for save
+  reload). The live playthrough verification itself still waits
+  on Phase 5 devmode maps. Next: wire a Phase 6 static verifier
+  for the ending resolver's decision table.
+  build.bat debug: 0 warnings, 0 errors.
 - 2026-04-13: Phase 5 authored + PAUSED. Task 5.1 and 5.2 closed:
     * Task 5.1 — docs/devmode_maps.md is the user-facing map spec.
       It documents the 5 devmode zones (nefia_entrance,

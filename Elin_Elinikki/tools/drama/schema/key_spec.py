@@ -11,47 +11,78 @@ class KeySpec:
     deprecated_alias_of: Optional[str] = None
 
 
+# Keys used by the Elinikki "帰らなかった遠足" drama scripts.
+# Flag values MUST stay aligned with story/chapters/_index.md — any change
+# here requires the story spec and the C# side
+# (ElinikkiQuestStage / QuestDramaResolver) to be updated in lockstep.
 KEY_SPECS = [
-    # Flags (save-persisted dialogFlags)
-    KeySpec("flag", "BOOTSTRAPPED", "yourname.elin_quest_mod.flag.bootstrapped"),
-    KeySpec("flag", "PLACEHOLDER_DONE", "yourname.elin_quest_mod.flag.placeholder_done"),
-    KeySpec("flag", "TMP_CAN_START_FEATURE", "yourname.elin_quest_mod.tmp.can_start.feature_showcase"),
-    KeySpec("flag", "TMP_IS_DONE_FEATURE", "yourname.elin_quest_mod.tmp.is_done.feature_showcase"),
-    KeySpec("flag", "TMP_BRANCH_FEATURE", "yourname.elin_quest_mod.tmp.branch.feature_showcase"),
-    KeySpec("flag", "TMP_COUNT_FEATURE", "yourname.elin_quest_mod.tmp.count.feature_showcase"),
-    # Resolve keys
-    KeySpec("resolve", "QUEST_CAN_START_PLACEHOLDER", "state.quest.can_start.quest_drama_replace_me"),
-    KeySpec("resolve", "QUEST_DONE_PLACEHOLDER", "state.quest.is_done.quest_drama_replace_me"),
-    KeySpec("resolve", "QUEST_CAN_START_FEATURE", "state.quest.can_start.quest_drama_feature_showcase"),
-    KeySpec("resolve", "QUEST_DONE_FEATURE", "state.quest.is_done.quest_drama_feature_showcase"),
+    # ---------------------------------------------------------------------
+    # Flags (save-persisted dialogFlags, chitsii.elinikki.quest.*)
+    # ---------------------------------------------------------------------
+    # Temporary flags used by the intro drama to stash results before
+    # branching. These do not persist beyond one drama run but still live
+    # in dialogFlags so the drama DSL can read them.
+    KeySpec("flag", "TMP_INTRO_CAN_START", "chitsii.elinikki.tmp.intro.can_start"),
+
+    # ---------------------------------------------------------------------
+    # Resolve keys (bool-returning dependencies)
+    # ---------------------------------------------------------------------
     KeySpec(
         "resolve",
-        "QUEST_CAN_START_FEATURE_FOLLOWUP",
-        "state.quest.can_start.quest_drama_feature_followup",
+        "ELINIKKI_STAGE_AT_LEAST_ACCEPTED",
+        "state.elinikki.stage.at_least.accepted",
+        description="Returns true when quest.stage >= Accepted.",
     ),
     KeySpec(
         "resolve",
-        "QUEST_DONE_FEATURE_FOLLOWUP",
-        "state.quest.is_done.quest_drama_feature_followup",
-    ),
-    # Command keys
-    KeySpec("command", "QUEST_TRY_START_PLACEHOLDER", "cmd.quest.try_start.quest_drama_replace_me"),
-    KeySpec("command", "QUEST_COMPLETE_PLACEHOLDER", "cmd.quest.complete.quest_drama_replace_me"),
-    KeySpec("command", "QUEST_TRY_START_FEATURE", "cmd.quest.try_start.quest_drama_feature_showcase"),
-    KeySpec("command", "QUEST_TRY_START_FEATURE_REPEATABLE", "cmd.quest.try_start_repeatable.quest_drama_feature_showcase"),
-    KeySpec("command", "QUEST_TRY_START_FEATURE_UNTIL_COMPLETE", "cmd.quest.try_start_until_complete.quest_drama_feature_showcase"),
-    KeySpec("command", "QUEST_COMPLETE_FEATURE", "cmd.quest.complete.quest_drama_feature_showcase"),
-    KeySpec(
-        "command",
-        "QUEST_TRY_START_FEATURE_FOLLOWUP",
-        "cmd.quest.try_start.quest_drama_feature_followup",
+        "ELINIKKI_STAGE_AT_LEAST_LAYER1_CLEAR",
+        "state.elinikki.stage.at_least.layer1_clear",
     ),
     KeySpec(
-        "command",
-        "QUEST_COMPLETE_FEATURE_FOLLOWUP",
-        "cmd.quest.complete.quest_drama_feature_followup",
+        "resolve",
+        "ELINIKKI_STAGE_AT_LEAST_LAYER2_CLEAR",
+        "state.elinikki.stage.at_least.layer2_clear",
     ),
-    # Cue keys
-    KeySpec("cue", "PLACEHOLDER_PULSE", "cue.questmod.placeholder_pulse"),
-    KeySpec("cue", "FEATURE_SHOWCASE_PULSE", "cue.questmod.feature_showcase_pulse"),
+    KeySpec(
+        "resolve",
+        "ELINIKKI_STAGE_AT_LEAST_LAYER3_CLEAR",
+        "state.elinikki.stage.at_least.layer3_clear",
+    ),
+    KeySpec(
+        "resolve",
+        "ELINIKKI_STAGE_AT_LEAST_YUU_FOUND",
+        "state.elinikki.stage.at_least.yuu_found",
+    ),
+    KeySpec(
+        "resolve",
+        "ELINIKKI_STAGE_AT_LEAST_RETURNED",
+        "state.elinikki.stage.at_least.returned",
+    ),
+    KeySpec(
+        "resolve",
+        "ELINIKKI_STAGE_AT_LEAST_ENDING_SEEN",
+        "state.elinikki.stage.at_least.ending_seen",
+    ),
+
+    # ---------------------------------------------------------------------
+    # Command keys (execute-side dependencies)
+    # ---------------------------------------------------------------------
+    KeySpec(
+        "command",
+        "ELINIKKI_STAGE_ADVANCE_ACCEPTED",
+        "cmd.elinikki.stage.advance.accepted",
+        description="Advances quest.stage to Accepted. Chapter-0 intro drama calls this at the end.",
+    ),
+    KeySpec(
+        "command",
+        "ELINIKKI_STAGE_ADVANCE_YUU_FOUND",
+        "cmd.elinikki.stage.advance.yuu_found",
+        description="Advances quest.stage to YuuFound. Chapter-4 reunion drama calls this.",
+    ),
+    KeySpec(
+        "command",
+        "ELINIKKI_STAGE_ADVANCE_ENDING_SEEN",
+        "cmd.elinikki.stage.advance.ending_seen",
+        description="Advances quest.stage to EndingSeen. Chapter-5 ending dramas call this.",
+    ),
 ]

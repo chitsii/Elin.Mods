@@ -17,7 +17,7 @@ Phase 2: Drama scripts (Phase 1 complete)
 
 ### Phase 2: Drama scripts
 - [x] Task 2.1: DramaDsl submodule reference
-- [ ] Task 2.2: Chapter-00 drama
+- [x] Task 2.2: Chapter-00 drama
 - [ ] Task 2.3: Trace examine dramas (chapters 1-3)
 - [ ] Task 2.4: Echo experiment dramas (4 stages)
 - [ ] Task 2.5: Chapter-04 reunion + truth dramas
@@ -74,6 +74,9 @@ Phase 2: Drama scripts (Phase 1 complete)
   before any scenario that imports FlagKeys/CommandKeys etc. is authored. Task 2.2 (first
   scenario) will update schema/key_spec.py and run generate_keys.py to refresh
   data_generated.py at the same time it creates the first scenario file.
+  RESOLVED in Task 2.2: key_spec.py rewritten, generate_keys.py updated for Elinikki
+  (chitsii.elinikki flag prefix, src/Quest/Drama/Generated output path, correct namespace),
+  and both data_generated.py and DramaKeys.g.cs regenerated.
 
 ## Notes
 - 2026-04-13: Progress tracker initialized.
@@ -180,3 +183,28 @@ Phase 2: Drama scripts (Phase 1 complete)
   Codex review was started but killed manually (took too long for a tooling-only change).
   Python build tooling only — no runtime C# logic touched, so review skipped per global
   rules.
+- 2026-04-13: Task 2.2 complete. First drama scenario authored:
+    * tools/drama/schema/key_spec.py rewritten with Elinikki-specific keys:
+      TMP_INTRO_CAN_START (tmp flag), 7 stage_at_least resolve keys, and 3
+      stage.advance command keys (accepted, yuu_found, ending_seen).
+    * tools/drama/schema/generate_keys.py updated for Elinikki: flag prefix
+      chitsii.elinikki., CS output path src/Quest/Drama/Generated, C# namespace
+      Elin_Elinikki.Quest.DramaKeys.
+    * generate_keys.py --write regenerated both data_generated.py and
+      src/Quest/Drama/Generated/DramaKeys.g.cs with the Elinikki constants.
+    * tools/drama/scenarios/elinikki_quest_intro.py created with the
+      chapter-0 intro drama matching story/chapters/chapter-00.md: Mina
+      arrives, explains the job, Sora joins, quest accepted. Ends by
+      calling cmd.elinikki.stage.advance.accepted via resolve_run, which
+      flips quest.stage from NotStarted to Accepted through the drama
+      resolver from Task 1.4.
+    * create_drama_excel.py DRAMAS list now includes (QUEST_INTRO,
+      define_elinikki_quest_intro). python tools/drama/create_drama_excel.py
+      produces LangMod/EN/Dialog/Drama/drama_elinikki_quest_intro.xlsx
+      with sheet "elinikki_quest_intro".
+    * ElinikkiQuestFlow.IntroDramaAvailable phase gate removed. The
+      gate constant and its unreachable-code pragma are deleted;
+      TryStartIntroQuest now calls the drama runtime unconditionally
+      once the fame/home/UI checks pass.
+  Verified: build.bat debug runs end-to-end (drama gen + dotnet build +
+  deploy) with 0 warnings, 0 errors.

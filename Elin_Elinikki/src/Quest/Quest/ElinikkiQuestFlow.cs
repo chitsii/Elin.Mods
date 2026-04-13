@@ -47,17 +47,11 @@ namespace Elin_Elinikki.Quest.Quest
         /// </summary>
         public const string IntroDramaId = "elinikki_quest_intro";
 
-        /// <summary>
-        /// Phase gate: set to <c>true</c> when the Phase 2 drama authoring
-        /// task ships <c>Dialog/Drama/drama_elinikki_quest_intro.xlsx</c>.
-        /// Until then, <see cref="TryStartIntroQuest"/> performs the fame /
-        /// home-zone / UI checks and logs the result but does NOT call into
-        /// the drama runtime — because <c>GameQuestDramaRuntimeContext.TryActivateDrama</c>
-        /// will instantiate a <c>LayerDrama</c> and throw when the underlying
-        /// drama sheet is missing. Phase 2 Task 2.2 flips this constant to
-        /// <c>true</c> together with the committed drama asset.
-        /// </summary>
-        private const bool IntroDramaAvailable = false;
+        // IntroDramaAvailable gate removed in Phase 2 Task 2.2 —
+        // drama_elinikki_quest_intro.xlsx is now packaged, so
+        // TryStartIntroQuest can call the drama runtime unconditionally.
+        // Historical gate kept in git history if Phase 3 needs to reinstate
+        // it before authoring the next drama.
 
         /// <summary>
         /// Lazy singleton for drama invocation. Instantiated on first use so
@@ -401,26 +395,6 @@ namespace Elin_Elinikki.Quest.Quest
                 return;
             }
 
-            // Phase gate: until the drama asset is packaged (Phase 2 Task 2.2),
-            // do not attempt to open the drama. Calling TryStartDrama* against
-            // a missing sheet still instantiates a LayerDrama and makes the
-            // game's drama loader throw on every pulse. Log that the gate
-            // passed and return — the Pulse will retry next zone activation
-            // or next hour until Phase 2 flips IntroDramaAvailable to true.
-            if (!IntroDramaAvailable)
-            {
-                QuestModLog.Info(
-                    "Intro gate passed (fame=" + player.fame + " >= " + IntroFameThreshold +
-                    ", home zone=" + (zone.source?.id ?? "<unknown>") +
-                    "). Drama '" + IntroDramaId + "' not yet packaged — skipping start.");
-                return;
-            }
-
-            // Post-gate path. Phase 2 will flip IntroDramaAvailable to true
-            // and this code becomes live. Until then it is unreachable by
-            // design; the warning is suppressed locally so the overall build
-            // stays warning-clean.
-#pragma warning disable CS0162 // Unreachable code detected
             QuestModLog.Info(
                 "Intro gate passed (fame=" + player.fame + " >= " + IntroFameThreshold +
                 ", home zone=" + (zone.source?.id ?? "<unknown>") +
@@ -448,7 +422,6 @@ namespace Elin_Elinikki.Quest.Quest
             {
                 QuestModLog.Warn("Intro drama start raised: " + ex.Message);
             }
-#pragma warning restore CS0162
         }
 
         /// <summary>

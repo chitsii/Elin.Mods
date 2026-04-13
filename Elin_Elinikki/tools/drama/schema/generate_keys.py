@@ -9,7 +9,9 @@ from key_spec import KEY_SPECS
 
 ROOT = Path(__file__).resolve().parents[3]
 PY_OUT = ROOT / "tools" / "drama" / "data_generated.py"
-CS_OUT = ROOT / "src" / "Drama" / "Generated" / "DramaKeys.g.cs"
+# Elinikki keeps the quest subsystem under src/Quest/, so the generated
+# C# constants live there too (not at src/Drama/ like the upstream template).
+CS_OUT = ROOT / "src" / "Quest" / "Drama" / "Generated" / "DramaKeys.g.cs"
 
 KIND_TO_CLASS = {
     "flag": "FlagKeys",
@@ -23,8 +25,12 @@ def _validate() -> list[str]:
     errors = []
     seen_names = set()
     seen_values = set()
+    # Elinikki flag prefix. Matches QuestBootstrap.FlagPrefix in the C# side
+    # ("chitsii.elinikki"). The full keys have the form
+    # "chitsii.elinikki.quest.*" or "chitsii.elinikki.tmp.*". The resolve /
+    # command / cue prefixes are game-global and do not change per mod.
     prefixes = {
-        "flag": "yourname.",
+        "flag": "chitsii.elinikki.",
         "resolve": "state.",
         "command": "cmd.",
         "cue": "cue.",
@@ -74,7 +80,7 @@ def _emit_csharp() -> str:
     grouped = _group_specs()
     lines = [
         "// AUTO-GENERATED. DO NOT EDIT.",
-        "namespace Elin_QuestMod.DramaKeys",
+        "namespace Elin_Elinikki.Quest.DramaKeys",
         "{",
     ]
     for kind in ("flag", "resolve", "command", "cue"):

@@ -23,15 +23,18 @@ TOOLS_DIR = os.path.dirname(DRAMA_DIR)
 PROJECT_ROOT = os.path.dirname(TOOLS_DIR)
 sys.path.insert(0, PROJECT_ROOT)
 
-from tools.drama.data import DramaIds  # noqa: F401  (imported for side-effects / key validation)
+from tools.drama.data import DramaIds
 from tools.drama.drama_builder import DramaBuilder  # noqa: F401
+from tools.drama.scenarios.elinikki_quest_intro import define_elinikki_quest_intro
 
 
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "LangMod", "EN", "Dialog", "Drama")
 
 # (drama_id, define_fn) pairs. Populated incrementally as Phase 2 tasks
-# author each scenario. Empty list == Phase 2 not yet started.
-DRAMAS: list = []
+# author each scenario.
+DRAMAS = [
+    (DramaIds.QUEST_INTRO, define_elinikki_quest_intro),
+]
 
 
 def main() -> None:

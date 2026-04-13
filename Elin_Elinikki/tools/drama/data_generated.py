@@ -3,37 +3,25 @@
 class FlagKeys:
     """Generated constants."""
 
-    BOOTSTRAPPED = "yourname.elin_quest_mod.flag.bootstrapped"
-    PLACEHOLDER_DONE = "yourname.elin_quest_mod.flag.placeholder_done"
-    TMP_CAN_START_FEATURE = "yourname.elin_quest_mod.tmp.can_start.feature_showcase"
-    TMP_IS_DONE_FEATURE = "yourname.elin_quest_mod.tmp.is_done.feature_showcase"
-    TMP_BRANCH_FEATURE = "yourname.elin_quest_mod.tmp.branch.feature_showcase"
-    TMP_COUNT_FEATURE = "yourname.elin_quest_mod.tmp.count.feature_showcase"
+    TMP_INTRO_CAN_START = "chitsii.elinikki.tmp.intro.can_start"
 
 class ResolveKeys:
     """Generated constants."""
 
-    QUEST_CAN_START_PLACEHOLDER = "state.quest.can_start.quest_drama_replace_me"
-    QUEST_DONE_PLACEHOLDER = "state.quest.is_done.quest_drama_replace_me"
-    QUEST_CAN_START_FEATURE = "state.quest.can_start.quest_drama_feature_showcase"
-    QUEST_DONE_FEATURE = "state.quest.is_done.quest_drama_feature_showcase"
-    QUEST_CAN_START_FEATURE_FOLLOWUP = "state.quest.can_start.quest_drama_feature_followup"
-    QUEST_DONE_FEATURE_FOLLOWUP = "state.quest.is_done.quest_drama_feature_followup"
+    ELINIKKI_STAGE_AT_LEAST_ACCEPTED = "state.elinikki.stage.at_least.accepted"
+    ELINIKKI_STAGE_AT_LEAST_LAYER1_CLEAR = "state.elinikki.stage.at_least.layer1_clear"
+    ELINIKKI_STAGE_AT_LEAST_LAYER2_CLEAR = "state.elinikki.stage.at_least.layer2_clear"
+    ELINIKKI_STAGE_AT_LEAST_LAYER3_CLEAR = "state.elinikki.stage.at_least.layer3_clear"
+    ELINIKKI_STAGE_AT_LEAST_YUU_FOUND = "state.elinikki.stage.at_least.yuu_found"
+    ELINIKKI_STAGE_AT_LEAST_RETURNED = "state.elinikki.stage.at_least.returned"
+    ELINIKKI_STAGE_AT_LEAST_ENDING_SEEN = "state.elinikki.stage.at_least.ending_seen"
 
 class CommandKeys:
     """Generated constants."""
 
-    QUEST_TRY_START_PLACEHOLDER = "cmd.quest.try_start.quest_drama_replace_me"
-    QUEST_COMPLETE_PLACEHOLDER = "cmd.quest.complete.quest_drama_replace_me"
-    QUEST_TRY_START_FEATURE = "cmd.quest.try_start.quest_drama_feature_showcase"
-    QUEST_TRY_START_FEATURE_REPEATABLE = "cmd.quest.try_start_repeatable.quest_drama_feature_showcase"
-    QUEST_TRY_START_FEATURE_UNTIL_COMPLETE = "cmd.quest.try_start_until_complete.quest_drama_feature_showcase"
-    QUEST_COMPLETE_FEATURE = "cmd.quest.complete.quest_drama_feature_showcase"
-    QUEST_TRY_START_FEATURE_FOLLOWUP = "cmd.quest.try_start.quest_drama_feature_followup"
-    QUEST_COMPLETE_FEATURE_FOLLOWUP = "cmd.quest.complete.quest_drama_feature_followup"
+    ELINIKKI_STAGE_ADVANCE_ACCEPTED = "cmd.elinikki.stage.advance.accepted"
+    ELINIKKI_STAGE_ADVANCE_YUU_FOUND = "cmd.elinikki.stage.advance.yuu_found"
+    ELINIKKI_STAGE_ADVANCE_ENDING_SEEN = "cmd.elinikki.stage.advance.ending_seen"
 
 class CueKeys:
     """Generated constants."""
-
-    PLACEHOLDER_PULSE = "cue.questmod.placeholder_pulse"
-    FEATURE_SHOWCASE_PULSE = "cue.questmod.feature_showcase_pulse"

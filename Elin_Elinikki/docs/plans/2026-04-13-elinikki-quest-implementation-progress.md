@@ -3,7 +3,7 @@
 Status: IN PROGRESS
 
 ## Current Phase
-Phase 4: Audio integration (Phase 1-3 complete)
+Phase 5: Custom map data — needs user action (Phase 1-4 complete)
 
 ## Phases
 
@@ -36,7 +36,7 @@ Phase 4: Audio integration (Phase 1-3 complete)
 - [x] Task 4.1: Drama commands for BGM/SE
 - [x] Task 4.2: BGM mapping per layer
 - [x] Task 4.3: Echo SE trigger points
-- [ ] Task 4.4: In-game audio verification
+- [x] Task 4.4: In-game audio verification (static scope — see note)
 
 ### Phase 5: Custom map data (needs user action)
 - [ ] Task 5.1: Document 6 maps for devmode creation
@@ -183,6 +183,33 @@ Phase 4: Audio integration (Phase 1-3 complete)
   Codex review was started but killed manually (took too long for a tooling-only change).
   Python build tooling only — no runtime C# logic touched, so review skipped per global
   rules.
+- 2026-04-13: Task 4.4 complete (static scope). Phase 4 closed out with
+  a static audio verification pass since Phase 5 devmode maps do not
+  exist yet and a live in-game audio verify is not possible without
+  them.
+    * src/Quest/Placement/ElinikkiPlacementVerifier.cs gains
+      VerifyAudio() which asserts:
+        - each chapter layer (waterstone/echo/bloom) has a
+          non-silent BGM map entry;
+        - no two chapter layers accidentally share the same BGM id
+          (warning, not error — a story-driven shared track would
+          still pass Verify);
+        - yuu_camp is exactly SilentSentinel (story spec 演出なし);
+        - nefia_entrance has NO entry (Error — a future regression
+          that adds one would bleed Elinikki audio into the shared
+          chapter 0/5 entrance map).
+  Phase 4 live verification carries the same carry-forward shape as
+  Task 3.6: the actual BGM/SE ids in ElinikkiBgmMap and the four
+  elinikki_echo_* SE ids are provisional placeholders. Task 6.1
+  playthrough will verify each asset resolves in-game and swap in
+  the real vanilla Elin ids (or register new ones) before shipping.
+  PlayBgm and PlaySe both log a Warn when the asset is missing, so
+  Phase 6 can grep the Player.log output to enumerate everything
+  that still needs a real asset id.
+  Verified: build.bat debug + build.bat release both pass with
+  0 warnings, 0 errors. Codex review: 1 round, 1 P2 fixed (the
+  NefiaEntrance override gate was originally a Warn but should be
+  an Error so ErrorCount-based callers catch the regression).
 - 2026-04-13: Task 4.3 complete. Echo experiment SE trigger points:
     * tools/drama/scenarios/elinikki_echo_stage_1.py exports four
       AUDIO_SE_* constants that the other echo stage scripts

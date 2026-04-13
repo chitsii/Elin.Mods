@@ -80,6 +80,7 @@ namespace Elin_Elinikki.Quest.Placement
                 VerifyPlacements(result);
                 VerifyAtmosphere(result);
                 VerifyPlaceholderTextureConstructs(result);
+                VerifyAudio(result);
             }
             catch (Exception ex)
             {
@@ -246,6 +247,119 @@ namespace Elin_Elinikki.Quest.Placement
                 QuestModLog.Error(
                     "Placeholder texture has invalid dimensions: " +
                     texture.width + "x" + texture.height);
+            }
+        }
+
+        /// <summary>
+        /// Task 4.4 audio consistency pass. In the absence of the
+        /// Phase 5 devmode maps a live in-game audio verify is not
+        /// possible, so this static pass asserts the structure the
+        /// zone placement manager will feed into the audio bridge:
+        /// <list type="bullet">
+        /// <item><description>Every chapter layer that the story
+        /// spec calls out as needing a BGM override has an entry in
+        /// <see cref="ElinikkiBgmMap"/>.</description></item>
+        /// <item><description>The yuu_camp entry is the silent
+        /// sentinel, matching the story spec's 演出なし requirement.
+        /// </description></item>
+        /// <item><description>nefia_entrance has no entry so it
+        /// falls through to Elin's normal scene playlist in chapters
+        /// 0 and 5.</description></item>
+        /// <item><description>No BGM id collisions across chapter
+        /// layers — each chapter keeps its own musical identity.
+        /// </description></item>
+        /// </list>
+        /// Values that fail are logged and counted but do not throw.
+        /// Task 6.1 playthrough still has to verify the actual
+        /// SoundManager asset ids resolve in-game.
+        /// </summary>
+        private static void VerifyAudio(VerifyResult result)
+        {
+            // Chapter layers that MUST have a map entry. yuu_camp
+            // is expected to be SilentSentinel; the three real
+            // layers must be non-null, non-empty, and not the
+            // sentinel.
+            string[] bgmRequired =
+            {
+                ElinikkiZoneIds.LayerWaterstone,
+                ElinikkiZoneIds.LayerEcho,
+                ElinikkiZoneIds.LayerBloom,
+            };
+
+            System.Collections.Generic.HashSet<string> seenBgmIds =
+                new System.Collections.Generic.HashSet<string>(StringComparer.Ordinal);
+
+            for (int i = 0; i < bgmRequired.Length; i++)
+            {
+                string zoneId = bgmRequired[i];
+                string bgmId = ElinikkiBgmMap.GetBgmId(zoneId);
+                if (string.IsNullOrEmpty(bgmId))
+                {
+                    result.ErrorCount++;
+                    QuestModLog.Error(
+                        "Missing BGM map entry for chapter zone " + zoneId);
+                    continue;
+                }
+
+                if (string.Equals(
+                        bgmId,
+                        ElinikkiBgmMap.SilentSentinel,
+                        StringComparison.Ordinal))
+                {
+                    result.ErrorCount++;
+                    QuestModLog.Error(
+                        "Chapter zone " + zoneId +
+                        " is mapped to SilentSentinel but needs a real BGM track");
+                    continue;
+                }
+
+                if (!seenBgmIds.Add(bgmId))
+                {
+                    // Same BGM id reused across chapters is not a
+                    // hard error — the story might deliberately
+                    // share a track — but warn so the conflict is
+                    // obvious during tuning.
+                    result.WarningCount++;
+                    QuestModLog.Warn(
+                        "Chapter zone " + zoneId +
+                        " reuses BGM id " + bgmId +
+                        " already mapped to an earlier chapter");
+                }
+            }
+
+            // yuu_camp must exist AND be the silent sentinel.
+            string yuuCampId = ElinikkiBgmMap.GetBgmId(ElinikkiZoneIds.YuuCamp);
+            if (string.IsNullOrEmpty(yuuCampId))
+            {
+                result.ErrorCount++;
+                QuestModLog.Error(
+                    "Missing BGM map entry for yuu_camp (expected SilentSentinel)");
+            }
+            else if (!string.Equals(
+                         yuuCampId,
+                         ElinikkiBgmMap.SilentSentinel,
+                         StringComparison.Ordinal))
+            {
+                result.ErrorCount++;
+                QuestModLog.Error(
+                    "yuu_camp should be mapped to SilentSentinel but has " + yuuCampId);
+            }
+
+            // nefia_entrance must NOT have an entry — it falls
+            // through to Elin's normal scene playlist. A non-null
+            // value here would override the shared chapter 0/5
+            // entrance map and bleed Elinikki audio into vanilla
+            // play, so this is an Error (not just a Warn): a
+            // future regression that adds an entry here must fail
+            // Verify() loud enough to surface in ErrorCount-based
+            // callers and CI checks.
+            string entranceId = ElinikkiBgmMap.GetBgmId(ElinikkiZoneIds.NefiaEntrance);
+            if (!string.IsNullOrEmpty(entranceId))
+            {
+                result.ErrorCount++;
+                QuestModLog.Error(
+                    "NefiaEntrance unexpectedly has a BGM map entry (" + entranceId +
+                    "); the shared chapter 0/5 entrance should use Elin's normal playlist");
             }
         }
 

@@ -13,6 +13,14 @@ class FlagKeys:
     ELINIKKI_TRACE_FLOWERS = "chitsii.elinikki.quest.event.trace_flowers"
     ELINIKKI_TRACE_WEAVE = "chitsii.elinikki.quest.event.trace_weave"
     ELINIKKI_ECHO_EXPERIMENT = "chitsii.elinikki.quest.state.echo_experiment"
+    ELINIKKI_TRUTH_MARKS = "chitsii.elinikki.quest.event.truth_marks"
+    ELINIKKI_TRUTH_CHANNEL = "chitsii.elinikki.quest.event.truth_channel"
+    ELINIKKI_TRUTH_STONES = "chitsii.elinikki.quest.event.truth_stones"
+    ELINIKKI_TRUTH_ECHO = "chitsii.elinikki.quest.event.truth_echo"
+    ELINIKKI_TRUTH_MAP = "chitsii.elinikki.quest.event.truth_map"
+    ELINIKKI_TRUTH_SHADOW = "chitsii.elinikki.quest.event.truth_shadow"
+    ELINIKKI_TRUTH_FLOWERS = "chitsii.elinikki.quest.event.truth_flowers"
+    ELINIKKI_TRUTH_WEAVE = "chitsii.elinikki.quest.event.truth_weave"
 
 class ResolveKeys:
     """Generated constants."""

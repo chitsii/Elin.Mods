@@ -90,6 +90,59 @@ KEY_SPECS = [
         description="Echo experiment stage (int 0-4, chapter 2).",
     ),
 
+    # Truth flags. Set when the player asks Yuu about the corresponding
+    # trace in the chapter-4 reunion. Read at chapter 5 to resolve the
+    # ending (8/8 -> return, 0/8 -> silence, 1-7/8 -> silence with
+    # "partial knowledge" flavor).
+    KeySpec(
+        "flag",
+        "ELINIKKI_TRUTH_MARKS",
+        "chitsii.elinikki.quest.event.truth_marks",
+        description="Wall-markings truth heard from Yuu (chapter 4).",
+    ),
+    KeySpec(
+        "flag",
+        "ELINIKKI_TRUTH_CHANNEL",
+        "chitsii.elinikki.quest.event.truth_channel",
+        description="Water channel truth heard from Yuu (chapter 4).",
+    ),
+    KeySpec(
+        "flag",
+        "ELINIKKI_TRUTH_STONES",
+        "chitsii.elinikki.quest.event.truth_stones",
+        description="Sorted stones truth heard from Yuu (chapter 4).",
+    ),
+    KeySpec(
+        "flag",
+        "ELINIKKI_TRUTH_ECHO",
+        "chitsii.elinikki.quest.event.truth_echo",
+        description="Echo response truth heard from Yuu (chapter 4).",
+    ),
+    KeySpec(
+        "flag",
+        "ELINIKKI_TRUTH_MAP",
+        "chitsii.elinikki.quest.event.truth_map",
+        description="Floor map truth heard from Yuu (chapter 4).",
+    ),
+    KeySpec(
+        "flag",
+        "ELINIKKI_TRUTH_SHADOW",
+        "chitsii.elinikki.quest.event.truth_shadow",
+        description="Wall shadow truth heard from Yuu (chapter 4).",
+    ),
+    KeySpec(
+        "flag",
+        "ELINIKKI_TRUTH_FLOWERS",
+        "chitsii.elinikki.quest.event.truth_flowers",
+        description="Flower roots truth heard from Yuu (chapter 4).",
+    ),
+    KeySpec(
+        "flag",
+        "ELINIKKI_TRUTH_WEAVE",
+        "chitsii.elinikki.quest.event.truth_weave",
+        description="Woven cord truth heard from Yuu (chapter 4).",
+    ),
+
     # ---------------------------------------------------------------------
     # Resolve keys (bool-returning dependencies)
     # ---------------------------------------------------------------------

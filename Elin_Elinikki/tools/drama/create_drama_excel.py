@@ -38,6 +38,15 @@ from tools.drama.scenarios.elinikki_echo_stage_1 import define_elinikki_echo_sta
 from tools.drama.scenarios.elinikki_echo_stage_2 import define_elinikki_echo_stage_2
 from tools.drama.scenarios.elinikki_echo_stage_3 import define_elinikki_echo_stage_3
 from tools.drama.scenarios.elinikki_echo_stage_4 import define_elinikki_echo_stage_4
+from tools.drama.scenarios.elinikki_reunion import define_elinikki_reunion
+from tools.drama.scenarios.elinikki_truth_marks import define_elinikki_truth_marks
+from tools.drama.scenarios.elinikki_truth_channel import define_elinikki_truth_channel
+from tools.drama.scenarios.elinikki_truth_stones import define_elinikki_truth_stones
+from tools.drama.scenarios.elinikki_truth_echo import define_elinikki_truth_echo
+from tools.drama.scenarios.elinikki_truth_map import define_elinikki_truth_map
+from tools.drama.scenarios.elinikki_truth_shadow import define_elinikki_truth_shadow
+from tools.drama.scenarios.elinikki_truth_flowers import define_elinikki_truth_flowers
+from tools.drama.scenarios.elinikki_truth_weave import define_elinikki_truth_weave
 
 
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "LangMod", "EN", "Dialog", "Drama")
@@ -61,6 +70,18 @@ DRAMAS = [
     # Chapter 3 traces (花の層)
     (DramaIds.TRACE_FLOWERS, define_elinikki_trace_flowers),
     (DramaIds.TRACE_WEAVE, define_elinikki_trace_weave),
+    # Chapter 4 (再会): reunion cutscene + 8 truth conversations. The
+    # journal "伝わった" beat is folded into truth_echo rather than
+    # being its own drama.
+    (DramaIds.REUNION, define_elinikki_reunion),
+    (DramaIds.TRUTH_MARKS, define_elinikki_truth_marks),
+    (DramaIds.TRUTH_CHANNEL, define_elinikki_truth_channel),
+    (DramaIds.TRUTH_STONES, define_elinikki_truth_stones),
+    (DramaIds.TRUTH_ECHO, define_elinikki_truth_echo),
+    (DramaIds.TRUTH_MAP, define_elinikki_truth_map),
+    (DramaIds.TRUTH_SHADOW, define_elinikki_truth_shadow),
+    (DramaIds.TRUTH_FLOWERS, define_elinikki_truth_flowers),
+    (DramaIds.TRUTH_WEAVE, define_elinikki_truth_weave),
 ]
 
 

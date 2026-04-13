@@ -20,7 +20,7 @@ Phase 2: Drama scripts (Phase 1 complete)
 - [x] Task 2.2: Chapter-00 drama
 - [x] Task 2.3: Trace examine dramas (chapters 1-3)
 - [x] Task 2.4: Echo experiment dramas (4 stages)
-- [ ] Task 2.5: Chapter-04 reunion + truth dramas
+- [x] Task 2.5: Chapter-04 reunion + truth dramas
 - [ ] Task 2.6: Chapter-05 return + endings
 - [ ] Task 2.7: Verify drama compilation
 
@@ -183,6 +183,38 @@ Phase 2: Drama scripts (Phase 1 complete)
   Codex review was started but killed manually (took too long for a tooling-only change).
   Python build tooling only — no runtime C# logic touched, so review skipped per global
   rules.
+- 2026-04-13: Task 2.5 complete. Chapter-4 reunion + 8 truth conversation dramas
+  authored (9 new scenarios total):
+    * key_spec.py: added 8 ELINIKKI_TRUTH_* flag specs matching
+      chitsii.elinikki.quest.event.truth_{marks,channel,stones,echo,map,
+      shadow,flowers,weave}. Regenerated data_generated.py and DramaKeys.g.cs.
+    * tools/drama/scenarios/:
+        - elinikki_reunion.py — atmospheric strip-down + Yuu greeting. Ends
+          with cmd.elinikki.stage.advance.yuu_found so the drama itself is
+          the trigger for the Layer3Clear -> YuuFound transition (matches
+          chapters/_index.md "Quest Stage Transitions" table).
+        - elinikki_truth_marks.py  (failed flower doodle)
+        - elinikki_truth_channel.py (hand-dug drinking channel)
+        - elinikki_truth_stones.py  (tidiness, Mina nods)
+        - elinikki_truth_echo.py    (own voice + folded-in journal "伝わった" beat)
+        - elinikki_truth_map.py     (abandoned exit map, "同じ存在 = 俺だ")
+        - elinikki_truth_shadow.py  (soot silhouette from campfire)
+        - elinikki_truth_flowers.py (trash pile sprouts, Mina's silence)
+        - elinikki_truth_weave.py   (abandoned rope attempt, boredom)
+      Each truth drama sets its corresponding quest.event.truth_* flag. Gate
+      (trace_X == 1 AND truth_X == 0) is deferred to the Phase 3 chapter-4
+      dialogue menu — the dramas themselves just set the flag.
+      Design choice: the chapter-4.md "手帳の『伝わった』" beat has no
+      dedicated DramaId in tools/drama/data.py, so it is folded into
+      elinikki_truth_echo.py via a second conversation block. Noted so the
+      absence of an elinikki_truth_journal scenario is intentional, not an
+      oversight.
+    * create_drama_excel.py: registered all 9 new scenarios grouped under a
+      "Chapter 4" comment.
+  Verified: build.bat debug now generates 22 drama Excel files (13 prior +
+  9 new) and compiles with 0 warnings, 0 errors. Codex review skipped:
+  narrative content + auto-generated additive key output, no runtime C#
+  logic changed.
 - 2026-04-13: Task 2.4 complete. Four echo experiment drama scripts authored for
   chapter-2 sections 2-5 (awareness -> point A -> point B -> point C):
     * key_spec.py: added ELINIKKI_ECHO_EXPERIMENT flag mapping to

@@ -1,17 +1,17 @@
 # Elinikki Quest Implementation Progress
 
-**LOOP COMPLETE** — Code-side implementation of the "帰らなかった遠足"
-quest is finished. Phase 5 remains PAUSED awaiting user action
-(devmode map creation) and Phase 7 live polish tasks are explicitly
-deferred until the Phase 5 maps exist. Everything that could be
-written without a running game has been written, statically
-verified, and passed through iterative Codex review.
+**IN PROGRESS (trigger-side follow-up)** — 2026-04-13 の LOOP
+COMPLETE 宣言は時期尚早だった。Phase 2 drama script × 22 本のうち
+21 本に trigger 側 C# コードが存在せず、現状ゲーム内で絶対に発火
+しない状態。Task 6.1a として trigger wiring サブフェーズを追加し、
+全 drama が trigger されるまで LOOP COMPLETE 宣言を差し戻す。
 
-Status: LOOP COMPLETE (live polish pending user action)
+Status: IN PROGRESS (trigger-side follow-up)
 
 ## Current Phase
-Phase 6 closed — Phase 5 PAUSED awaiting user; Phase 7 live polish
-deferred to post-map tuning.
+Phase 6 reopened — Task 6.1a (trigger-side wiring) を追加。Phase 5
+は引き続き PAUSED awaiting user (devmode maps)、Phase 7 live polish
+は Phase 5 maps 後に deferred のまま。
 
 ## Phases
 
@@ -53,6 +53,12 @@ deferred to post-map tuning.
 
 ### Phase 6: End-to-end verification
 - [~] Task 6.1: Full playthrough chapters 0-5 (code + static verify done; live playthrough blocked on Phase 5)
+- [~] Task 6.1a: Trigger-side wiring for Phase 2 dramas (22 本中 21 本に trigger 無し)
+  - [x] 6.1a.1: reunion drama auto-start (yuu_camp && Layer3Clear) — TryDispatchReunion + RetryPulse
+  - [ ] 6.1a.2: return journey drama auto-start (nefia_entrance && Returned)
+  - [ ] 6.1a.3: chapter 4 truth dialogue menu (8 topic フィルタ)
+  - [ ] 6.1a.4: trace examine trigger framework (polling 8 trace marks)
+  - [ ] 6.1a.5: echo stage position polling (3 point per layer)
 - [x] Task 6.2: Flag behavior verification (static — 21-flag spec count complete, journal_found added)
 - [x] Task 6.3: Ending resolution verification (static decision table, 9 truth counts exercised at load)
 - [x] Task 6.4: Deviation report (see dedicated section below)

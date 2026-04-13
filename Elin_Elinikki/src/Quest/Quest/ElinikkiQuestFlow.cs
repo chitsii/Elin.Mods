@@ -252,6 +252,17 @@ namespace Elin_Elinikki.Quest.Quest
                 TryStartIntroQuest(currentStage);
                 AdvanceForZone(zoneId, previousZoneId, currentStage);
 
+                // Reunion dispatch runs after AdvanceForZone because
+                // the YuuCamp zone rule promotes Layer2Clear ->
+                // Layer3Clear on this same activation. Re-read the
+                // stage so the dispatcher sees the freshly-promoted
+                // Layer3Clear and can run the reunion drama on the
+                // very first camp entry instead of making the player
+                // leave and come back.
+                ElinikkiQuestStage reunionStage =
+                    ElinikkiQuestStageExtensions.GetCurrentStage();
+                TryDispatchReunion(zoneId, reunionStage);
+
                 // Ending dispatch runs after AdvanceForZone because
                 // the zone rules may have just promoted the stage to
                 // Returned on this same activation. Re-read the
@@ -388,6 +399,77 @@ namespace Elin_Elinikki.Quest.Quest
         private const string SilenceEndingDramaId = "elinikki_ending_silence";
 
         /// <summary>
+        /// Drama id for the chapter-4 reunion sequence that plays when
+        /// the player reaches Yuu's camp. The drama itself calls
+        /// <c>cmd.elinikki.stage.advance.yuu_found</c> to move the
+        /// quest stage from <see cref="ElinikkiQuestStage.Layer3Clear"/>
+        /// to <see cref="ElinikkiQuestStage.YuuFound"/>, so the
+        /// dispatcher stops firing as soon as the drama completes
+        /// even once (the next Pulse will see YuuFound and skip the
+        /// Layer3Clear gate).
+        /// </summary>
+        private const string ReunionDramaId = "elinikki_reunion";
+
+        /// <summary>
+        /// Chapter-4 reunion dispatcher. Runs from <see cref="Pulse"/>
+        /// after the zone rules have promoted the player to
+        /// Layer3Clear on the first YuuCamp entry. Conditions:
+        /// <list type="bullet">
+        /// <item><description>The active zone is
+        /// <see cref="ElinikkiZoneIds.YuuCamp"/>.</description></item>
+        /// <item><description>The current stage is exactly
+        /// <see cref="ElinikkiQuestStage.Layer3Clear"/> — i.e. the
+        /// player just arrived but has not met Yuu yet.</description></item>
+        /// <item><description>No other UI layer is active (drama,
+        /// menu, book, sleep cutscene).</description></item>
+        /// </list>
+        /// Uses <see cref="IQuestDramaRuntimeContext.TryStartDramaUntilComplete"/>
+        /// so an interrupted reunion drama retries on the next Pulse
+        /// until its stage-advance command actually fires. Once the
+        /// stage is YuuFound the gate fails naturally (stage !=
+        /// Layer3Clear) and this method becomes a no-op until a new
+        /// playthrough resets the quest. Fail-soft: any exception is
+        /// caught and logged so a drama runtime failure cannot break
+        /// <see cref="Pulse"/>.
+        /// </summary>
+        private static void TryDispatchReunion(
+            string zoneId,
+            ElinikkiQuestStage stage)
+        {
+            try
+            {
+                if (stage != ElinikkiQuestStage.Layer3Clear)
+                {
+                    return;
+                }
+
+                if (!string.Equals(
+                        zoneId,
+                        ElinikkiZoneIds.YuuCamp,
+                        StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                if (IsUiBusy())
+                {
+                    return;
+                }
+
+                QuestModLog.Info(
+                    "Elinikki reunion dispatch. zone=" + zoneId +
+                    " stage=" + stage +
+                    " drama=" + ReunionDramaId);
+
+                DramaContext.TryStartDramaUntilComplete(ReunionDramaId);
+            }
+            catch (Exception ex)
+            {
+                QuestModLog.Warn("Reunion dispatch failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
         /// True when <paramref name="zoneId"/> is any zone owned by
         /// the Elinikki quest, including the shared Nefia entrance.
         /// Used by <see cref="TryDispatchEnding"/> to pick up the
@@ -410,29 +492,48 @@ namespace Elin_Elinikki.Quest.Quest
         }
 
         /// <summary>
-        /// Secondary pulse used as a retry for the chapter-0 intro drama
-        /// when the player is idling at home (hourly tick via
-        /// <c>Patch_Player_OnAdvanceHour_QuestPulse</c>). Intentionally
-        /// does NOT run <see cref="AdvanceForZone"/>: zone-based stage
-        /// transitions must only fire on a real Zone.Activate so that
-        /// standing inside a chapter zone during an hour advance cannot
-        /// skip the quest forward without an actual zone transition.
+        /// Secondary pulse used as a retry for drama-start gates that
+        /// can fail a Zone.Activate pulse when the UI is busy (load
+        /// screen, another drama, menu, book, sleep cutscene, etc.).
+        /// Runs hourly via <c>Patch_Player_OnAdvanceHour_QuestPulse</c>.
+        /// Intentionally does NOT run <see cref="AdvanceForZone"/>:
+        /// zone-based stage transitions must only fire on a real
+        /// Zone.Activate so that standing inside a chapter zone
+        /// during an hour advance cannot skip the quest forward
+        /// without an actual zone transition.
+        ///
+        /// Each dispatch target re-checks its own gate (stage, zone,
+        /// flags), so calling them from here is safe even if none
+        /// apply. The intent is that an interrupted first-entry
+        /// drama gets another chance once the UI frees up.
         /// </summary>
-        public static void IntroRetryPulse()
+        public static void RetryPulse()
         {
             try
             {
                 ElinikkiQuestStage currentStage = ElinikkiQuestStageExtensions.GetCurrentStage();
-                if (currentStage != ElinikkiQuestStage.NotStarted)
+                string zoneId = ResolveCurrentZoneId();
+
+                // Intro drama retry: only meaningful while the
+                // quest is still at NotStarted. TryStartIntroQuest
+                // handles the home-zone / fame gate internally.
+                if (currentStage == ElinikkiQuestStage.NotStarted)
                 {
-                    return;
+                    TryStartIntroQuest(currentStage);
                 }
 
-                TryStartIntroQuest(currentStage);
+                // Reunion drama retry: fires when the player is
+                // already inside YuuCamp at Layer3Clear (for
+                // example after loading a save that was taken
+                // immediately after the zone rule promoted them
+                // there) and the reunion drama never actually
+                // ran. TryDispatchReunion has its own zone / stage
+                // / UI-busy guards.
+                TryDispatchReunion(zoneId, currentStage);
             }
             catch (Exception ex)
             {
-                QuestModLog.Warn("Intro retry pulse failed: " + ex.Message);
+                QuestModLog.Warn("Retry pulse failed: " + ex.Message);
             }
         }
 

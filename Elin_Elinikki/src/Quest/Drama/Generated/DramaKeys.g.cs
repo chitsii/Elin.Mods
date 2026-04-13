@@ -21,6 +21,7 @@ namespace Elin_Elinikki.Quest.DramaKeys
         public const string ELINIKKI_TRUTH_SHADOW = "chitsii.elinikki.quest.event.truth_shadow";
         public const string ELINIKKI_TRUTH_FLOWERS = "chitsii.elinikki.quest.event.truth_flowers";
         public const string ELINIKKI_TRUTH_WEAVE = "chitsii.elinikki.quest.event.truth_weave";
+        public const string ELINIKKI_QUEST_ENDING = "chitsii.elinikki.quest.ending";
     }
     public static class ResolveKeys
     {

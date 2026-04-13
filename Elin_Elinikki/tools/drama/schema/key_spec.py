@@ -143,6 +143,16 @@ KEY_SPECS = [
         description="Woven cord truth heard from Yuu (chapter 4).",
     ),
 
+    # Ending bucket (int 0-3). Set by the chapter-5 ending dramas.
+    #   0 = none, 1 = return, 2 = silence, 3 = revisit (hidden)
+    # Matches the "quest.ending" table in story/chapters/_index.md.
+    KeySpec(
+        "flag",
+        "ELINIKKI_QUEST_ENDING",
+        "chitsii.elinikki.quest.ending",
+        description="Ending reached (0 none, 1 return, 2 silence, 3 revisit).",
+    ),
+
     # ---------------------------------------------------------------------
     # Resolve keys (bool-returning dependencies)
     # ---------------------------------------------------------------------

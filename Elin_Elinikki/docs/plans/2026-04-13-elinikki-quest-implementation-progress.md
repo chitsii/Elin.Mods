@@ -21,7 +21,7 @@ Phase 2: Drama scripts (Phase 1 complete)
 - [x] Task 2.3: Trace examine dramas (chapters 1-3)
 - [x] Task 2.4: Echo experiment dramas (4 stages)
 - [x] Task 2.5: Chapter-04 reunion + truth dramas
-- [ ] Task 2.6: Chapter-05 return + endings
+- [x] Task 2.6: Chapter-05 return + endings
 - [ ] Task 2.7: Verify drama compilation
 
 ### Phase 3: SharedWorldObject zone-aware placement
@@ -183,6 +183,37 @@ Phase 2: Drama scripts (Phase 1 complete)
   Codex review was started but killed manually (took too long for a tooling-only change).
   Python build tooling only — no runtime C# logic touched, so review skipped per global
   rules.
+- 2026-04-13: Task 2.6 complete. Chapter-5 return journey + two named endings.
+    * key_spec.py: added ELINIKKI_QUEST_ENDING flag (int 0-3) mapping to
+      chitsii.elinikki.quest.ending. Values: 0 none, 1 return, 2 silence,
+      3 revisit. Regenerated data_generated.py and DramaKeys.g.cs.
+    * tools/drama/scenarios/:
+        - elinikki_return_journey.py — four-wave walk-out conversation
+          covering Yuu's daily life, Mina's "3週間" confrontation, Sora's
+          silence, and Mina's "花は綺麗だった" reversal seed. Labels are
+          split per wave so a future C# side can re-enter mid-walk if
+          pacing calls for it. Does not advance quest.stage — the
+          Returned transition fires through the nefia-entrance zone hook.
+        - elinikki_ending_return.py — "帰還エンド" main exchange plus a
+          narrator epilogue (Sora closes the notebook, Mina drinks alone,
+          the carried bloom). Sets quest.ending = 1 and advances stage to
+          EndingSeen via cmd.elinikki.stage.advance.ending_seen.
+        - elinikki_ending_silence.py — "沈黙エンド" exchange + Sora's
+          paper epilogue and "見たものは、見たままでいい" beat. Sets
+          quest.ending = 2 and advances stage to EndingSeen. Per
+          chapters/_index.md "Ending Resolution Logic" this drama also
+          serves truth-count 1-7 as the silence-partial bucket.
+    * The hidden revisit ending has no drama id in tools/drama/data.py
+      because the story bible specifies "最後のテキスト: なし" — it is
+      an environmental beat (single un-bloomed flower, no dialogue), so
+      Phase 3 will handle it via a zone-level flag set (quest.ending = 3)
+      without a drama. Noted here so the absence of ending_revisit.py is
+      intentional.
+    * create_drama_excel.py: registered the 3 new scenarios under a
+      "Chapter 5" comment mentioning the revisit-no-drama decision.
+  Verified: build.bat debug generates 25 drama Excel files (22 prior +
+  3 new) and compiles with 0 warnings, 0 errors. Codex review skipped:
+  narrative content + additive key output, no runtime C# logic touched.
 - 2026-04-13: Task 2.5 complete. Chapter-4 reunion + 8 truth conversation dramas
   authored (9 new scenarios total):
     * key_spec.py: added 8 ELINIKKI_TRUTH_* flag specs matching

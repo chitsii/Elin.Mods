@@ -47,6 +47,9 @@ from tools.drama.scenarios.elinikki_truth_map import define_elinikki_truth_map
 from tools.drama.scenarios.elinikki_truth_shadow import define_elinikki_truth_shadow
 from tools.drama.scenarios.elinikki_truth_flowers import define_elinikki_truth_flowers
 from tools.drama.scenarios.elinikki_truth_weave import define_elinikki_truth_weave
+from tools.drama.scenarios.elinikki_return_journey import define_elinikki_return_journey
+from tools.drama.scenarios.elinikki_ending_return import define_elinikki_ending_return
+from tools.drama.scenarios.elinikki_ending_silence import define_elinikki_ending_silence
 
 
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "LangMod", "EN", "Dialog", "Drama")
@@ -82,6 +85,12 @@ DRAMAS = [
     (DramaIds.TRUTH_SHADOW, define_elinikki_truth_shadow),
     (DramaIds.TRUTH_FLOWERS, define_elinikki_truth_flowers),
     (DramaIds.TRUTH_WEAVE, define_elinikki_truth_weave),
+    # Chapter 5 (帰還と選択): return walk + two named endings. The
+    # hidden "revisit" ending has no drama id in tools/drama/data.py —
+    # it is an environmental beat, not a scripted one.
+    (DramaIds.RETURN_JOURNEY, define_elinikki_return_journey),
+    (DramaIds.ENDING_RETURN, define_elinikki_ending_return),
+    (DramaIds.ENDING_SILENCE, define_elinikki_ending_silence),
 ]
 
 

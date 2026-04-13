@@ -683,9 +683,30 @@ namespace Elin_Elinikki
 
                 handle.PreviewObject.transform.SetParent(_previewRoot != null ? _previewRoot.transform : transform, false);
                 ApplyPreviewTransform(definition, handle.PreviewObject.transform);
+
+                // Apply the Elinikki per-zone LUT tint to the preview
+                // color so shared-world chapter props stay consistent
+                // with the terrain/sprite pass, which re-tints at
+                // sampling time. Without this, the new trace objects
+                // in chapter 1-4 would render with raw definition
+                // colors while the surrounding terrain is tinted —
+                // the most prominent landmarks would break the
+                // atmosphere treatment they are supposed to anchor.
+                //
+                // KNOWN LIMITATION (tracked by Task 3.6): the preview
+                // material only receives the LUT tint, not the full
+                // fog/scene-tone stack that FpsGpuPreviewRenderer
+                // applies to the terrain and sprite pass. Matching
+                // those would require extracting the tone helper out
+                // of the instance-bound renderer; for now the raw
+                // definition color plus LUT is the best we can do
+                // cheaply. Task 3.6 (FPS visual verify) will decide
+                // whether the discrepancy is worth refactoring.
+                Color previewColor = Elin_Elinikki.Quest.Placement
+                    .ElinikkiAtmosphereRuntime.ApplyLutTint(definition.Color);
                 for (int i = 0; i < handle.PreviewMaterials.Count; i++)
                 {
-                    ApplyMaterial(handle.PreviewMaterials[i], definition.Color);
+                    ApplyMaterial(handle.PreviewMaterials[i], previewColor);
                 }
                 handle.PreviewObject.SetActive(previewParent != null);
             }

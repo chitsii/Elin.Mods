@@ -98,15 +98,48 @@ namespace Elin_Elinikki.Quest.Placement
                 " elinikki=" + isInElinikkiZone +
                 " wasElinikki=" + wasInElinikkiZone);
 
-            // Always start from a clean slate for the Elinikki set,
-            // including the null-zone-id path: a runtime-generated or
-            // source-less zone must still drop the stale placements or
-            // they keep rendering in the wrong map until the next real
-            // activation resolves. RemoveDefinitionsByPrefix is
+            // Sync the atmosphere runtime FIRST, before the
+            // shared-world cleanup. If
+            // RemoveDefinitionsByPrefix/Upsert later throws, the outer
+            // Harmony postfix catches and this method exits early —
+            // but the atmosphere state is already correct for the new
+            // zone, so the renderer never keeps tinting with the
+            // previous chapter's profile.
+            //
+            // Behaviour by case:
+            //   * Elinikki zone with known id   → SetZone(zoneId)
+            //   * known non-Elinikki zone       → Clear()
+            //   * null/empty zoneId (source not
+            //     yet attached, runtime-generated
+            //     map)                          → Clear()
+            //
+            // Null-zone activations clear the override so that
+            // reloading out of a chapter zone into a non-Elinikki map
+            // can never leak the prior chapter's fog/clear/LUT tint,
+            // which would be a very visible bug. The cost is that a
+            // reload *into* an Elinikki chapter would miss the tint
+            // on the first frame if its source is not yet resolved —
+            // but the next Zone.Activate with a real id will set the
+            // profile correctly, so this self-heals on the first
+            // subsequent activation.
+            if (isInElinikkiZone)
+            {
+                ElinikkiAtmosphereRuntime.SetZone(zoneId);
+            }
+            else
+            {
+                ElinikkiAtmosphereRuntime.Clear();
+            }
+
+            // Now drop any prior Elinikki placements. This is
             // idempotent and scoped to PlacementPrefix so it cannot
             // affect other subsystems' definitions (notably
             // SharedWorldObjectManager's own "demo/" dream-test set,
-            // which uses a different prefix).
+            // which uses a different prefix). Keeps the null-zone-id
+            // path covered: a runtime-generated or source-less zone
+            // still drops the stale placements or they would keep
+            // rendering in the wrong map until the next real
+            // activation resolves.
             SharedWorldObjectManager.RemoveDefinitionsByPrefix(PlacementPrefix);
 
             // Leaving an Elinikki zone (or entering a zone with no

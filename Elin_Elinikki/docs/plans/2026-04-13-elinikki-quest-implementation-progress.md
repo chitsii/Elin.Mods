@@ -28,7 +28,7 @@ Phase 3: SharedWorldObject zone-aware placement (Phase 1-2 complete)
 - [x] Task 3.1: Zone transition hook
 - [x] Task 3.2: Object placement data per layer
 - [x] Task 3.3: RemoveDefinitionsByPrefix + Upsert pipeline
-- [ ] Task 3.4: Fog/color/LUT per zone
+- [x] Task 3.4: Fog/color/LUT per zone
 - [ ] Task 3.5: Placeholder textures
 - [ ] Task 3.6: Verify FPS visual output
 
@@ -183,6 +183,48 @@ Phase 3: SharedWorldObject zone-aware placement (Phase 1-2 complete)
   Codex review was started but killed manually (took too long for a tooling-only change).
   Python build tooling only — no runtime C# logic touched, so review skipped per global
   rules.
+- 2026-04-13: Task 3.4 complete. Per-zone fog / clear / LUT override pipeline:
+    * src/Quest/Placement/ElinikkiAtmosphereData.cs — static profile
+      table keyed by Elinikki zone id. waterstone (blue-green fog,
+      cool LUT), echo (near-black fog, warm residual), bloom (warm
+      magenta fog, warm LUT). yuu_camp and nefia_entrance have no
+      entry so the scene profile passes through unchanged per the
+      story spec "演出なし".
+    * src/Quest/Placement/ElinikkiAtmosphereRuntime.cs — static
+      holder for the currently-active profile, plus blend helpers
+      BlendFogColor / BlendClearColor / ApplyLutTint that no-op
+      when no override is active. Read by the renderer, written by
+      the placement manager.
+    * src/FpsGpuPreviewRenderer.AtmospherePass.cs —
+      ResolveFogColor/ResolveClearColor consult
+      ElinikkiAtmosphereRuntime.Blend* after the scene-profile
+      evaluation so the override layers on top of Elin's day/night
+      curve. ApplyLutTint runs exactly once per pixel at each of
+      the four return points of ApplyAtmosphericFog (behind-camera,
+      fogStart fast-path, distance-fog off branch, full fog path).
+      The fogStart fast-path also runs ApplySceneTone to keep near
+      pixels day/night-graded.
+    * src/SharedWorldObjectManager.cs — public static
+      RemoveDefinitionsByPrefix gains a new caller; ApplyDefinition
+      now pre-tints the preview material color with the active LUT
+      so chapter landmarks match the surrounding terrain's tint.
+    * src/Quest/Placement/ElinikkiZonePlacementManager.cs — atmosphere
+      sync runs BEFORE the shared-world cleanup so a failure in the
+      upsert pipeline cannot leak stale tinting into the new zone.
+      Null-zoneId activations clear the override (avoiding the
+      "stale chapter tint in non-Elinikki map" failure mode at the
+      cost of a one-frame missing tint for save-reload into chapter
+      zones — self-heals on the next activation).
+  Codex review: 5 rounds. 5 real issues fixed: LUT double-tint on
+  intermediate fog/clear, LUT skip on fogStart fast-path, atmosphere
+  leak on placement cleanup throw, null-zone handling (Codex flipped
+  twice; settled on "clear" as the safer default), scene tone skip
+  on fogStart fast-path. Known limitation: shared-world preview
+  props only receive the LUT tint, not the full fog/scene-tone stack
+  (ApplySceneTone is instance-bound to FpsGpuPreviewRenderer).
+  Deferred to Task 3.6 visual verification to decide whether the
+  discrepancy is worth the refactor.
+  build.bat debug passes 0 warnings, 0 errors.
 - 2026-04-13: Task 3.3 complete. Remove + Upsert pipeline wired up:
     * src/SharedWorldObjectManager.cs — added public static
       RemoveDefinitionsByPrefix(prefix) entry point. The existing

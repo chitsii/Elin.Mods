@@ -1,4 +1,5 @@
 using System;
+using Elin_Elinikki.Quest.Placement;
 using UnityEngine;
 
 namespace Elin_Elinikki
@@ -9,14 +10,20 @@ namespace Elin_Elinikki
         {
             if (Plugin.Settings.EnableDistanceFog.Value != true || _camera == null || maxDistance <= 0.01f)
             {
-                return ApplySceneTone(baseColor);
+                // Distance fog off: still run the scene tone pass for
+                // day/night consistency, then apply the Elinikki LUT
+                // exactly once on the way out.
+                return ElinikkiAtmosphereRuntime.ApplyLutTint(ApplySceneTone(baseColor));
             }
 
             Vector3 cameraSpace = _camera.transform.InverseTransformPoint(worldPosition);
             float depth = cameraSpace.z;
             if (depth <= 0f)
             {
-                return baseColor;
+                // Behind the camera: still apply the Elinikki LUT so
+                // near-the-camera samples in a chapter zone stay in
+                // the same tint as the fogged distance samples.
+                return ElinikkiAtmosphereRuntime.ApplyLutTint(baseColor);
             }
 
             float radialDistance = Vector3.Distance(_camera.transform.position, worldPosition);
@@ -40,7 +47,13 @@ namespace Elin_Elinikki
             float fogEnd = Mathf.Max(fogStart + 0.1f, maxDistance * effectiveEndRatio);
             if (radialDistance <= fogStart)
             {
-                return baseColor;
+                // Inside the fogStart radius the fog pass is a no-op,
+                // but we still want both the scene tone (day/night +
+                // beautify grade) and the Elinikki LUT applied so near
+                // geometry stays consistent with the fogged distance
+                // samples instead of jumping in color at the fog
+                // boundary.
+                return ElinikkiAtmosphereRuntime.ApplyLutTint(ApplySceneTone(baseColor));
             }
 
             float fogFactor = FpsDistanceFog.ComputeFogFactor(radialDistance, maxDistance, effectiveStartRatio, effectiveEndRatio, configuredDensity);
@@ -51,6 +64,11 @@ namespace Elin_Elinikki
             fogColor.a = desaturated.a;
             Color result = Color.Lerp(desaturated, fogColor, fogFactor);
             result = ApplySceneTone(result);
+            // Apply the Elinikki zone LUT exactly once, after all
+            // scene-tone work. Applying it earlier would double-tint
+            // any pixel that inherits color from the already-toned
+            // intermediate fog or clear colors.
+            result = ElinikkiAtmosphereRuntime.ApplyLutTint(result);
             MaybeRecordFogDiagnostic(category, radialDistance, fogStart, fogEnd, fogFactor, baseColor, result);
             return result;
         }
@@ -71,14 +89,22 @@ namespace Elin_Elinikki
             SceneColorProfile color = profile?.color;
             if (color == null)
             {
-                return DefaultClearColor;
+                // No scene profile available: start from the renderer's
+                // built-in default and still blend the Elinikki override
+                // so the first few frames of a chapter zone are tinted
+                // even before Elin resolves its scene data.
+                return ElinikkiAtmosphereRuntime.BlendClearColor(DefaultClearColor);
             }
 
             float timeRatio = ResolveSceneTimeRatio();
             Color sky = color.sky.Evaluate(timeRatio);
             Color skyBg = color.skyBG.Evaluate(timeRatio);
             Color clear = Color.Lerp(skyBg, sky, 0.35f);
-            return ApplySceneTone(clear, includeNightBrightness: false);
+            clear = ApplySceneTone(clear, includeNightBrightness: false);
+            // Per-zone override blends on top of the scene profile so
+            // Elinikki chapter zones can push the haze toward their
+            // target tint without replacing the day/night curve.
+            return ElinikkiAtmosphereRuntime.BlendClearColor(clear);
         }
 
         private void MaybeRecordFogDiagnostic(string category, float depth, float fogStart, float fogEnd, float fogFactor, Color baseColor, Color result)
@@ -100,14 +126,19 @@ namespace Elin_Elinikki
             {
                 Color background = _camera != null ? _camera.backgroundColor : DefaultClearColor;
                 Color haze = Color.Lerp(background, Color.white, 0.38f);
-                return Color.Lerp(haze, new Color(0.76f, 0.82f, 0.88f, 1f), 0.24f);
+                Color fallback = Color.Lerp(haze, new Color(0.76f, 0.82f, 0.88f, 1f), 0.24f);
+                return ElinikkiAtmosphereRuntime.BlendFogColor(fallback);
             }
 
             float timeRatio = ResolveSceneTimeRatio();
             Color fog = color.fog.Evaluate(timeRatio);
             Color skyBg = color.skyBG.Evaluate(timeRatio);
             Color hazeColor = Color.Lerp(fog, skyBg, 0.5f);
-            return ApplySceneTone(hazeColor, includeNightBrightness: false);
+            hazeColor = ApplySceneTone(hazeColor, includeNightBrightness: false);
+            // Per-zone override. Blends toward the chapter-specific fog
+            // tint without replacing the underlying scene-profile day/
+            // night curve, so the override stays time-of-day aware.
+            return ElinikkiAtmosphereRuntime.BlendFogColor(hazeColor);
         }
 
         private Color ApplySceneTone(Color color)
@@ -154,6 +185,13 @@ namespace Elin_Elinikki
                 }
             }
 
+            // NOTE: the Elinikki per-zone LUT tint is NOT applied here.
+            // ApplySceneTone is also called on intermediate values
+            // (ResolveFogColor's haze, ResolveClearColor's clear) that
+            // are later blended into the final pixel, so tinting in
+            // this method would stack the LUT twice on fog-heavy
+            // samples. The LUT is applied exactly once, at the end of
+            // ApplyAtmosphericFog's return paths instead.
             return result;
         }
 

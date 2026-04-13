@@ -12,6 +12,7 @@ namespace Elin_Elinikki.Quest.DramaKeys
         public const string ELINIKKI_TRACE_SHADOW = "chitsii.elinikki.quest.event.trace_shadow";
         public const string ELINIKKI_TRACE_FLOWERS = "chitsii.elinikki.quest.event.trace_flowers";
         public const string ELINIKKI_TRACE_WEAVE = "chitsii.elinikki.quest.event.trace_weave";
+        public const string ELINIKKI_ECHO_EXPERIMENT = "chitsii.elinikki.quest.state.echo_experiment";
     }
     public static class ResolveKeys
     {

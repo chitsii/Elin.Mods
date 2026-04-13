@@ -19,7 +19,7 @@ Phase 2: Drama scripts (Phase 1 complete)
 - [x] Task 2.1: DramaDsl submodule reference
 - [x] Task 2.2: Chapter-00 drama
 - [x] Task 2.3: Trace examine dramas (chapters 1-3)
-- [ ] Task 2.4: Echo experiment dramas (4 stages)
+- [x] Task 2.4: Echo experiment dramas (4 stages)
 - [ ] Task 2.5: Chapter-04 reunion + truth dramas
 - [ ] Task 2.6: Chapter-05 return + endings
 - [ ] Task 2.7: Verify drama compilation
@@ -183,6 +183,26 @@ Phase 2: Drama scripts (Phase 1 complete)
   Codex review was started but killed manually (took too long for a tooling-only change).
   Python build tooling only — no runtime C# logic touched, so review skipped per global
   rules.
+- 2026-04-13: Task 2.4 complete. Four echo experiment drama scripts authored for
+  chapter-2 sections 2-5 (awareness -> point A -> point B -> point C):
+    * key_spec.py: added ELINIKKI_ECHO_EXPERIMENT flag mapping to
+      chitsii.elinikki.quest.state.echo_experiment (int 0-4). Regenerated
+      data_generated.py and DramaKeys.g.cs.
+    * tools/drama/scenarios/:
+        - elinikki_echo_stage_1.py — entry awareness, echo_experiment=1
+        - elinikki_echo_stage_2.py — point A clap mismatch, echo_experiment=2
+        - elinikki_echo_stage_3.py — point B count preserved, echo_experiment=3
+        - elinikki_echo_stage_4.py — point C pattern response, echo_experiment=4
+          AND trace_echo=1 (the PHM climax beat, Mina's first silence)
+      Dialogue follows chapter-02.md section-by-section. Trigger gating
+      (echo_experiment == N prerequisite) is deferred to Phase 3 C# side;
+      the dramas themselves just set the stage flag on completion.
+    * create_drama_excel.py: registered the 4 echo stages alongside chapter-2
+      traces, grouped by chapter.
+  Verified: build.bat debug generates 13 drama Excel files (9 from Task 2.3 +
+  4 new) and compiles with 0 warnings, 0 errors. Codex review skipped for the
+  same reason as Task 2.1-2.3: narrative content + auto-generated key output
+  only.
 - 2026-04-13: Task 2.3 complete. Eight trace examine drama scripts authored for
   chapters 1-3 (echo experiment stages deferred to Task 2.4):
     * key_spec.py: added 8 flag specs ELINIKKI_TRACE_{MARKS,CHANNEL,STONES,ECHO,

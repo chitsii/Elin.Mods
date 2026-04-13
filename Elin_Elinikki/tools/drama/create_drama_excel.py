@@ -34,6 +34,10 @@ from tools.drama.scenarios.elinikki_trace_map import define_elinikki_trace_map
 from tools.drama.scenarios.elinikki_trace_shadow import define_elinikki_trace_shadow
 from tools.drama.scenarios.elinikki_trace_flowers import define_elinikki_trace_flowers
 from tools.drama.scenarios.elinikki_trace_weave import define_elinikki_trace_weave
+from tools.drama.scenarios.elinikki_echo_stage_1 import define_elinikki_echo_stage_1
+from tools.drama.scenarios.elinikki_echo_stage_2 import define_elinikki_echo_stage_2
+from tools.drama.scenarios.elinikki_echo_stage_3 import define_elinikki_echo_stage_3
+from tools.drama.scenarios.elinikki_echo_stage_4 import define_elinikki_echo_stage_4
 
 
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "LangMod", "EN", "Dialog", "Drama")
@@ -47,8 +51,11 @@ DRAMAS = [
     (DramaIds.TRACE_CHANNEL, define_elinikki_trace_channel),
     (DramaIds.TRACE_STONES, define_elinikki_trace_stones),
     (DramaIds.TRACE_JOURNAL, define_elinikki_trace_journal),
-    # Chapter 2 traces (反響の層). Echo experiment stages are authored
-    # separately in Task 2.4.
+    # Chapter 2 (反響の層): echo experiment stages 1-4 plus map/shadow traces.
+    (DramaIds.ECHO_STAGE_1, define_elinikki_echo_stage_1),
+    (DramaIds.ECHO_STAGE_2, define_elinikki_echo_stage_2),
+    (DramaIds.ECHO_STAGE_3, define_elinikki_echo_stage_3),
+    (DramaIds.ECHO_STAGE_4, define_elinikki_echo_stage_4),
     (DramaIds.TRACE_MAP, define_elinikki_trace_map),
     (DramaIds.TRACE_SHADOW, define_elinikki_trace_shadow),
     # Chapter 3 traces (花の層)

@@ -12,6 +12,7 @@ class FlagKeys:
     ELINIKKI_TRACE_SHADOW = "chitsii.elinikki.quest.event.trace_shadow"
     ELINIKKI_TRACE_FLOWERS = "chitsii.elinikki.quest.event.trace_flowers"
     ELINIKKI_TRACE_WEAVE = "chitsii.elinikki.quest.event.trace_weave"
+    ELINIKKI_ECHO_EXPERIMENT = "chitsii.elinikki.quest.state.echo_experiment"
 
 class ResolveKeys:
     """Generated constants."""

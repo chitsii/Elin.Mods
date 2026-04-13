@@ -80,6 +80,16 @@ KEY_SPECS = [
         description="Woven cord examined (chapter 3).",
     ),
 
+    # Echo experiment state. Progresses 0 -> 4 across the four chapter-2
+    # echo dramas. Used as a gate so each stage drama fires exactly once,
+    # in order. Stage 4 also sets quest.event.trace_echo.
+    KeySpec(
+        "flag",
+        "ELINIKKI_ECHO_EXPERIMENT",
+        "chitsii.elinikki.quest.state.echo_experiment",
+        description="Echo experiment stage (int 0-4, chapter 2).",
+    ),
+
     # ---------------------------------------------------------------------
     # Resolve keys (bool-returning dependencies)
     # ---------------------------------------------------------------------

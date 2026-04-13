@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Elin_Elinikki.Quest.Drama;
+using Elin_Elinikki.Quest.DramaKeys;
 
 namespace Elin_Elinikki.Quest.Quest
 {
@@ -252,6 +253,27 @@ namespace Elin_Elinikki.Quest.Quest
                 TryStartIntroQuest(currentStage);
                 AdvanceForZone(zoneId, previousZoneId, currentStage);
 
+                // Reset the chapter-4 truth menu latches on any
+                // zone activation whose destination zone is known
+                // AND is not YuuCamp. Without this, a player who
+                // leaves the camp with TMP_TRUTH_MENU_DISMISSED=1
+                // would return and never see the menu re-open.
+                // A null zoneId means the zone could not be
+                // resolved yet (startup, load pipeline mid-tear-
+                // down) — clearing the latch in that case would
+                // fire while the player is still physically in
+                // YuuCamp on a save/reload and cause the menu to
+                // reopen without the player ever leaving, so we
+                // skip the reset until the zone id is known.
+                if (!string.IsNullOrEmpty(zoneId)
+                    && !string.Equals(
+                           zoneId,
+                           ElinikkiZoneIds.YuuCamp,
+                           StringComparison.Ordinal))
+                {
+                    ClearTruthMenuState();
+                }
+
                 // Reunion dispatch runs after AdvanceForZone because
                 // the YuuCamp zone rule promotes Layer2Clear ->
                 // Layer3Clear on this same activation. Re-read the
@@ -262,6 +284,19 @@ namespace Elin_Elinikki.Quest.Quest
                 ElinikkiQuestStage reunionStage =
                     ElinikkiQuestStageExtensions.GetCurrentStage();
                 TryDispatchReunion(zoneId, reunionStage);
+
+                // Chapter-4 truth flow: first dispatch any pending
+                // pick (if the player just closed the menu with a
+                // slot set), then open/re-open the menu itself.
+                // Order matters — pending dispatch clears the slot
+                // so the subsequent menu dispatcher sees slot == 0
+                // and can re-open the menu on the next drama-close
+                // retry after the truth drama finishes.
+                TryDispatchPendingTruth();
+
+                ElinikkiQuestStage menuStage =
+                    ElinikkiQuestStageExtensions.GetCurrentStage();
+                TryDispatchTruthMenu(zoneId, menuStage);
 
                 // Return journey dispatch: the YuuCamp -> NefiaEntrance
                 // zone rule just promoted YuuFound -> Returned, so the
@@ -444,6 +479,76 @@ namespace Elin_Elinikki.Quest.Quest
         private const string ReunionDramaId = "elinikki_reunion";
 
         /// <summary>
+        /// Drama id for the chapter-4 post-reunion dialogue menu.
+        /// Auto-dispatched from <see cref="TryDispatchTruthMenu"/>
+        /// after the reunion drama closes and after every truth
+        /// drama closes, while the player is still in YuuCamp and
+        /// has not dismissed the menu this visit. The menu writes
+        /// the chosen topic to
+        /// <see cref="FlagKeys.TMP_TRUTH_MENU_SLOT"/> so
+        /// <see cref="TryDispatchPendingTruth"/> can launch the
+        /// matching truth drama after the menu closes.
+        /// </summary>
+        private const string ReunionMenuDramaId = "elinikki_reunion_menu";
+
+        /// <summary>
+        /// Slot-to-drama map for the chapter-4 truth dialogue menu.
+        /// Index 0 is unused (slot 0 means "no pending pick"), so
+        /// the array is size 9 and slots 1..8 line up with the
+        /// <c>_SLOT_*</c> constants in
+        /// <c>tools/drama/scenarios/elinikki_reunion_menu.py</c>.
+        /// The two sides MUST stay in lockstep; rearranging one
+        /// without the other would route a menu pick to the
+        /// wrong truth drama. The array is readonly and initialised
+        /// once at type-load time.
+        /// </summary>
+        private static readonly string[] TruthDramaIdsBySlot =
+        {
+            null,                    // slot 0 = no pending pick
+            "elinikki_truth_marks",  // slot 1 = pick_marks
+            "elinikki_truth_channel",// slot 2 = pick_channel
+            "elinikki_truth_stones", // slot 3 = pick_stones
+            "elinikki_truth_echo",   // slot 4 = pick_echo
+            "elinikki_truth_map",    // slot 5 = pick_map
+            "elinikki_truth_shadow", // slot 6 = pick_shadow
+            "elinikki_truth_flowers",// slot 7 = pick_flowers
+            "elinikki_truth_weave",  // slot 8 = pick_weave
+        };
+
+        /// <summary>
+        /// Prerequisite trace flag for each truth slot. Parallel to
+        /// <see cref="TruthDramaIdsBySlot"/>: index i names the
+        /// <c>chitsii.elinikki.quest.event.trace_*</c> flag the
+        /// player must have set (via a chapter 1-3 examine drama or
+        /// the chapter-2 echo experiment) before the matching truth
+        /// conversation is allowed to fire.
+        /// <para>
+        /// Without this guard, <see cref="TryDispatchPendingTruth"/>
+        /// would launch a truth drama for a slot whose trace was
+        /// never examined. The drama sets the corresponding
+        /// <c>truth_*</c> flag, and
+        /// <see cref="ElinikkiEndingResolver"/> counts only truth
+        /// flags, so a player could reach the Return ending without
+        /// discovering any of the prerequisite clues — contradicting
+        /// the story spec at <c>story/chapters/_index.md</c>
+        /// ("quest.event.trace_X == 1 AND quest.event.truth_X == 0"
+        /// gate on truth conversations).
+        /// </para>
+        /// </summary>
+        private static readonly string[] TruthPrerequisiteTraceFlagsBySlot =
+        {
+            null,                                // slot 0 = no pending pick
+            FlagKeys.ELINIKKI_TRACE_MARKS,       // slot 1 = pick_marks
+            FlagKeys.ELINIKKI_TRACE_CHANNEL,     // slot 2 = pick_channel
+            FlagKeys.ELINIKKI_TRACE_STONES,      // slot 3 = pick_stones
+            FlagKeys.ELINIKKI_TRACE_ECHO,        // slot 4 = pick_echo
+            FlagKeys.ELINIKKI_TRACE_MAP,         // slot 5 = pick_map
+            FlagKeys.ELINIKKI_TRACE_SHADOW,      // slot 6 = pick_shadow
+            FlagKeys.ELINIKKI_TRACE_FLOWERS,     // slot 7 = pick_flowers
+            FlagKeys.ELINIKKI_TRACE_WEAVE,       // slot 8 = pick_weave
+        };
+
+        /// <summary>
         /// Drama id for the chapter-5 return journey narration that
         /// plays once the player walks from YuuCamp back into the
         /// Nefia entrance. Unlike the reunion drama this one does
@@ -591,6 +696,205 @@ namespace Elin_Elinikki.Quest.Quest
         }
 
         /// <summary>
+        /// Chapter-4 truth dialogue menu dispatcher. Runs after the
+        /// reunion drama closes (via the
+        /// <c>LayerDrama.OnKill</c> retry hook) and after every
+        /// completed truth drama. Conditions:
+        /// <list type="bullet">
+        /// <item><description>Stage is
+        /// <see cref="ElinikkiQuestStage.YuuFound"/> — i.e. the
+        /// reunion drama has already advanced the stage.</description></item>
+        /// <item><description>Active zone is
+        /// <see cref="ElinikkiZoneIds.YuuCamp"/>.</description></item>
+        /// <item><description><see cref="FlagKeys.TMP_TRUTH_MENU_DISMISSED"/>
+        /// is 0. The "leave" choice in the menu sets it to 1 and
+        /// <see cref="ClearTruthMenuState"/> wipes it when the
+        /// player walks out of YuuCamp.</description></item>
+        /// <item><description><see cref="FlagKeys.TMP_TRUTH_MENU_SLOT"/>
+        /// is 0. A non-zero slot means the previous menu pass
+        /// already picked a topic and we should let
+        /// <see cref="TryDispatchPendingTruth"/> fire the matching
+        /// truth drama first.</description></item>
+        /// <item><description>No UI layer is currently active.</description></item>
+        /// </list>
+        /// The menu is launched via
+        /// <see cref="IQuestDramaRuntimeContext.TryStartDramaRepeatable"/>
+        /// — NOT <c>TryStartDramaUntilComplete</c> — because we
+        /// intentionally allow the menu to re-open as many times
+        /// as the player wants (once per "leave" cycle), and the
+        /// completion-flag check inside
+        /// <c>TryStartDramaUntilComplete</c> would permanently
+        /// block the second opening. Fail-soft: any exception is
+        /// caught and logged.
+        /// </summary>
+        private static void TryDispatchTruthMenu(
+            string zoneId,
+            ElinikkiQuestStage stage)
+        {
+            try
+            {
+                if (stage != ElinikkiQuestStage.YuuFound)
+                {
+                    return;
+                }
+
+                if (!string.Equals(
+                        zoneId,
+                        ElinikkiZoneIds.YuuCamp,
+                        StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                if (QuestStateService.GetFlagInt(FlagKeys.TMP_TRUTH_MENU_DISMISSED, 0) != 0)
+                {
+                    return;
+                }
+
+                if (QuestStateService.GetFlagInt(FlagKeys.TMP_TRUTH_MENU_SLOT, 0) != 0)
+                {
+                    return;
+                }
+
+                if (IsUiBusy())
+                {
+                    return;
+                }
+
+                QuestModLog.Info(
+                    "Elinikki truth menu dispatch. zone=" + zoneId +
+                    " stage=" + stage +
+                    " drama=" + ReunionMenuDramaId);
+
+                DramaContext.TryStartDramaRepeatable(ReunionMenuDramaId);
+            }
+            catch (Exception ex)
+            {
+                QuestModLog.Warn("Truth menu dispatch failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Chapter-4 pending-truth dispatcher. Reads the slot flag
+        /// set by the reunion menu drama, launches the matching
+        /// <c>elinikki_truth_*</c> drama via
+        /// <see cref="IQuestDramaRuntimeContext.TryStartDramaUntilComplete"/>,
+        /// and clears the slot so the next
+        /// <see cref="TryDispatchTruthMenu"/> pass re-opens the menu
+        /// once the truth drama closes (handled by the
+        /// <c>LayerDrama.OnKill</c> retry hook).
+        /// <para>
+        /// The slot is cleared BEFORE launching the drama so that an
+        /// exception in <c>TryStartDramaUntilComplete</c> cannot
+        /// leave a stale pending pick that fires again on the next
+        /// Pulse. If the launch fails the player just sees the menu
+        /// re-open on the next drama-close retry and can re-pick.
+        /// </para>
+        /// Fail-soft: any exception is caught and logged.
+        /// </summary>
+        private static void TryDispatchPendingTruth()
+        {
+            try
+            {
+                int slot = QuestStateService.GetFlagInt(FlagKeys.TMP_TRUTH_MENU_SLOT, 0);
+                if (slot <= 0 || slot >= TruthDramaIdsBySlot.Length)
+                {
+                    return;
+                }
+
+                string dramaId = TruthDramaIdsBySlot[slot];
+                if (string.IsNullOrEmpty(dramaId))
+                {
+                    return;
+                }
+
+                // UI-busy check runs BEFORE the slot is cleared. If
+                // another UI layer is active (load screen, another
+                // mod's cutscene, etc.) we leave the slot intact so
+                // the next retry — from Zone.Activate, the hourly
+                // RetryPulse, or the LayerDrama.OnKill hook once the
+                // blocker closes — can still launch the truth drama
+                // the player actually picked. Clearing before this
+                // check would silently drop the pick.
+                if (IsUiBusy())
+                {
+                    return;
+                }
+
+                // Trace prerequisite gate. The menu drama currently
+                // shows all eight topics regardless of which traces
+                // the player actually examined (filter-by-trace is
+                // deferred to Task 6.1a.4), so we MUST re-check the
+                // prerequisite here before letting the truth drama
+                // set the corresponding truth_* flag. Otherwise the
+                // player could collect truths and reach the Return
+                // ending without ever finding the prerequisite
+                // clues, which violates the story-spec gate in
+                // story/chapters/_index.md. A rejected pick clears
+                // the slot (the pick itself was invalid and the
+                // player should re-pick from a fresh menu).
+                string traceFlagKey = TruthPrerequisiteTraceFlagsBySlot[slot];
+                if (!string.IsNullOrEmpty(traceFlagKey)
+                    && QuestStateService.GetFlagInt(traceFlagKey, 0) == 0)
+                {
+                    QuestStateService.SetFlagInt(FlagKeys.TMP_TRUTH_MENU_SLOT, 0);
+                    QuestModLog.Info(
+                        "Elinikki truth dispatch rejected: prereq trace not set. slot=" + slot +
+                        " trace=" + traceFlagKey +
+                        " drama=" + dramaId);
+                    return;
+                }
+
+                // Clear the slot right before we launch. A crash in
+                // TryStartDramaUntilComplete below still leaves the
+                // slot at 0 (the clear happened), so the pick cannot
+                // pin indefinitely. The only failure mode we need to
+                // worry about is "UI was free at the check, drama
+                // start returned false anyway" — in that case the
+                // menu re-opens on the next retry and the player can
+                // re-pick.
+                QuestStateService.SetFlagInt(FlagKeys.TMP_TRUTH_MENU_SLOT, 0);
+
+                QuestModLog.Info(
+                    "Elinikki truth dispatch. slot=" + slot +
+                    " drama=" + dramaId);
+
+                DramaContext.TryStartDramaUntilComplete(dramaId);
+            }
+            catch (Exception ex)
+            {
+                QuestModLog.Warn("Pending truth dispatch failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Clears the chapter-4 truth menu transient flags. Invoked
+        /// from <see cref="Pulse"/> on any zone activation whose
+        /// destination is NOT YuuCamp: once the player walks out
+        /// the per-visit dismissed latch and any stranded pending
+        /// pick must reset so a future return to the camp opens
+        /// the menu fresh.
+        /// </summary>
+        private static void ClearTruthMenuState()
+        {
+            try
+            {
+                if (QuestStateService.GetFlagInt(FlagKeys.TMP_TRUTH_MENU_SLOT, 0) != 0)
+                {
+                    QuestStateService.SetFlagInt(FlagKeys.TMP_TRUTH_MENU_SLOT, 0);
+                }
+                if (QuestStateService.GetFlagInt(FlagKeys.TMP_TRUTH_MENU_DISMISSED, 0) != 0)
+                {
+                    QuestStateService.SetFlagInt(FlagKeys.TMP_TRUTH_MENU_DISMISSED, 0);
+                }
+            }
+            catch (Exception ex)
+            {
+                QuestModLog.Warn("Truth menu state clear failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
         /// True when <paramref name="zoneId"/> is any zone owned by
         /// the Elinikki quest, including the shared Nefia entrance.
         /// Used by <see cref="TryDispatchEnding"/> to pick up the
@@ -651,6 +955,18 @@ namespace Elin_Elinikki.Quest.Quest
                 // ran. TryDispatchReunion has its own zone / stage
                 // / UI-busy guards.
                 TryDispatchReunion(zoneId, currentStage);
+
+                // Chapter-4 truth loop retry. Drives the menu and
+                // pending-pick chain whenever any drama closes
+                // (the LayerDrama.OnKill hook reuses RetryPulse),
+                // so after the reunion drama closes the menu
+                // opens, after a truth drama closes the menu
+                // re-opens, and after a menu pick the
+                // corresponding truth drama fires. Pending
+                // dispatch runs first so the menu's own gate
+                // (slot == 0) releases before the menu re-opens.
+                TryDispatchPendingTruth();
+                TryDispatchTruthMenu(zoneId, currentStage);
 
                 // Return journey drama retry: same pattern as the
                 // reunion retry. The walk-out narration may have

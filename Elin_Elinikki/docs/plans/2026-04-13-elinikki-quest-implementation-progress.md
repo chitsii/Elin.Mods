@@ -56,7 +56,7 @@ Phase 6 reopened — Task 6.1a (trigger-side wiring) を追加。Phase 5
 - [~] Task 6.1a: Trigger-side wiring for Phase 2 dramas (22 本中 21 本に trigger 無し)
   - [x] 6.1a.1: reunion drama auto-start (yuu_camp && Layer3Clear) — TryDispatchReunion + RetryPulse
   - [x] 6.1a.2: return journey drama auto-start (nefia_entrance && Returned) — TryDispatchReturnJourney + LayerDrama.OnKill hook + ending gate on IsDramaDone
-  - [ ] 6.1a.3: chapter 4 truth dialogue menu (8 topic フィルタ)
+  - [x] 6.1a.3: chapter 4 truth dialogue menu — elinikki_reunion_menu drama + TryDispatchTruthMenu/TryDispatchPendingTruth + trace-prerequisite guard + per-visit dismiss latch (filter-by-trace UX deferred)
   - [ ] 6.1a.4: trace examine trigger framework (polling 8 trace marks)
   - [ ] 6.1a.5: echo stage position polling (3 point per layer)
 - [x] Task 6.2: Flag behavior verification (static — 21-flag spec count complete, journal_found added)

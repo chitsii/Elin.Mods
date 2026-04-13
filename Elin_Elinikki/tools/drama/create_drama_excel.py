@@ -39,6 +39,7 @@ from tools.drama.scenarios.elinikki_echo_stage_2 import define_elinikki_echo_sta
 from tools.drama.scenarios.elinikki_echo_stage_3 import define_elinikki_echo_stage_3
 from tools.drama.scenarios.elinikki_echo_stage_4 import define_elinikki_echo_stage_4
 from tools.drama.scenarios.elinikki_reunion import define_elinikki_reunion
+from tools.drama.scenarios.elinikki_reunion_menu import define_elinikki_reunion_menu
 from tools.drama.scenarios.elinikki_truth_marks import define_elinikki_truth_marks
 from tools.drama.scenarios.elinikki_truth_channel import define_elinikki_truth_channel
 from tools.drama.scenarios.elinikki_truth_stones import define_elinikki_truth_stones
@@ -77,6 +78,7 @@ DRAMAS = [
     # journal "伝わった" beat is folded into truth_echo rather than
     # being its own drama.
     (DramaIds.REUNION, define_elinikki_reunion),
+    (DramaIds.REUNION_MENU, define_elinikki_reunion_menu),
     (DramaIds.TRUTH_MARKS, define_elinikki_truth_marks),
     (DramaIds.TRUTH_CHANNEL, define_elinikki_truth_channel),
     (DramaIds.TRUTH_STONES, define_elinikki_truth_stones),

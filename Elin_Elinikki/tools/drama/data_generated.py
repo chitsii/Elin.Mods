@@ -4,6 +4,8 @@ class FlagKeys:
     """Generated constants."""
 
     TMP_INTRO_CAN_START = "chitsii.elinikki.tmp.intro.can_start"
+    TMP_TRUTH_MENU_SLOT = "chitsii.elinikki.tmp.truth_menu.slot"
+    TMP_TRUTH_MENU_DISMISSED = "chitsii.elinikki.tmp.truth_menu.dismissed"
     ELINIKKI_TRACE_MARKS = "chitsii.elinikki.quest.event.trace_marks"
     ELINIKKI_TRACE_CHANNEL = "chitsii.elinikki.quest.event.trace_channel"
     ELINIKKI_TRACE_STONES = "chitsii.elinikki.quest.event.trace_stones"

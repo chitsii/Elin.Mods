@@ -4,6 +4,8 @@ namespace Elin_Elinikki.Quest.DramaKeys
     public static class FlagKeys
     {
         public const string TMP_INTRO_CAN_START = "chitsii.elinikki.tmp.intro.can_start";
+        public const string TMP_TRUTH_MENU_SLOT = "chitsii.elinikki.tmp.truth_menu.slot";
+        public const string TMP_TRUTH_MENU_DISMISSED = "chitsii.elinikki.tmp.truth_menu.dismissed";
         public const string ELINIKKI_TRACE_MARKS = "chitsii.elinikki.quest.event.trace_marks";
         public const string ELINIKKI_TRACE_CHANNEL = "chitsii.elinikki.quest.event.trace_channel";
         public const string ELINIKKI_TRACE_STONES = "chitsii.elinikki.quest.event.trace_stones";

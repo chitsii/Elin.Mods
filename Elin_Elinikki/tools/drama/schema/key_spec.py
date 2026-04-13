@@ -24,6 +24,31 @@ KEY_SPECS = [
     # in dialogFlags so the drama DSL can read them.
     KeySpec("flag", "TMP_INTRO_CAN_START", "chitsii.elinikki.tmp.intro.can_start"),
 
+    # Chapter-4 reunion dialogue menu transient state. The menu drama
+    # (elinikki_reunion_menu) writes these; ElinikkiQuestFlow reads and
+    # clears them. Both are transient per-visit state — cleared when the
+    # player leaves YuuCamp so the menu re-opens fresh on the next visit.
+    KeySpec(
+        "flag",
+        "TMP_TRUTH_MENU_SLOT",
+        "chitsii.elinikki.tmp.truth_menu.slot",
+        description=(
+            "Truth topic slot the player picked from the chapter-4 "
+            "reunion menu (1-8 map to the 8 truth_* dramas, 0 = no "
+            "pending truth). Consumed by TryDispatchPendingTruth."
+        ),
+    ),
+    KeySpec(
+        "flag",
+        "TMP_TRUTH_MENU_DISMISSED",
+        "chitsii.elinikki.tmp.truth_menu.dismissed",
+        description=(
+            "Set to 1 when the player picks the 'leave' option in the "
+            "chapter-4 reunion menu. Suppresses menu re-dispatch until "
+            "the player exits YuuCamp."
+        ),
+    ),
+
     # Trace-examine event flags. Set by chapter 1-3 examine dramas when the
     # player first investigates the corresponding trace. Read in chapter 4
     # to unlock the matching truth conversation with Yuu, and counted at

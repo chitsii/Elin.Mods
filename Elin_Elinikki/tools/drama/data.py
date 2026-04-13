@@ -47,6 +47,11 @@ class DramaIds:
 
     # Chapter 4: Reunion with Yuu and the 8 truth-reveal conversations.
     REUNION = "elinikki_reunion"
+    # Post-reunion dialogue menu. Offers the 8 truth topics as choices
+    # and forwards the pick to ElinikkiQuestFlow.TryDispatchPendingTruth
+    # via a transient slot flag. Re-opens after every truth drama until
+    # the player selects "leave" or walks out of YuuCamp.
+    REUNION_MENU = "elinikki_reunion_menu"
     TRUTH_MARKS = "elinikki_truth_marks"
     TRUTH_CHANNEL = "elinikki_truth_channel"
     TRUTH_STONES = "elinikki_truth_stones"
@@ -76,6 +81,7 @@ class DramaIds:
         TRACE_FLOWERS,
         TRACE_WEAVE,
         REUNION,
+        REUNION_MENU,
         TRUTH_MARKS,
         TRUTH_CHANNEL,
         TRUTH_STONES,

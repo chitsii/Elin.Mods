@@ -53,12 +53,12 @@ Phase 6 reopened — Task 6.1a (trigger-side wiring) を追加。Phase 5
 
 ### Phase 6: End-to-end verification
 - [~] Task 6.1: Full playthrough chapters 0-5 (code + static verify done; live playthrough blocked on Phase 5)
-- [~] Task 6.1a: Trigger-side wiring for Phase 2 dramas (22 本中 21 本に trigger 無し)
+- [x] Task 6.1a: Trigger-side wiring for Phase 2 dramas (all 5 subtasks done)
   - [x] 6.1a.1: reunion drama auto-start (yuu_camp && Layer3Clear) — TryDispatchReunion + RetryPulse
   - [x] 6.1a.2: return journey drama auto-start (nefia_entrance && Returned) — TryDispatchReturnJourney + LayerDrama.OnKill hook + ending gate on IsDramaDone
   - [x] 6.1a.3: chapter 4 truth dialogue menu — elinikki_reunion_menu drama + TryDispatchTruthMenu/TryDispatchPendingTruth + trace-prerequisite guard + per-visit dismiss latch (filter-by-trace UX deferred)
-  - [ ] 6.1a.4: trace examine trigger framework (polling 8 trace marks)
-  - [ ] 6.1a.5: echo stage position polling (3 point per layer)
+  - [x] 6.1a.4: trace examine trigger framework — ElinikkiTraceExaminer per-frame polling + Patch_Game_OnUpdate_TraceExaminer + 8-trace lookup table
+  - [x] 6.1a.5: echo stage position polling — stage 1 on LayerEcho zone entry (Layer1Clear-gated), stages 2-4 via counter-driven proximity in ElinikkiTraceExaminer
 - [x] Task 6.2: Flag behavior verification (static — 21-flag spec count complete, journal_found added)
 - [x] Task 6.3: Ending resolution verification (static decision table, 9 truth counts exercised at load)
 - [x] Task 6.4: Deviation report (see dedicated section below)

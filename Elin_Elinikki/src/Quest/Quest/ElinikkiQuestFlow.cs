@@ -253,6 +253,16 @@ namespace Elin_Elinikki.Quest.Quest
                 TryStartIntroQuest(currentStage);
                 AdvanceForZone(zoneId, previousZoneId, currentStage);
 
+                // Invalidate the trace examiner's movement cache
+                // so a save/load onto a landmark tile re-runs the
+                // proximity scan on the next frame. The cache
+                // keys on (zoneId, tileX, tileZ) and cannot by
+                // itself detect "same position, new save state",
+                // so the Pulse — which runs exactly once per
+                // zone activation, including the post-load one —
+                // is the right place to flush it.
+                ElinikkiTraceExaminer.InvalidateMovementCache();
+
                 // Reset the chapter-4 truth menu latches on any
                 // zone activation whose destination zone is known
                 // AND is not YuuCamp. Without this, a player who
@@ -284,6 +294,14 @@ namespace Elin_Elinikki.Quest.Quest
                 ElinikkiQuestStage reunionStage =
                     ElinikkiQuestStageExtensions.GetCurrentStage();
                 TryDispatchReunion(zoneId, reunionStage);
+
+                // Chapter-2 echo stage 1 runs as a zone-entry
+                // dispatch, unlike stages 2-4 which are proximity-
+                // triggered. This slot in the Pulse ordering means
+                // the very first activation of LayerEcho at
+                // Accepted-or-later stage can kick off the echo
+                // experiment on the same frame.
+                TryDispatchEchoStage1(zoneId);
 
                 // Chapter-4 truth flow: first dispatch any pending
                 // pick (if the player just closed the menu with a
@@ -549,6 +567,19 @@ namespace Elin_Elinikki.Quest.Quest
         };
 
         /// <summary>
+        /// Drama id for the chapter-2 echo experiment stage 1.
+        /// Unlike stages 2-4 (proximity-triggered in
+        /// <see cref="ElinikkiTraceExaminer.TryDispatchEchoExperiment"/>),
+        /// stage 1 fires as soon as the player enters
+        /// <see cref="ElinikkiZoneIds.LayerEcho"/> with
+        /// <see cref="FlagKeys.ELINIKKI_ECHO_EXPERIMENT"/> still at
+        /// 0. The drama itself bumps the counter to 1; subsequent
+        /// ticks then let the proximity dispatcher handle the
+        /// point_a / point_b / point_c beats.
+        /// </summary>
+        private const string EchoStage1DramaId = "elinikki_echo_stage_1";
+
+        /// <summary>
         /// Drama id for the chapter-5 return journey narration that
         /// plays once the player walks from YuuCamp back into the
         /// Nefia entrance. Unlike the reunion drama this one does
@@ -620,6 +651,125 @@ namespace Elin_Elinikki.Quest.Quest
             catch (Exception ex)
             {
                 QuestModLog.Warn("Reunion dispatch failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Chapter-2 echo experiment stage 1 dispatcher. Runs on
+        /// any <see cref="Pulse"/> / <see cref="RetryPulse"/> while
+        /// the player is standing in
+        /// <see cref="ElinikkiZoneIds.LayerEcho"/> with
+        /// <see cref="FlagKeys.ELINIKKI_ECHO_EXPERIMENT"/> still at
+        /// 0. The drama is authored to bump the counter to 1 on
+        /// its final step, so once it runs once this gate fails
+        /// naturally on the next pulse. Stages 2-4 are proximity
+        /// triggered by
+        /// <see cref="ElinikkiTraceExaminer.TryDispatchEchoExperiment"/>
+        /// and live outside this dispatcher.
+        /// <para>
+        /// The stage-1 beat is intentionally zone-entry driven
+        /// instead of position-based because the story opens the
+        /// echo experiment with the party noticing the acoustics
+        /// the moment they arrive, not after the player has
+        /// wandered onto a specific tile. Fail-soft: any
+        /// exception is caught and logged.
+        /// </para>
+        /// </summary>
+        /// <summary>
+        /// Per-frame entry point used by
+        /// <see cref="ElinikkiTraceExaminer.Tick"/> to retry the
+        /// chapter-2 echo stage 1 beat while a non-drama UI
+        /// layer (book, menu, etc.) holds focus. The trace
+        /// examiner runs every frame, so calling into the
+        /// dispatcher on every tick is the cheapest retry path
+        /// that still triggers the moment the blocking UI
+        /// closes. The dispatcher itself gates on stage / zone /
+        /// counter / UI-busy, so calling this when the window
+        /// is closed is a handful of flag reads and an early
+        /// return.
+        /// </summary>
+        internal static void TryDispatchEchoStage1FromExaminer()
+        {
+            try
+            {
+                string zoneId = ResolveCurrentZoneId();
+                if (string.IsNullOrEmpty(zoneId))
+                {
+                    return;
+                }
+
+                TryDispatchEchoStage1(zoneId);
+            }
+            catch (Exception ex)
+            {
+                QuestModLog.Warn(
+                    "Echo stage 1 examiner retry failed: " + ex.Message);
+            }
+        }
+
+        private static void TryDispatchEchoStage1(string zoneId)
+        {
+            try
+            {
+                if (!string.Equals(
+                        zoneId,
+                        ElinikkiZoneIds.LayerEcho,
+                        StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                // Quest-stage gate: stage 1 is a chapter-2 intro
+                // beat, so it must only fire while chapter 2 is
+                // actually the current chapter. Layer1Clear is
+                // the stage set by the Waterstone -> Echo zone
+                // rule on the first arrival; any later stage
+                // (Layer2Clear, Layer3Clear, YuuFound, Returned,
+                // EndingSeen) means the player has already
+                // cleared Echo or progressed further and the
+                // intro beat must not replay out of order. If a
+                // UI-busy first visit swallowed the dispatch and
+                // the player left without counter being bumped,
+                // the revisit no longer qualifies at all — the
+                // beat is missed, which is a smaller bug than
+                // playing chapter-2 intro after the reunion.
+                if (ElinikkiQuestStageExtensions.GetCurrentStage()
+                    != ElinikkiQuestStage.Layer1Clear)
+                {
+                    return;
+                }
+
+                if (QuestStateService.GetFlagInt(FlagKeys.ELINIKKI_ECHO_EXPERIMENT, 0) != 0)
+                {
+                    return;
+                }
+
+                if (IsUiBusy())
+                {
+                    return;
+                }
+
+                QuestModLog.Info(
+                    "Elinikki echo stage 1 dispatch. zone=" + zoneId +
+                    " drama=" + EchoStage1DramaId);
+
+                if (DramaContext.TryStartDramaUntilComplete(EchoStage1DramaId))
+                {
+                    // Same-tile progression fix: if the player is
+                    // already standing on point_a when stage 1
+                    // finishes (counter 0 -> 1), the trace
+                    // examiner's movement cache would otherwise
+                    // fast-path past the new counter value and
+                    // stage 2 would not trigger until the player
+                    // steps away and back. Invalidating here lets
+                    // the next Tick re-scan the current tile and
+                    // pick up the advanced counter.
+                    ElinikkiTraceExaminer.InvalidateMovementCache();
+                }
+            }
+            catch (Exception ex)
+            {
+                QuestModLog.Warn("Echo stage 1 dispatch failed: " + ex.Message);
             }
         }
 
@@ -955,6 +1105,12 @@ namespace Elin_Elinikki.Quest.Quest
                 // ran. TryDispatchReunion has its own zone / stage
                 // / UI-busy guards.
                 TryDispatchReunion(zoneId, currentStage);
+
+                // Echo stage 1 retry: LayerEcho entry + counter==0.
+                // Same pattern as reunion retry, covers the case
+                // where another layer was holding UI focus when
+                // the player first walked into the echo cavern.
+                TryDispatchEchoStage1(zoneId);
 
                 // Chapter-4 truth loop retry. Drives the menu and
                 // pending-pick chain whenever any drama closes

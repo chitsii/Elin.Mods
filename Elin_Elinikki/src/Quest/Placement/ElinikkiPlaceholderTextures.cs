@@ -4,18 +4,29 @@ namespace Elin_Elinikki.Quest.Placement
 {
     /// <summary>
     /// Solid-color placeholder texture for the Elinikki trace
-    /// placements. A single 128x128 neutral texture (white fill with
-    /// a 55% gray two-pixel border) is shared across every trace;
-    /// per-trace color comes from the material tint path that
+    /// placements. A single 128x128 neutral texture (white-filled
+    /// circle, 55% gray ring at the circumference, transparent
+    /// outside the circle) is shared across every trace; per-trace
+    /// color comes from the material tint path that
     /// <see cref="SharedWorldObjectManager.ApplyNormalProxyMaterial"/>
     /// already drives off <c>definition.Color</c>.
     ///
-    /// <para>Why neutral, not pre-colored: the normal proxy material
-    /// always multiplies the bound texture by <c>_Color</c>, so a
-    /// pre-tinted placeholder texture would double-apply the trace
-    /// color and render noticeably darker than the authored
-    /// <c>ChannelColor</c> / <c>MarkColor</c> / etc. Leaving the fill
-    /// white lets the existing tint pipeline compose correctly.</para>
+    /// <para>Why neutral and not pre-colored: the normal proxy
+    /// material always multiplies the bound texture by <c>_Color</c>,
+    /// so a pre-tinted placeholder texture would double-apply the
+    /// trace color and render noticeably darker than the authored
+    /// <c>ChannelColor</c> / <c>MarkColor</c> / etc. Leaving the
+    /// fill white lets the existing tint pipeline compose
+    /// correctly.</para>
+    ///
+    /// <para>Why a circle cutout and not a filled rectangle: the
+    /// explicit-texture path bypasses the auto-bake's silhouette
+    /// crop, so a fully opaque bitmap would turn each proxy into a
+    /// full-card rectangular occluder that hides actors and props
+    /// behind it in the top-down view. Masking the corners out with
+    /// alpha=0 keeps the proxy shape roughly matching a footprint
+    /// marker. Phase 7 replaces this with per-trace art that
+    /// already has correct transparency.</para>
     ///
     /// <para>These are explicit placeholders. Phase 7 / Task 7.1
     /// swaps them out for the real 512x512 photorealistic textures
@@ -35,7 +46,8 @@ namespace Elin_Elinikki.Quest.Placement
     internal static class ElinikkiPlaceholderTextures
     {
         private const int Size = 128;
-        private const int BorderWidth = 2;
+        private const float CircleRadius = 60f;
+        private const float RingWidth = 2f;
 
         private static Texture2D _neutral;
 
@@ -61,17 +73,35 @@ namespace Elin_Elinikki.Quest.Placement
             };
 
             Color fill = Color.white;
-            Color border = new Color(0.55f, 0.55f, 0.55f, 1f);
+            Color ring = new Color(0.55f, 0.55f, 0.55f, 1f);
+            Color empty = new Color(0f, 0f, 0f, 0f);
+
+            const float center = (Size - 1) * 0.5f;
+            const float innerRadius = CircleRadius - RingWidth;
 
             for (int y = 0; y < Size; y++)
             {
                 for (int x = 0; x < Size; x++)
                 {
-                    bool onBorder = x < BorderWidth
-                                    || y < BorderWidth
-                                    || x >= Size - BorderWidth
-                                    || y >= Size - BorderWidth;
-                    texture.SetPixel(x, y, onBorder ? border : fill);
+                    float dx = x - center;
+                    float dy = y - center;
+                    float distance = Mathf.Sqrt((dx * dx) + (dy * dy));
+
+                    Color pixel;
+                    if (distance > CircleRadius)
+                    {
+                        pixel = empty;
+                    }
+                    else if (distance > innerRadius)
+                    {
+                        pixel = ring;
+                    }
+                    else
+                    {
+                        pixel = fill;
+                    }
+
+                    texture.SetPixel(x, y, pixel);
                 }
             }
 

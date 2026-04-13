@@ -24,6 +24,62 @@ KEY_SPECS = [
     # in dialogFlags so the drama DSL can read them.
     KeySpec("flag", "TMP_INTRO_CAN_START", "chitsii.elinikki.tmp.intro.can_start"),
 
+    # Trace-examine event flags. Set by chapter 1-3 examine dramas when the
+    # player first investigates the corresponding trace. Read in chapter 4
+    # to unlock the matching truth conversation with Yuu, and counted at
+    # chapter 5 to resolve the ending.
+    # trace_echo is set when the echo experiment reaches stage 4 (chapter 2);
+    # it lives alongside the pure examine traces for parity with the story
+    # spec (story/chapters/_index.md "quest.event.trace_*" table).
+    KeySpec(
+        "flag",
+        "ELINIKKI_TRACE_MARKS",
+        "chitsii.elinikki.quest.event.trace_marks",
+        description="Wall markings examined (chapter 1).",
+    ),
+    KeySpec(
+        "flag",
+        "ELINIKKI_TRACE_CHANNEL",
+        "chitsii.elinikki.quest.event.trace_channel",
+        description="Water channel examined (chapter 1).",
+    ),
+    KeySpec(
+        "flag",
+        "ELINIKKI_TRACE_STONES",
+        "chitsii.elinikki.quest.event.trace_stones",
+        description="Sorted stones examined (chapter 1).",
+    ),
+    KeySpec(
+        "flag",
+        "ELINIKKI_TRACE_ECHO",
+        "chitsii.elinikki.quest.event.trace_echo",
+        description="Echo response experiment cleared (chapter 2, stage 4).",
+    ),
+    KeySpec(
+        "flag",
+        "ELINIKKI_TRACE_MAP",
+        "chitsii.elinikki.quest.event.trace_map",
+        description="Floor map examined (chapter 2).",
+    ),
+    KeySpec(
+        "flag",
+        "ELINIKKI_TRACE_SHADOW",
+        "chitsii.elinikki.quest.event.trace_shadow",
+        description="Wall shadow examined (chapter 2).",
+    ),
+    KeySpec(
+        "flag",
+        "ELINIKKI_TRACE_FLOWERS",
+        "chitsii.elinikki.quest.event.trace_flowers",
+        description="Flower roots examined (chapter 3).",
+    ),
+    KeySpec(
+        "flag",
+        "ELINIKKI_TRACE_WEAVE",
+        "chitsii.elinikki.quest.event.trace_weave",
+        description="Woven cord examined (chapter 3).",
+    ),
+
     # ---------------------------------------------------------------------
     # Resolve keys (bool-returning dependencies)
     # ---------------------------------------------------------------------

@@ -4,6 +4,14 @@ class FlagKeys:
     """Generated constants."""
 
     TMP_INTRO_CAN_START = "chitsii.elinikki.tmp.intro.can_start"
+    ELINIKKI_TRACE_MARKS = "chitsii.elinikki.quest.event.trace_marks"
+    ELINIKKI_TRACE_CHANNEL = "chitsii.elinikki.quest.event.trace_channel"
+    ELINIKKI_TRACE_STONES = "chitsii.elinikki.quest.event.trace_stones"
+    ELINIKKI_TRACE_ECHO = "chitsii.elinikki.quest.event.trace_echo"
+    ELINIKKI_TRACE_MAP = "chitsii.elinikki.quest.event.trace_map"
+    ELINIKKI_TRACE_SHADOW = "chitsii.elinikki.quest.event.trace_shadow"
+    ELINIKKI_TRACE_FLOWERS = "chitsii.elinikki.quest.event.trace_flowers"
+    ELINIKKI_TRACE_WEAVE = "chitsii.elinikki.quest.event.trace_weave"
 
 class ResolveKeys:
     """Generated constants."""

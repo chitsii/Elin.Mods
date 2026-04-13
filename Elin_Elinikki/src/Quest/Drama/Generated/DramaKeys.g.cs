@@ -4,6 +4,14 @@ namespace Elin_Elinikki.Quest.DramaKeys
     public static class FlagKeys
     {
         public const string TMP_INTRO_CAN_START = "chitsii.elinikki.tmp.intro.can_start";
+        public const string ELINIKKI_TRACE_MARKS = "chitsii.elinikki.quest.event.trace_marks";
+        public const string ELINIKKI_TRACE_CHANNEL = "chitsii.elinikki.quest.event.trace_channel";
+        public const string ELINIKKI_TRACE_STONES = "chitsii.elinikki.quest.event.trace_stones";
+        public const string ELINIKKI_TRACE_ECHO = "chitsii.elinikki.quest.event.trace_echo";
+        public const string ELINIKKI_TRACE_MAP = "chitsii.elinikki.quest.event.trace_map";
+        public const string ELINIKKI_TRACE_SHADOW = "chitsii.elinikki.quest.event.trace_shadow";
+        public const string ELINIKKI_TRACE_FLOWERS = "chitsii.elinikki.quest.event.trace_flowers";
+        public const string ELINIKKI_TRACE_WEAVE = "chitsii.elinikki.quest.event.trace_weave";
     }
     public static class ResolveKeys
     {

@@ -18,7 +18,7 @@ Phase 2: Drama scripts (Phase 1 complete)
 ### Phase 2: Drama scripts
 - [x] Task 2.1: DramaDsl submodule reference
 - [x] Task 2.2: Chapter-00 drama
-- [ ] Task 2.3: Trace examine dramas (chapters 1-3)
+- [x] Task 2.3: Trace examine dramas (chapters 1-3)
 - [ ] Task 2.4: Echo experiment dramas (4 stages)
 - [ ] Task 2.5: Chapter-04 reunion + truth dramas
 - [ ] Task 2.6: Chapter-05 return + endings
@@ -183,6 +183,35 @@ Phase 2: Drama scripts (Phase 1 complete)
   Codex review was started but killed manually (took too long for a tooling-only change).
   Python build tooling only — no runtime C# logic touched, so review skipped per global
   rules.
+- 2026-04-13: Task 2.3 complete. Eight trace examine drama scripts authored for
+  chapters 1-3 (echo experiment stages deferred to Task 2.4):
+    * key_spec.py: added 8 flag specs ELINIKKI_TRACE_{MARKS,CHANNEL,STONES,ECHO,
+      MAP,SHADOW,FLOWERS,WEAVE} mapping to chitsii.elinikki.quest.event.trace_*.
+      trace_echo is defined here for parity with the story spec even though it
+      is set by Task 2.4's echo experiment stage-4 drama, not a pure examine.
+    * generate_keys.py --write regenerated tools/drama/data_generated.py and
+      src/Quest/Drama/Generated/DramaKeys.g.cs with the 8 new constants.
+    * tools/drama/scenarios/:
+        - elinikki_trace_marks.py  (chapter 1, sets trace_marks)
+        - elinikki_trace_channel.py (chapter 1, sets trace_channel)
+        - elinikki_trace_stones.py (chapter 1, sets trace_stones)
+        - elinikki_trace_journal.py (chapter 1, no flag — pure story beat
+          for Yuu's notebook "伝わった" foreshadow)
+        - elinikki_trace_map.py (chapter 2, sets trace_map)
+        - elinikki_trace_shadow.py (chapter 2, sets trace_shadow)
+        - elinikki_trace_flowers.py (chapter 3, sets trace_flowers)
+        - elinikki_trace_weave.py (chapter 3, sets trace_weave)
+      Dialogue lifted directly from story/chapters/chapter-0{1,2,3}.md section
+      headers and condensed only where necessary to fit the conversation DSL.
+      Replay suppression is deferred to the Phase 3 C# examine trigger — the
+      drama itself does not gate on its own flag.
+    * create_drama_excel.py: registered all 8 new scenarios in DRAMAS list,
+      keeping them grouped by chapter with a note that echo stages live in 2.4.
+  Verified: build.bat debug runs the full 3-step pipeline and generates 9 drama
+  Excel files (intro + 8 new traces) with 0 warnings, 0 errors. Codex review
+  skipped for the same reason as Task 2.1/2.2: drama scripts are narrative
+  content and DramaKeys.g.cs is additive auto-generated output — no hand-
+  written runtime logic changed.
 - 2026-04-13: Task 2.2 complete. First drama scenario authored:
     * tools/drama/schema/key_spec.py rewritten with Elinikki-specific keys:
       TMP_INTRO_CAN_START (tmp flag), 7 stage_at_least resolve keys, and 3

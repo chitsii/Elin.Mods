@@ -3,7 +3,7 @@
 Status: IN PROGRESS
 
 ## Current Phase
-Phase 2: Drama scripts (Phase 1 complete)
+Phase 3: SharedWorldObject zone-aware placement (Phase 1-2 complete)
 
 ## Phases
 
@@ -22,7 +22,7 @@ Phase 2: Drama scripts (Phase 1 complete)
 - [x] Task 2.4: Echo experiment dramas (4 stages)
 - [x] Task 2.5: Chapter-04 reunion + truth dramas
 - [x] Task 2.6: Chapter-05 return + endings
-- [ ] Task 2.7: Verify drama compilation
+- [x] Task 2.7: Verify drama compilation
 
 ### Phase 3: SharedWorldObject zone-aware placement
 - [ ] Task 3.1: Zone transition hook
@@ -183,6 +183,19 @@ Phase 2: Drama scripts (Phase 1 complete)
   Codex review was started but killed manually (took too long for a tooling-only change).
   Python build tooling only — no runtime C# logic touched, so review skipped per global
   rules.
+- 2026-04-13: Task 2.7 complete. Phase 2 drama compilation verified end-to-end:
+    * generate_keys.py --check: OK. data_generated.py and DramaKeys.g.cs are
+      in sync with tools/drama/schema/key_spec.py.
+    * Cross-check tools/drama/data.py DramaIds.ALL vs create_drama_excel.py
+      DRAMAS: 25 declared, 25 registered, 0 missing / 0 extra.
+    * tools/drama/scenarios/ contains exactly 25 elinikki_*.py files (one
+      per drama id). No orphans.
+    * Full clean rebuild: rm -f LangMod/EN/Dialog/Drama/*.xlsx, then
+      build.bat debug regenerates all 25 Excel files and compiles with
+      0 warnings, 0 errors.
+  Phase 2 complete. The drama content layer is self-consistent and ready
+  for Phase 3 to wire up the zone triggers, examine handlers, and the
+  chapter-4 truth menu that will invoke these dramas.
 - 2026-04-13: Task 2.6 complete. Chapter-5 return journey + two named endings.
     * key_spec.py: added ELINIKKI_QUEST_ENDING flag (int 0-3) mapping to
       chitsii.elinikki.quest.ending. Values: 0 none, 1 return, 2 silence,

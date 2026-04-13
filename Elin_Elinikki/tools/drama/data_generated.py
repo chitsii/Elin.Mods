@@ -40,6 +40,7 @@ class CommandKeys:
     ELINIKKI_STAGE_ADVANCE_ACCEPTED = "cmd.elinikki.stage.advance.accepted"
     ELINIKKI_STAGE_ADVANCE_YUU_FOUND = "cmd.elinikki.stage.advance.yuu_found"
     ELINIKKI_STAGE_ADVANCE_ENDING_SEEN = "cmd.elinikki.stage.advance.ending_seen"
+    ELINIKKI_AUDIO_BGM_STOP = "cmd.elinikki.audio.bgm.stop"
 
 class CueKeys:
     """Generated constants."""

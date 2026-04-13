@@ -168,6 +168,142 @@ namespace Elin_Elinikki.Quest.Drama
             }
         }
 
+        public bool PlayBgm(string bgmId)
+        {
+            if (string.IsNullOrEmpty(bgmId))
+            {
+                return false;
+            }
+
+            try
+            {
+                var manager = SoundManager.current;
+                if (manager == null)
+                {
+                    QuestModLog.Warn(
+                        "QuestBridge.PlayBgm: SoundManager unavailable (" + bgmId + ")");
+                    return false;
+                }
+
+                var data = manager.GetData(bgmId);
+                if (data == null)
+                {
+                    QuestModLog.Warn("QuestBridge.PlayBgm: BGM not found (" + bgmId + ")");
+                    return false;
+                }
+
+                if (data is BGMData bgm)
+                {
+                    LayerDrama.haltPlaylist = true;
+                    LayerDrama.maxBGMVolume = true;
+                    // Mark the drama's bgmChanged flag so ActorEx's
+                    // keepAmbientBGM check suppresses nearby
+                    // jukebox/ambient actors under the custom track.
+                    // The built-in drama BGM command does the same.
+                    try
+                    {
+                        var dramaInstance = LayerDrama.Instance?.drama;
+                        if (dramaInstance != null)
+                        {
+                            dramaInstance.bgmChanged = true;
+                        }
+                    }
+                    catch (Exception markEx)
+                    {
+                        QuestModLog.Warn(
+                            "QuestBridge.PlayBgm: bgmChanged flag update failed: "
+                            + markEx.Message);
+                    }
+
+                    manager.PlayBGM(bgm);
+                    QuestModLog.Info("QuestBridge.PlayBgm: started (" + bgmId + ")");
+                    return true;
+                }
+
+                // Not a BGM asset — fall back to the generic Play
+                // path. The drama DSL's play_bgm helper does the
+                // same dance, and it is the only sane thing to do
+                // for non-BGMData entries that still exist in the
+                // sound table.
+                manager.Play(data);
+                QuestModLog.Info(
+                    "QuestBridge.PlayBgm: played as generic sound (" + bgmId + ")");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                QuestModLog.Warn(
+                    "QuestBridge.PlayBgm raised: " + ex.Message + " (" + bgmId + ")");
+                return false;
+            }
+        }
+
+        public void StopBgm()
+        {
+            try
+            {
+                // Keep haltPlaylist = true so the zone playlist does
+                // not immediately restart when SoundManager.StopBGM()
+                // resets the playback interval. Elin's built-in
+                // `stopBGM` drama command does the same: the drama
+                // hand-off is intended to leave silence under the
+                // dialogue, not resume area BGM under it. Only the
+                // max-volume hold is released, because that is what
+                // keeps the drama layer dominating the mixer.
+                LayerDrama.haltPlaylist = true;
+                LayerDrama.maxBGMVolume = false;
+
+                var manager = SoundManager.current;
+                if (manager == null)
+                {
+                    return;
+                }
+
+                manager.StopBGM();
+                QuestModLog.Info("QuestBridge.StopBgm: stopped BGM (playlist stays halted)");
+            }
+            catch (Exception ex)
+            {
+                QuestModLog.Warn("QuestBridge.StopBgm raised: " + ex.Message);
+            }
+        }
+
+        public bool PlaySe(string seId)
+        {
+            if (string.IsNullOrEmpty(seId))
+            {
+                return false;
+            }
+
+            try
+            {
+                var manager = SoundManager.current;
+                if (manager == null)
+                {
+                    QuestModLog.Warn(
+                        "QuestBridge.PlaySe: SoundManager unavailable (" + seId + ")");
+                    return false;
+                }
+
+                var data = manager.GetData(seId);
+                if (data == null)
+                {
+                    QuestModLog.Warn("QuestBridge.PlaySe: SE not found (" + seId + ")");
+                    return false;
+                }
+
+                manager.Play(data);
+                QuestModLog.Info("QuestBridge.PlaySe: played (" + seId + ")");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                QuestModLog.Warn(
+                    "QuestBridge.PlaySe raised: " + ex.Message + " (" + seId + ")");
+                return false;
+            }
+        }
+
         private static bool TryActivateDrama(string dramaId)
         {
             if (EClass.pc == null || EClass.ui == null)
@@ -241,11 +377,31 @@ namespace Elin_Elinikki.Quest.Drama
                 return;
             }
 
+            // Resolve the method by matching arg types so both
+            // zero-arg (e.g. SoundManager.StopBGM) and single-string
+            // (e.g. Card.PlayEffect) signatures are callable from
+            // the same helper. A null arg element maps to typeof(object)
+            // which the binder still accepts because the real arg is
+            // null anyway.
+            Type[] argTypes;
+            if (args == null || args.Length == 0)
+            {
+                argTypes = Type.EmptyTypes;
+            }
+            else
+            {
+                argTypes = new Type[args.Length];
+                for (int i = 0; i < args.Length; i++)
+                {
+                    argTypes[i] = args[i]?.GetType() ?? typeof(object);
+                }
+            }
+
             MethodInfo method = target.GetType().GetMethod(
                 methodName,
                 BindingFlags.Instance | BindingFlags.Public,
                 null,
-                new[] { typeof(string) },
+                argTypes,
                 null);
             method?.Invoke(target, args);
         }

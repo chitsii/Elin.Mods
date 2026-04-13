@@ -214,4 +214,17 @@ KEY_SPECS = [
         "cmd.elinikki.stage.advance.ending_seen",
         description="Advances quest.stage to EndingSeen. Chapter-5 ending dramas call this.",
     ),
+
+    # Audio commands. PlayBgm/PlaySe use prefix-based keys with the
+    # BGM/SE id embedded in the suffix so adding a new audio asset
+    # does not require a new constant here — Task 4.2's per-layer
+    # BGM mapping and Task 4.3's echo SE trigger points build their
+    # keys dynamically. Stop is the only fixed-suffix audio command
+    # because it takes no argument.
+    KeySpec(
+        "command",
+        "ELINIKKI_AUDIO_BGM_STOP",
+        "cmd.elinikki.audio.bgm.stop",
+        description="Stops the current BGM and releases the drama layer's volume hold.",
+    ),
 ]

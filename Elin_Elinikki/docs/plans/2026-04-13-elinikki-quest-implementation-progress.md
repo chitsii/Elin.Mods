@@ -33,7 +33,7 @@ Phase 4: Audio integration (Phase 1-3 complete)
 - [x] Task 3.6: Verify FPS visual output (static scope — see note)
 
 ### Phase 4: Audio integration
-- [ ] Task 4.1: Drama commands for BGM/SE
+- [x] Task 4.1: Drama commands for BGM/SE
 - [ ] Task 4.2: BGM mapping per layer
 - [ ] Task 4.3: Echo SE trigger points
 - [ ] Task 4.4: In-game audio verification
@@ -183,6 +183,38 @@ Phase 4: Audio integration (Phase 1-3 complete)
   Codex review was started but killed manually (took too long for a tooling-only change).
   Python build tooling only — no runtime C# logic touched, so review skipped per global
   rules.
+- 2026-04-13: Task 4.1 complete. Drama command plumbing for BGM/SE:
+    * IQuestDramaRuntimeContext gains PlayBgm, StopBgm, PlaySe
+      methods; GameQuestDramaRuntimeContext implements them on top
+      of SoundManager.current / LayerDrama.
+    * QuestDramaResolver handles:
+        - cmd.elinikki.audio.bgm.stop   (fixed key)
+        - cmd.elinikki.audio.bgm.play.<bgm_id>   (prefix-based)
+        - cmd.elinikki.audio.se.play.<se_id>     (prefix-based)
+      Prefix-based suffixes avoid an explosion of per-id constants;
+      Task 4.2 and Task 4.3 will construct the real ids dynamically.
+    * key_spec.py gains ELINIKKI_AUDIO_BGM_STOP; prefix-based keys
+      are handled directly in the resolver. Regenerated
+      data_generated.py and DramaKeys.g.cs.
+    * Elin_Elinikki.csproj now references Plugins.Sound.dll so the
+      SoundManager / BGMData symbols resolve in-code (they live in
+      Plugins.Sound, not the main Elin assembly).
+    * InvokeVoidIfExists in GameQuestDramaRuntimeContext now
+      resolves methods by the actual arg-type array rather than a
+      hard-coded single-string signature, so zero-arg calls work.
+    * PlayBgm sets LayerDrama.Instance.drama.bgmChanged = true so
+      ActorEx.GetVolume's keepAmbientBGM check suppresses nearby
+      jukebox/ambient actors under the custom track — matches the
+      built-in drama BGM command's behaviour.
+    * StopBgm leaves LayerDrama.haltPlaylist = true (releases only
+      maxBGMVolume) so SoundManager.StopBGM() leaves silence under
+      the dialogue instead of resuming the zone playlist.
+  Codex review took 2 rounds: P1 for a broken reflection-based
+  StopBGM lookup (fixed by referencing Plugins.Sound directly) and
+  two P2 fixes for drama audio semantics (bgmChanged flag, keep
+  haltPlaylist during stop). Third round running in background —
+  any late findings will be addressed as a follow-up commit.
+  build.bat debug: 0 warnings, 0 errors.
 - 2026-04-13: Task 3.6 complete (static scope). Phase 3 closed out with a
   static verification pass since Phase 5 devmode maps do not exist yet and
   a live FPS visual verify is not possible without them.

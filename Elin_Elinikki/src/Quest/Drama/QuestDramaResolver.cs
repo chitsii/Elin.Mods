@@ -123,6 +123,47 @@ namespace Elin_Elinikki.Quest.Drama
                 return false;
             }
 
+            // Elinikki audio commands. Fixed-suffix forms for stop,
+            // prefix-based forms for play.<id> so adding a new BGM /
+            // SE does not require a new command constant. Task 4.2
+            // maps per-layer bgm ids from the placement manager; Task
+            // 4.3 wires the four echo experiment SE ids.
+            if (string.Equals(key, "cmd.elinikki.audio.bgm.stop", StringComparison.Ordinal))
+            {
+                _ctx.StopBgm();
+                return true;
+            }
+
+            const string elinikkiBgmPlayPrefix = "cmd.elinikki.audio.bgm.play.";
+            if (key.StartsWith(elinikkiBgmPlayPrefix, StringComparison.Ordinal))
+            {
+                string bgmId = key.Substring(elinikkiBgmPlayPrefix.Length);
+                if (string.IsNullOrEmpty(bgmId))
+                {
+                    return false;
+                }
+
+                // Returning true when the BGM fails to load is
+                // intentional: the drama must continue playing even
+                // if audio is misconfigured. PlayBgm already logs a
+                // Warn with the missing id for diagnostics.
+                _ctx.PlayBgm(bgmId);
+                return true;
+            }
+
+            const string elinikkiSePlayPrefix = "cmd.elinikki.audio.se.play.";
+            if (key.StartsWith(elinikkiSePlayPrefix, StringComparison.Ordinal))
+            {
+                string seId = key.Substring(elinikkiSePlayPrefix.Length);
+                if (string.IsNullOrEmpty(seId))
+                {
+                    return false;
+                }
+
+                _ctx.PlaySe(seId);
+                return true;
+            }
+
             if (TryExecuteGenericFxCommand(key))
             {
                 return true;
@@ -306,5 +347,31 @@ namespace Elin_Elinikki.Quest.Drama
         void CompleteDrama(string dramaId);
         bool RunCue(string cueKey);
         void PlayPcEffect(string effectId, string soundId = null);
+
+        /// <summary>
+        /// Plays an Elin BGM by content id. Returns true if the BGM
+        /// could be located and started, false otherwise. Drama
+        /// scripts invoke this through the
+        /// <c>cmd.elinikki.audio.bgm.play.&lt;bgm_id&gt;</c> resolver
+        /// key; Task 4.2 wires per-layer calls from the zone
+        /// placement manager.
+        /// </summary>
+        bool PlayBgm(string bgmId);
+
+        /// <summary>
+        /// Stops the current BGM and releases the drama layer's
+        /// forced max-volume hold. Invoked from the drama script
+        /// at the end of a beat that needs a clean audio hand-off.
+        /// </summary>
+        void StopBgm();
+
+        /// <summary>
+        /// Plays a one-shot sound/SE effect by content id. Drama
+        /// scripts reach this through
+        /// <c>cmd.elinikki.audio.se.play.&lt;se_id&gt;</c>. Task 4.3
+        /// binds the four echo-experiment SE trigger points to
+        /// dedicated ids.
+        /// </summary>
+        bool PlaySe(string seId);
     }
 }

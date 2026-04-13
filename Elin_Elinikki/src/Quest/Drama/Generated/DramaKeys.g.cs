@@ -38,6 +38,7 @@ namespace Elin_Elinikki.Quest.DramaKeys
         public const string ELINIKKI_STAGE_ADVANCE_ACCEPTED = "cmd.elinikki.stage.advance.accepted";
         public const string ELINIKKI_STAGE_ADVANCE_YUU_FOUND = "cmd.elinikki.stage.advance.yuu_found";
         public const string ELINIKKI_STAGE_ADVANCE_ENDING_SEEN = "cmd.elinikki.stage.advance.ending_seen";
+        public const string ELINIKKI_AUDIO_BGM_STOP = "cmd.elinikki.audio.bgm.stop";
     }
     public static class CueKeys
     {

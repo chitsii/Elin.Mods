@@ -1,6 +1,7 @@
 using System;
 using BepInEx.Logging;
 using Elin_Elinikki.Quest.Drama;
+using Elin_Elinikki.Quest.Placement;
 using Elin_Elinikki.Quest.Quest;
 #if DEBUG
 using Elin_Elinikki.Quest.DebugTools;
@@ -48,6 +49,25 @@ namespace Elin_Elinikki.Quest
 #if DEBUG
                 QuestModDebugConsole.Register();
 #endif
+
+                // Task 3.6 static verification pass. Runs the
+                // ElinikkiPlacementVerifier against the placement /
+                // atmosphere tables so data-layer regressions fail
+                // loud at mod load, before the player enters a
+                // chapter zone. Fail-soft: the verifier never throws
+                // and a non-zero error count does not block the
+                // rest of the quest subsystem (so a broken trace
+                // set still lets the drama pipeline run).
+                try
+                {
+                    ElinikkiPlacementVerifier.Verify();
+                }
+                catch (Exception verifyEx)
+                {
+                    QuestModLog.Warn(
+                        "Placement verifier raised: " + verifyEx.Message);
+                }
+
                 QuestModLog.Info("Elinikki quest subsystem initialized. flag prefix=" + FlagPrefix);
                 _initialized = true;
             }

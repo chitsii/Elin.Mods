@@ -3,7 +3,7 @@
 Status: IN PROGRESS
 
 ## Current Phase
-Phase 3: SharedWorldObject zone-aware placement (Phase 1-2 complete)
+Phase 4: Audio integration (Phase 1-3 complete)
 
 ## Phases
 
@@ -30,7 +30,7 @@ Phase 3: SharedWorldObject zone-aware placement (Phase 1-2 complete)
 - [x] Task 3.3: RemoveDefinitionsByPrefix + Upsert pipeline
 - [x] Task 3.4: Fog/color/LUT per zone
 - [x] Task 3.5: Placeholder textures
-- [ ] Task 3.6: Verify FPS visual output
+- [x] Task 3.6: Verify FPS visual output (static scope — see note)
 
 ### Phase 4: Audio integration
 - [ ] Task 4.1: Drama commands for BGM/SE
@@ -183,6 +183,38 @@ Phase 3: SharedWorldObject zone-aware placement (Phase 1-2 complete)
   Codex review was started but killed manually (took too long for a tooling-only change).
   Python build tooling only — no runtime C# logic touched, so review skipped per global
   rules.
+- 2026-04-13: Task 3.6 complete (static scope). Phase 3 closed out with a
+  static verification pass since Phase 5 devmode maps do not exist yet and
+  a live FPS visual verify is not possible without them.
+    * src/Quest/Placement/ElinikkiPlacementVerifier.cs — static
+      consistency checker that walks ElinikkiPlacementData and
+      ElinikkiAtmosphereData and catches:
+        - empty/missing definitions for chapter zones
+        - definition ids missing the "elinikki/" prefix
+        - duplicate ids across zones
+        - tile coordinates outside the provisional 2..38 range
+        - non-positive scale components
+        - missing atmosphere profiles for chapter zones
+        - unexpected profiles on yuu_camp or nefia_entrance
+        - placeholder texture construction failures
+      Fail-soft: any inconsistency is logged via QuestModLog and counted
+      in a VerifyResult struct; the method never throws. Returns
+      true iff ErrorCount == 0.
+    * src/Quest/QuestBootstrap.cs — calls Verify() at mod load after
+      the quest subsystem is initialized, wrapped in its own try/catch
+      so a verifier crash cannot break the rest of the init chain.
+  Live FPS verification is deferred to Phase 5 (devmode maps) + an
+  in-game pass against the real chapter zones. Known Phase 3
+  limitations carried forward to that pass:
+    - Shared-world preview props only receive the LUT tint, not the
+      full fog/scene-tone stack (ApplySceneTone is instance-bound to
+      the renderer).
+    - Placeholder textures only affect the normal-view proxy; the FPS
+      preview material is Unlit/Color with no texture slot, so the
+      placeholder bitmap is not visible in FPS until the preview
+      material gets a texture-aware shader.
+  Verified: build.bat debug and build.bat release both pass with
+  0 warnings, 0 errors. Codex review: clean, no issues found.
 - 2026-04-13: Task 3.5 complete. Placeholder texture infrastructure:
     * src/Quest/Placement/ElinikkiPlaceholderTextures.cs — shared
       128x128 neutral texture (white fill, 55% gray 2-px border).

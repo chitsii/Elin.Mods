@@ -34,7 +34,7 @@ Phase 4: Audio integration (Phase 1-3 complete)
 
 ### Phase 4: Audio integration
 - [x] Task 4.1: Drama commands for BGM/SE
-- [ ] Task 4.2: BGM mapping per layer
+- [x] Task 4.2: BGM mapping per layer
 - [ ] Task 4.3: Echo SE trigger points
 - [ ] Task 4.4: In-game audio verification
 
@@ -183,6 +183,37 @@ Phase 4: Audio integration (Phase 1-3 complete)
   Codex review was started but killed manually (took too long for a tooling-only change).
   Python build tooling only — no runtime C# logic touched, so review skipped per global
   rules.
+- 2026-04-13: Task 4.2 complete. Per-layer BGM mapping + zone-hook swap:
+    * src/Quest/Placement/ElinikkiBgmMap.cs — static dictionary of
+      zone id -> BGM asset id with a SilentSentinel marker for
+      zones that should deliberately stop audio. Current
+      entries:
+        - layer_waterstone -> "BGM/Cave_Quiet_Exploration"
+          (intent: water/cavern ambience bed)
+        - layer_echo       -> "BGM/Dungeon_Dark_Echo"
+          (intent: slow dark-cavern drone under the handclap beats)
+        - layer_bloom      -> "BGM/Bloom_Warm_Dream"
+          (intent: dreamy warm-major cue for the ゆめにっき peak)
+        - yuu_camp         -> SilentSentinel
+          (intent: 演出なし, the story spec's core atmosphere drop)
+        - nefia_entrance   -> unmapped, uses Elin's normal playlist
+    * src/Quest/Placement/ElinikkiZonePlacementManager.cs — new
+      SyncZoneBgm() helper plus a lazy-initialised
+      GameQuestDramaRuntimeContext audio bridge. Called from
+      OnZoneActivated after the atmosphere sync but before the
+      return-on-non-Elinikki branch, so a transition out of a
+      chapter zone always stops the BGM the manager previously
+      started. Wrapped in its own try/catch so an audio failure
+      cannot break the placement pipeline.
+  Provisional BGM ids (as opposed to verified-in-game ones) are
+  carried forward to Task 6.1 playthrough. PlayBgm already logs a
+  Warn when the asset does not resolve, so any placeholder that
+  misses the actual vanilla Elin id fails loud without breaking
+  the zone transition. Replacing the ids once they are known is a
+  one-line change per layer.
+  build.bat debug: 0 warnings, 0 errors. Codex review in flight
+  at commit time — any late findings handled in the next
+  iteration as a follow-up.
 - 2026-04-13: Task 4.1 complete. Drama command plumbing for BGM/SE:
     * IQuestDramaRuntimeContext gains PlayBgm, StopBgm, PlaySe
       methods; GameQuestDramaRuntimeContext implements them on top

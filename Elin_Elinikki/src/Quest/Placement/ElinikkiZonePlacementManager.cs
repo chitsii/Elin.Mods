@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Elin_Elinikki.Quest.Drama;
 using Elin_Elinikki.Quest.Quest;
 
 namespace Elin_Elinikki.Quest.Placement
@@ -67,6 +68,17 @@ namespace Elin_Elinikki.Quest.Placement
         private static string _lastZoneId;
 
         /// <summary>
+        /// Lazy-initialised audio bridge used by the BGM swap path.
+        /// A fresh <see cref="GameQuestDramaRuntimeContext"/> is safe
+        /// to reuse across calls because it holds no mutable state;
+        /// reusing it saves allocation per zone transition.
+        /// </summary>
+        private static IQuestDramaRuntimeContext _audioContext;
+
+        private static IQuestDramaRuntimeContext AudioContext
+            => _audioContext ?? (_audioContext = new GameQuestDramaRuntimeContext());
+
+        /// <summary>
         /// Called by the Zone.Activate postfix patch with the content id
         /// of the zone the player has just entered. A null or empty
         /// <paramref name="zoneId"/> (startup, headless session, zone
@@ -129,6 +141,22 @@ namespace Elin_Elinikki.Quest.Placement
             else
             {
                 ElinikkiAtmosphereRuntime.Clear();
+            }
+
+            // Task 4.2 BGM swap. Read the per-zone BGM id from
+            // ElinikkiBgmMap and dispatch through the drama audio
+            // bridge. Guarded by try/catch so an audio failure
+            // cannot break the placement pipeline (matching the
+            // existing fail-soft contract of this method).
+            try
+            {
+                SyncZoneBgm(zoneId, isInElinikkiZone);
+            }
+            catch (Exception bgmEx)
+            {
+                QuestModLog.Warn(
+                    "Zone BGM sync failed: " + bgmEx.Message +
+                    " (zone=" + (zoneId ?? "<null>") + ")");
             }
 
             // Now drop any prior Elinikki placements. This is
@@ -195,6 +223,52 @@ namespace Elin_Elinikki.Quest.Placement
         public static bool IsElinikkiZone(string zoneId)
         {
             return !string.IsNullOrEmpty(zoneId) && ElinikkiZoneIdSet.Contains(zoneId);
+        }
+
+        /// <summary>
+        /// Swaps the active BGM to whatever <see cref="ElinikkiBgmMap"/>
+        /// registered for <paramref name="zoneId"/>. The behaviour
+        /// branches on three cases:
+        ///   * Leaving an Elinikki zone (or into a zone with no
+        ///     resolved id) stops any BGM the manager previously
+        ///     started. The placement manager owns the hand-off, so
+        ///     leaving silence is better than risking a frame of
+        ///     ambient noise from the prior chapter's BGM.
+        ///   * Entering an Elinikki zone with a <c>SilentSentinel</c>
+        ///     entry explicitly stops BGM and does not start a
+        ///     replacement. This matches yuu_camp's story spec.
+        ///   * Entering an Elinikki zone with a normal BGM id calls
+        ///     PlayBgm via the drama audio bridge, which handles the
+        ///     LayerDrama holds and the bgmChanged flag.
+        /// </summary>
+        private static void SyncZoneBgm(string zoneId, bool isInElinikkiZone)
+        {
+            if (!isInElinikkiZone)
+            {
+                // Non-Elinikki (or null-source) zone: always stop so
+                // the previous chapter's track cannot carry over. If
+                // no BGM was playing StopBgm is effectively a no-op
+                // at the SoundManager level.
+                AudioContext.StopBgm();
+                return;
+            }
+
+            string bgmId = ElinikkiBgmMap.GetBgmId(zoneId);
+            if (string.IsNullOrEmpty(bgmId))
+            {
+                // Chapter zone without a map entry: leave the scene
+                // playlist alone. Currently this is only nefia_entrance,
+                // which uses the ordinary Elin playlist in chapters 0/5.
+                return;
+            }
+
+            if (string.Equals(bgmId, ElinikkiBgmMap.SilentSentinel, StringComparison.Ordinal))
+            {
+                AudioContext.StopBgm();
+                return;
+            }
+
+            AudioContext.PlayBgm(bgmId);
         }
 
         /// <summary>

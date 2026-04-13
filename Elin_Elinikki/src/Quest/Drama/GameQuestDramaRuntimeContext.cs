@@ -289,6 +289,81 @@ namespace Elin_Elinikki.Quest.Drama
             }
         }
 
+        public void ResumeNormalPlaylist()
+        {
+            try
+            {
+                // Drop every drama-audio hold so Elin's scene
+                // playlist can start its next track on the very
+                // next funcCanPlayBGM check. Clearing currentBGM
+                // matches the built-in stopBGM action and makes
+                // AI_PlayMusic stop ducking the stale entry.
+                LayerDrama.haltPlaylist = false;
+                LayerDrama.maxBGMVolume = false;
+
+                try
+                {
+                    var dramaInstance = LayerDrama.Instance?.drama;
+                    if (dramaInstance != null)
+                    {
+                        dramaInstance.bgmChanged = false;
+                    }
+                }
+                catch (Exception markEx)
+                {
+                    QuestModLog.Warn(
+                        "QuestBridge.ResumeNormalPlaylist: bgmChanged clear failed: "
+                        + markEx.Message);
+                }
+
+                var manager = SoundManager.current;
+                if (manager == null)
+                {
+                    QuestModLog.Info(
+                        "QuestBridge.ResumeNormalPlaylist: holds released, no SoundManager");
+                    return;
+                }
+
+                manager.StopBGM();
+                try
+                {
+                    manager.currentBGM = null;
+                }
+                catch (Exception clearEx)
+                {
+                    QuestModLog.Warn(
+                        "QuestBridge.ResumeNormalPlaylist: currentBGM clear failed: "
+                        + clearEx.Message);
+                }
+
+                // Zone.Activate() has already called RefreshBGM()
+                // once before this postfix fires, but that refresh
+                // happened while the drama holds were still set, so
+                // the normal playlist was suppressed. Re-run it now
+                // that the holds are released so the zone's vanilla
+                // BGM actually starts playing instead of leaving
+                // silence until some unrelated refresh fires later.
+                try
+                {
+                    EClass._zone?.RefreshBGM();
+                }
+                catch (Exception refreshEx)
+                {
+                    QuestModLog.Warn(
+                        "QuestBridge.ResumeNormalPlaylist: zone RefreshBGM failed: "
+                        + refreshEx.Message);
+                }
+
+                QuestModLog.Info(
+                    "QuestBridge.ResumeNormalPlaylist: scene playlist restored");
+            }
+            catch (Exception ex)
+            {
+                QuestModLog.Warn(
+                    "QuestBridge.ResumeNormalPlaylist raised: " + ex.Message);
+            }
+        }
+
         public bool PlaySe(string seId)
         {
             if (string.IsNullOrEmpty(seId))

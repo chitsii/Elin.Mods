@@ -79,6 +79,19 @@ namespace Elin_Elinikki.Quest.Placement
             => _audioContext ?? (_audioContext = new GameQuestDramaRuntimeContext());
 
         /// <summary>
+        /// True when the manager currently owns the drama-audio
+        /// state because a prior Elinikki zone entry called PlayBgm
+        /// or StopBgm. Reset to false once
+        /// <c>ResumeNormalPlaylist</c> has handed control back to
+        /// Elin's scene playlist. Scoping audio writes by ownership
+        /// is what keeps a non-Elinikki zone activation from
+        /// accidentally muting vanilla BGM — the manager only
+        /// touches the audio system when it actually has something
+        /// to clean up or install.
+        /// </summary>
+        private static bool _ownsBgmState;
+
+        /// <summary>
         /// Called by the Zone.Activate postfix patch with the content id
         /// of the zone the player has just entered. A null or empty
         /// <paramref name="zoneId"/> (startup, headless session, zone
@@ -227,48 +240,83 @@ namespace Elin_Elinikki.Quest.Placement
 
         /// <summary>
         /// Swaps the active BGM to whatever <see cref="ElinikkiBgmMap"/>
-        /// registered for <paramref name="zoneId"/>. The behaviour
-        /// branches on three cases:
-        ///   * Leaving an Elinikki zone (or into a zone with no
-        ///     resolved id) stops any BGM the manager previously
-        ///     started. The placement manager owns the hand-off, so
-        ///     leaving silence is better than risking a frame of
-        ///     ambient noise from the prior chapter's BGM.
-        ///   * Entering an Elinikki zone with a <c>SilentSentinel</c>
-        ///     entry explicitly stops BGM and does not start a
-        ///     replacement. This matches yuu_camp's story spec.
-        ///   * Entering an Elinikki zone with a normal BGM id calls
-        ///     PlayBgm via the drama audio bridge, which handles the
-        ///     LayerDrama holds and the bgmChanged flag.
+        /// registered for <paramref name="zoneId"/>, using
+        /// <see cref="_ownsBgmState"/> to scope audio writes so the
+        /// manager never touches Elin's playlist for ordinary
+        /// (non-Elinikki) zones it has never overridden.
+        ///
+        /// <para>Cases:</para>
+        /// <list type="bullet">
+        /// <item><description>Entering an Elinikki zone with a normal
+        ///   BGM id → PlayBgm, take ownership.</description></item>
+        /// <item><description>Entering an Elinikki zone mapped to the
+        ///   <see cref="ElinikkiBgmMap.SilentSentinel"/> →
+        ///   StopBgm, keep ownership (the haltPlaylist hold is the
+        ///   point of the silent beat).</description></item>
+        /// <item><description>Entering an Elinikki zone with no map
+        ///   entry (nefia_entrance) or a non-Elinikki zone, <b>and</b>
+        ///   the manager currently owns audio → ResumeNormalPlaylist,
+        ///   drop ownership.</description></item>
+        /// <item><description>Any other case (manager does not own
+        ///   audio and the new zone has no override) → no-op. This
+        ///   prevents muting vanilla BGM when walking around a normal
+        ///   town or dungeon.</description></item>
+        /// </list>
         /// </summary>
         private static void SyncZoneBgm(string zoneId, bool isInElinikkiZone)
         {
-            if (!isInElinikkiZone)
+            string bgmId = isInElinikkiZone ? ElinikkiBgmMap.GetBgmId(zoneId) : null;
+
+            if (!string.IsNullOrEmpty(bgmId))
             {
-                // Non-Elinikki (or null-source) zone: always stop so
-                // the previous chapter's track cannot carry over. If
-                // no BGM was playing StopBgm is effectively a no-op
-                // at the SoundManager level.
-                AudioContext.StopBgm();
+                bool tookOwnership;
+                if (string.Equals(
+                        bgmId,
+                        ElinikkiBgmMap.SilentSentinel,
+                        StringComparison.Ordinal))
+                {
+                    // Explicit silence: stop BGM and keep the drama
+                    // halt hold active, because the silent beat IS
+                    // the story point here (e.g. yuu_camp 演出なし).
+                    // StopBgm unconditionally latches the halt
+                    // state, so this always takes ownership.
+                    AudioContext.StopBgm();
+                    tookOwnership = true;
+                }
+                else
+                {
+                    // PlayBgm returns false when the BGM asset
+                    // does not resolve — in that case it leaves
+                    // haltPlaylist/bgmChanged untouched and we did
+                    // NOT actually take over audio this time.
+                    tookOwnership = AudioContext.PlayBgm(bgmId);
+                }
+
+                // Only promote ownership; a failed PlayBgm must
+                // never clear a pre-existing override, because
+                // that would lose the only signal that
+                // ResumeNormalPlaylist still has cleanup work to
+                // do on the next transition. While the BGM ids in
+                // ElinikkiBgmMap are provisional placeholders a
+                // failed lookup is the common case, so this
+                // preservation is what keeps stale Elinikki audio
+                // from leaking into the next map.
+                if (tookOwnership)
+                {
+                    _ownsBgmState = true;
+                }
                 return;
             }
 
-            string bgmId = ElinikkiBgmMap.GetBgmId(zoneId);
-            if (string.IsNullOrEmpty(bgmId))
+            // Reached only when the new zone has no Elinikki BGM
+            // override. Hand audio back to the scene playlist iff
+            // the manager currently owns it; otherwise leave vanilla
+            // BGM entirely alone.
+            if (_ownsBgmState)
             {
-                // Chapter zone without a map entry: leave the scene
-                // playlist alone. Currently this is only nefia_entrance,
-                // which uses the ordinary Elin playlist in chapters 0/5.
-                return;
+                AudioContext.ResumeNormalPlaylist();
+                _ownsBgmState = false;
             }
-
-            if (string.Equals(bgmId, ElinikkiBgmMap.SilentSentinel, StringComparison.Ordinal))
-            {
-                AudioContext.StopBgm();
-                return;
-            }
-
-            AudioContext.PlayBgm(bgmId);
         }
 
         /// <summary>
@@ -286,6 +334,7 @@ namespace Elin_Elinikki.Quest.Placement
         public static void ResetStateForTests()
         {
             _lastZoneId = null;
+            _ownsBgmState = false;
         }
     }
 }

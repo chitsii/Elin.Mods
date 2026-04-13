@@ -362,8 +362,26 @@ namespace Elin_Elinikki.Quest.Drama
         /// Stops the current BGM and releases the drama layer's
         /// forced max-volume hold. Invoked from the drama script
         /// at the end of a beat that needs a clean audio hand-off.
+        /// <b>Does not</b> hand audio back to the scene playlist —
+        /// <see cref="LayerDrama.haltPlaylist"/> stays <c>true</c>,
+        /// so a drama that calls StopBgm leaves silence under the
+        /// dialogue. Use <see cref="ResumeNormalPlaylist"/> when
+        /// the caller wants Elin's normal zone BGM to take over
+        /// again.
         /// </summary>
         void StopBgm();
+
+        /// <summary>
+        /// Releases every drama-audio hold
+        /// (<c>LayerDrama.haltPlaylist</c>, <c>maxBGMVolume</c>,
+        /// <c>drama.bgmChanged</c>) and clears the current BGM so
+        /// Elin's normal scene playlist can resume control. Use
+        /// this when the placement manager hands audio back to the
+        /// vanilla game — e.g. after leaving an Elinikki chapter
+        /// zone into a non-Elinikki map, or when entering an
+        /// Elinikki zone that has no BGM override registered.
+        /// </summary>
+        void ResumeNormalPlaylist();
 
         /// <summary>
         /// Plays a one-shot sound/SE effect by content id. Drama

@@ -25,7 +25,7 @@ Phase 3: SharedWorldObject zone-aware placement (Phase 1-2 complete)
 - [x] Task 2.7: Verify drama compilation
 
 ### Phase 3: SharedWorldObject zone-aware placement
-- [ ] Task 3.1: Zone transition hook
+- [x] Task 3.1: Zone transition hook
 - [ ] Task 3.2: Object placement data per layer
 - [ ] Task 3.3: RemoveDefinitionsByPrefix + Upsert pipeline
 - [ ] Task 3.4: Fog/color/LUT per zone
@@ -183,6 +183,30 @@ Phase 3: SharedWorldObject zone-aware placement (Phase 1-2 complete)
   Codex review was started but killed manually (took too long for a tooling-only change).
   Python build tooling only — no runtime C# logic touched, so review skipped per global
   rules.
+- 2026-04-13: Task 3.1 complete. Zone transition hook scaffold added:
+    * src/Quest/Placement/ElinikkiZonePlacementManager.cs — static swap
+      driver that tracks the last observed zone id and classifies each
+      Zone.Activate as enter/swap/leave against the Elinikki zone set.
+      PlacementPrefix = "elinikki/" is defined here so Task 3.3 can use
+      it as the argument to SharedWorldObjectManager's
+      RemoveDefinitionsByPrefix pipeline without colliding with the
+      manager's own "demo/" set. Body is a logging-only no-op at this
+      stage; Task 3.2 adds the per-layer data and Task 3.3 wires the
+      Remove + Upsert calls.
+    * src/Quest/Patches/Patch_Zone_Activate_PlacementRefresh.cs — new
+      Harmony postfix on Zone.Activate. Targets the same method as
+      Patch_Zone_Activate_QuestPulse via the low-arity Activate overload
+      but runs independently: placement and quest state deliberately do
+      not share mutable state, so a fault in one postfix cannot break
+      the other. Uses the existing QuestModLog facade for fail-soft
+      logging.
+    * Previous-zone tracking is isolated from ElinikkiQuestFlow's own
+      _lastObservedZoneId. This is deliberate: resetting one must not
+      desync the other.
+  Verified: build.bat debug compiles with 0 warnings, 0 errors. Codex
+  review on the new files flagged no issues. The hook is live but the
+  no-op body means in-game behaviour is unchanged — Task 3.2/3.3 will
+  introduce actual object placement.
 - 2026-04-13: Task 2.7 complete. Phase 2 drama compilation verified end-to-end:
     * generate_keys.py --check: OK. data_generated.py and DramaKeys.g.cs are
       in sync with tools/drama/schema/key_spec.py.

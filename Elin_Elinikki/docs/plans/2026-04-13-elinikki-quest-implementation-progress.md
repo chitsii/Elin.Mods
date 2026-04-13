@@ -29,7 +29,7 @@ Phase 3: SharedWorldObject zone-aware placement (Phase 1-2 complete)
 - [x] Task 3.2: Object placement data per layer
 - [x] Task 3.3: RemoveDefinitionsByPrefix + Upsert pipeline
 - [x] Task 3.4: Fog/color/LUT per zone
-- [ ] Task 3.5: Placeholder textures
+- [x] Task 3.5: Placeholder textures
 - [ ] Task 3.6: Verify FPS visual output
 
 ### Phase 4: Audio integration
@@ -183,6 +183,35 @@ Phase 3: SharedWorldObject zone-aware placement (Phase 1-2 complete)
   Codex review was started but killed manually (took too long for a tooling-only change).
   Python build tooling only — no runtime C# logic touched, so review skipped per global
   rules.
+- 2026-04-13: Task 3.5 complete. Placeholder texture infrastructure:
+    * src/Quest/Placement/ElinikkiPlaceholderTextures.cs — shared
+      128x128 neutral texture (white fill, 55% gray 2-px border).
+      A single cached Texture2D is reused for every trace because
+      the material tint path already multiplies the texture by
+      definition.Color; pre-tinting the texture would double-tint
+      and render every trace noticeably darker than its authored
+      color.
+    * src/Quest/Placement/ElinikkiPlacementData.cs — ground cubes
+      (trace_stones, trace_journal, trace_flowers, trace_weave)
+      and the yuu_camp campfire cylinder switch to
+      ExplicitTexture with the neutral placeholder. Floor and wall
+      quads stay on AutoBake: Codex review showed the auto-bake
+      step is what encodes the 90° floor tilt and the per-wall yaw
+      into the top-down sprite; replacing it with an explicit flat
+      texture would make floor traces render as screen-aligned
+      rectangles and wall traces lose their wall-facing projection.
+      The HeightMode for cubes drops from
+      MaxSemanticAndTextureAspect to SemanticOnly so the square
+      placeholder's 1:1 aspect does not blow short cubes up to
+      their footprint's full height.
+    * Phase 7 / Task 7.1 will replace the neutral placeholder with
+      per-trace 512x512 photorealistic textures. At that point the
+      floor/wall helpers can also move to ExplicitTexture because
+      the final art will carry its own projection.
+  Codex review took 4 rounds. 4 real issues fixed: double-tint from
+  pre-colored placeholder, HeightMode blow-up for low cubes,
+  floor-quad tilt loss under ExplicitTexture, wall-quad yaw loss
+  under ExplicitTexture. build.bat debug: 0 warnings, 0 errors.
 - 2026-04-13: Task 3.4 complete. Per-zone fog / clear / LUT override pipeline:
     * src/Quest/Placement/ElinikkiAtmosphereData.cs — static profile
       table keyed by Elinikki zone id. waterstone (blue-green fog,

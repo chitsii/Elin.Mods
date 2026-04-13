@@ -234,13 +234,16 @@ namespace Elin_Elinikki.Quest.Placement
                 AttachToSurface = true,
                 NormalProxy = new SharedWorldNormalProxyDefinition
                 {
-                    Mode = SharedWorldNormalProxyMode.AutoBake,
+                    // Task 3.5: explicit placeholder texture for the
+                    // campfire. Phase 7 will swap in a flame sprite.
+                    Mode = SharedWorldNormalProxyMode.ExplicitTexture,
                     HeightMode = SharedWorldNormalProxyHeightMode.SemanticOnly,
                     FacingMode = SharedWorldNormalProxyFacingMode.DefinitionEuler,
                     Footprint = new Vector2(0.9f, 0.9f),
                     HeightUnits = 0.35f,
                     Pivot = new Vector2(0.5f, 0f),
                     SortPivotY = 0f,
+                    TextureOverride = ElinikkiPlaceholderTextures.GetOrCreateNeutral(),
                 },
             };
         }
@@ -292,6 +295,17 @@ namespace Elin_Elinikki.Quest.Placement
                 AttachToSurface = true,
                 NormalProxy = new SharedWorldNormalProxyDefinition
                 {
+                    // Floor quads stay on AutoBake: the normal-view
+                    // proxy system renders unrotated sprites, so the
+                    // 90° tilt that projects these onto the ground
+                    // plane is captured at bake time by sampling the
+                    // tilted Unity primitive. Replacing that with an
+                    // explicit flat texture would make floor traces
+                    // render as screen-aligned rectangles in the
+                    // top-down view. Task 7.1's final textures will
+                    // need to encode the top-down projection
+                    // themselves before this can switch to
+                    // ExplicitTexture.
                     Mode = SharedWorldNormalProxyMode.AutoBake,
                     HeightMode = SharedWorldNormalProxyHeightMode.SemanticOnly,
                     FacingMode = SharedWorldNormalProxyFacingMode.DefinitionEuler,
@@ -363,6 +377,14 @@ namespace Elin_Elinikki.Quest.Placement
                 AttachToSurface = true,
                 NormalProxy = new SharedWorldNormalProxyDefinition
                 {
+                    // Wall quads stay on AutoBake for the same
+                    // reason floor quads do: the auto-bake step
+                    // captures the yaw orientation into the
+                    // top-down sprite, and the normal-view renderer
+                    // never re-rotates the bound texture. Using
+                    // ExplicitTexture here would render trace_marks
+                    // and trace_shadow as identical upright
+                    // rectangles regardless of their wall yaw.
                     Mode = SharedWorldNormalProxyMode.AutoBake,
                     HeightMode = SharedWorldNormalProxyHeightMode.MaxSemanticAndTextureAspect,
                     FacingMode = SharedWorldNormalProxyFacingMode.QuantizedElin,
@@ -397,13 +419,20 @@ namespace Elin_Elinikki.Quest.Placement
                 AttachToSurface = true,
                 NormalProxy = new SharedWorldNormalProxyDefinition
                 {
-                    Mode = SharedWorldNormalProxyMode.AutoBake,
-                    HeightMode = SharedWorldNormalProxyHeightMode.MaxSemanticAndTextureAspect,
+                    // Task 3.5: explicit placeholder texture, see
+                    // MakeFloorQuad for the rationale.
+                    Mode = SharedWorldNormalProxyMode.ExplicitTexture,
+                    // SemanticOnly while the placeholder is a square
+                    // (see MakeWallQuad). Short ground cubes like
+                    // trace_journal would otherwise blow up to the
+                    // full footprint's square height in top-down view.
+                    HeightMode = SharedWorldNormalProxyHeightMode.SemanticOnly,
                     FacingMode = SharedWorldNormalProxyFacingMode.QuantizedElin,
                     Footprint = new Vector2(scale.x, scale.z),
                     HeightUnits = scale.y,
                     Pivot = new Vector2(0.5f, 0f),
                     SortPivotY = 0f,
+                    TextureOverride = ElinikkiPlaceholderTextures.GetOrCreateNeutral(),
                 },
             };
         }

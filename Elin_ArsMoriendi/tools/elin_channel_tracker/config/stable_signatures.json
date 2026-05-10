@@ -1,7 +1,7 @@
 {
   "kind": "signature_catalog",
   "schema_version": "1.0.0",
-  "generated_at_utc": "2026-02-28T11:20:24Z",
+  "generated_at_utc": "2026-05-10T04:46:09Z",
   "symbols": {
     "ActPlan.Update": [
       "void(PointTarget)"
@@ -9,21 +9,25 @@
     "ActPlan._Update": [
       "void(PointTarget)"
     ],
+    "Card.DamageHP": [
+      "void(System.Int64,AttackSource,Card)",
+      "void(System.Int64,System.Int32,System.Int32,AttackSource,Card,System.Boolean,Thing,Chara)"
+    ],
     "Chara.Die": [
       "void(Element,Card,AttackSource,Chara)"
-    ],
-    "Chara.ReleaseMinion": [
-      "void()"
     ],
     "Chara.SetMainElement": [
       "void(System.String,System.Int32,System.Boolean)",
       "void(System.Int32,System.Int32,System.Boolean)"
     ],
+    "Chara.UnmakeMinion": [
+      "void()"
+    ],
     "Point.GetNearestPoint": [
       "Point(System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Int32)"
     ],
     "Quest.Create": [
-      "Quest(System.String,System.String,Chara)"
+      "Quest(System.String,System.String,Chara,System.Boolean)"
     ]
   }
 }

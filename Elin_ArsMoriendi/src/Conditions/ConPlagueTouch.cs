@@ -19,7 +19,7 @@ namespace Elin_ArsMoriendi
                 int rawDamage = Math.Max(flatDamage, scaledByMaxHp);
                 int capDamage = Math.Max(1, (int)Math.Floor(owner.MaxHP * 0.03));
                 int damage = Math.Min(rawDamage, capDamage);
-                owner.DamageHP(damage, 915, power, AttackSource.Condition);
+                CardDamageHpCompat.Apply(owner, damage, 915, power, AttackSource.Condition);
 
                 // Low chance to spread to adjacent characters
                 if (EClass.rnd(4) == 0)

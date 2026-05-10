@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Reflection;
+using Elin_SukutsuArena;
 using Elin_SukutsuArena.Arena;
 
 // Critical patch target contract checks for SukutsuArena.
@@ -17,10 +18,8 @@ public sealed class PatchTargetsCoreMethodsCase : RuntimeCaseBase
         var tickConditions = CriticalCaseHelpers.RequireMethod(typeof(Chara), nameof(Chara.TickConditions), null);
         var checkRandomSites = CriticalCaseHelpers.RequireMethod(typeof(Region), nameof(Region.CheckRandomSites), null);
         var parseLine = CriticalCaseHelpers.RequireMethod(typeof(DramaManager), "ParseLine", null);
-        var damageHp = CriticalCaseHelpers.RequireMethod(
-            typeof(Card),
-            nameof(Card.DamageHP),
-            new[] { typeof(long), typeof(int), typeof(int), typeof(AttackSource), typeof(Card), typeof(bool), typeof(Thing), typeof(Chara) });
+        var damageHp = CardDamageHpPatchTarget.Resolve("PatchTargetsCoreMethodsCase");
+        RuntimeAssertions.Require(damageHp != null, "Card.DamageHP compatible target not found.");
         var healHp = CriticalCaseHelpers.RequireMethod(
             typeof(Card),
             nameof(Card.HealHP),

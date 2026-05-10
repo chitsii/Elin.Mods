@@ -82,6 +82,19 @@
         "Point(System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Int32)",
         "Point(System.Boolean,System.Boolean,System.Boolean,System.Boolean)"
       ]
+    },
+    {
+      "target": "Card.DamageHP",
+      "check_kind": "reflection",
+      "type_name": "Card",
+      "canonical_name": "DamageHP",
+      "candidate_names": [
+        "DamageHP"
+      ],
+      "candidate_signatures": [
+        "void(System.Int64,System.Int32,System.Int32,AttackSource,Card,System.Boolean,Thing,Chara,System.Int32)",
+        "void(System.Int64,System.Int32,System.Int32,AttackSource,Card,System.Boolean,Thing,Chara)"
+      ]
     }
   ]
 }

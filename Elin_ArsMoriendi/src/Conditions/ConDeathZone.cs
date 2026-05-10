@@ -52,7 +52,7 @@ namespace Elin_ArsMoriendi
                             int enemyTickDamage = (int)Math.Max(
                                 1.0,
                                 Math.Max(power * 0.08, chara.MaxHP * enemyPct));
-                            chara.DamageHP(enemyTickDamage, 915, power, AttackSource.Condition, owner);
+                            CardDamageHpCompat.Apply(chara, enemyTickDamage, 915, power, AttackSource.Condition, owner);
                             NecroVFX.PlayTickDamage(chara);
                         }
                         else if (chara.IsFriendOrAbove(owner))

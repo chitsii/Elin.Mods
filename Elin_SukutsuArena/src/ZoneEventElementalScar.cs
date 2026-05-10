@@ -118,7 +118,7 @@ namespace Elin_SukutsuArena
                 {
                     int coldDamage = 5 + triggerCount;
                     // 冷気属性ダメージ (element ID: 951 = Cold)
-                    EClass.pc.DamageHP(coldDamage, 910, 100, AttackSource.Condition);  // 910 = Cold element damage
+                    CardDamageHpPatchTarget.Apply(EClass.pc, coldDamage, 910, 100, AttackSource.Condition);  // 910 = Cold element damage
                     ModLog.Log($"[SukutsuArena] Applied cold damage: {coldDamage}");
                 }
                 catch

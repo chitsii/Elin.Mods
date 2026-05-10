@@ -112,7 +112,7 @@ namespace Elin_LogRefined
             if (string.IsNullOrEmpty(detail) && condition is ConBuffStats buffStats)
             {
                 int val = buffStats.CalcValue();
-                if (buffStats.isDebuff) val = -val;
+                if (condition.Type == ConditionType.Debuff) val = -val;
 
                 if (val != 0 && EClass.sources.elements.map.TryGetValue(buffStats.refVal, out var refRow))
                 {

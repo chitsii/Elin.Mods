@@ -262,7 +262,10 @@ namespace Elin_SukutsuArena
 
                 try
                 {
-                    c.DamageHP(actualDamage, elementId, 100, AttackSource.Trap);
+                    if (!CardDamageHpPatchTarget.Apply(c, actualDamage, elementId, 100, AttackSource.Trap))
+                    {
+                        c.DamageHP(actualDamage, AttackSource.Trap);
+                    }
                 }
                 catch
                 {

@@ -1096,7 +1096,7 @@ _sukutsu_null_base = {
     "idText": "sukutsu_null",
     "portrait": "UN_sukutsu_null",
     "mainElement": "Void",
-    "elements": "featSplit/1,featElder/1,resChaos/80,resNether/60,resMagic/40,resNerve/100,resMind/100,featGolem/1,featReboot/1,featBoost/1,featEarthStrength/1,featRapidArrow/3,featGeneSlot/10,featMiscreation/1,featMetal/120,featManaMeat/1,featRoran/1,evasionPerfect/60",
+    "elements": "featSplit/1,featElder/1,resChaos/15,resNether/15,resNerve/10,resMind/20,featGolem/1,featReboot/1,featBoost/1,featEarthStrength/1,featRapidArrow/3,featGeneSlot/10,featMiscreation/1,featMetal/120,featManaMeat/1,featRoran/1,evasionPerfect/30",
     "actCombat": "hand_Void/40,SpInvisibility/30,SpSilence/15,ActGazeInsane/15,ActRush/10,ActInsult/10,SpEarthquake/10,arrow_Void/20",
     "tag": f"neutral,addZone_{ZONE_ID},addFlag_StayHomeZone,addDrama_drama_sukutsu_null,humanSpeak",
     "trait": "SukutsuNPC",

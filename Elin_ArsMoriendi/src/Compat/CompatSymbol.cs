@@ -142,6 +142,38 @@ namespace Elin_ArsMoriendi
                 new CompatMethodSignature("GetNearestPoint", typeof(Point), new[] { typeof(bool), typeof(bool), typeof(bool), typeof(bool) }),
             });
 
+        public static readonly CompatSymbol CardDamageHp = new(
+            id: "Card.DamageHP",
+            ownerType: typeof(Card),
+            candidateNames: new[] { "DamageHP" },
+            isStatic: false,
+            predicate: method =>
+            {
+                if (method.ReturnType != typeof(void)) return false;
+                var p = method.GetParameters();
+                if (p.Length < 8) return false;
+                if (p[0].ParameterType != typeof(long)) return false;
+                if (p[1].ParameterType != typeof(int)) return false;
+                if (p[2].ParameterType != typeof(int)) return false;
+                if (p[3].ParameterType != typeof(AttackSource)) return false;
+                if (p[4].ParameterType != typeof(Card)) return false;
+                if (p[5].ParameterType != typeof(bool)) return false;
+                if (p[6].ParameterType != typeof(Thing)) return false;
+                if (p[7].ParameterType != typeof(Chara)) return false;
+
+                for (int i = 8; i < p.Length; i++)
+                {
+                    if (!p[i].HasDefaultValue) return false;
+                }
+
+                return true;
+            },
+            strictSignatures: new[]
+            {
+                new CompatMethodSignature("DamageHP", typeof(void), new[] { typeof(long), typeof(int), typeof(int), typeof(AttackSource), typeof(Card), typeof(bool), typeof(Thing), typeof(Chara), typeof(int) }),
+                new CompatMethodSignature("DamageHP", typeof(void), new[] { typeof(long), typeof(int), typeof(int), typeof(AttackSource), typeof(Card), typeof(bool), typeof(Thing), typeof(Chara) }),
+            });
+
         public static IReadOnlyList<CompatSymbol> All { get; } = new[]
         {
             CharaSetMainElement,
@@ -150,6 +182,7 @@ namespace Elin_ArsMoriendi
             QuestCreate,
             ActPlanUpdate,
             PointGetNearestPoint,
+            CardDamageHp,
         };
     }
 }

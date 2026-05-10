@@ -1,5 +1,6 @@
 ﻿using HarmonyLib;
 using UnityEngine;
+using System.Reflection;
 using Elin_SukutsuArena.Attributes;
 using Elin_SukutsuArena.RandomBattle;
 
@@ -12,9 +13,14 @@ namespace Elin_SukutsuArena
     /// - CriticalDamage: 物理ダメージ2倍
     /// </summary>
     [GameDependency("Patch", "Card.DamageHP", "High", "Method signature may change")]
-    [HarmonyPatch(typeof(Card), nameof(Card.DamageHP), new[] { typeof(long), typeof(int), typeof(int), typeof(AttackSource), typeof(Card), typeof(bool), typeof(Thing), typeof(Chara) })]
+    [HarmonyPatch]
     public static class ArenaGimmickDamagePatches
     {
+        static MethodBase TargetMethod()
+        {
+            return CardDamageHpPatchTarget.Resolve(nameof(ArenaGimmickDamagePatches));
+        }
+
         /// <summary>
         /// ダメージ計算前にギミック効果を適用
         /// </summary>

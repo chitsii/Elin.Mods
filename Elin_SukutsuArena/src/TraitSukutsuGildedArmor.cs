@@ -1,5 +1,6 @@
 ﻿using HarmonyLib;
 using UnityEngine;
+using System.Reflection;
 using Elin_SukutsuArena.Arena;
 using Elin_SukutsuArena.Attributes;
 using Elin_SukutsuArena.Localization;
@@ -97,9 +98,14 @@ namespace Elin_SukutsuArena
     /// Card.DamageHP のパッチ - 虚飾の黄金鎧の効果を適用
     /// </summary>
     [GameDependency("Patch", "Card.DamageHP", "High", "Method signature may change")]
-    [HarmonyPatch(typeof(Card), nameof(Card.DamageHP), new[] { typeof(long), typeof(int), typeof(int), typeof(AttackSource), typeof(Card), typeof(bool), typeof(Thing), typeof(Chara) })]
+    [HarmonyPatch]
     public static class Patch_Card_DamageHP_GildedArmor
     {
+        static MethodBase TargetMethod()
+        {
+            return CardDamageHpPatchTarget.Resolve(nameof(Patch_Card_DamageHP_GildedArmor));
+        }
+
         /// <summary>
         /// ダメージ計算前に所持金で吸収
         /// </summary>

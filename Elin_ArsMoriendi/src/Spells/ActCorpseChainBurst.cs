@@ -103,7 +103,7 @@ namespace Elin_ArsMoriendi
                     long apply = (long)Math.Floor(Math.Min(hitDamage, capDamage - dealt));
                     if (apply <= 0) continue;
 
-                    target.DamageHP(apply, 916, power, AttackSource.None, caster);
+                    CardDamageHpCompat.Apply(target, apply, 916, power, AttackSource.None, caster);
                     dealtByTargetUid[target.uid] = dealt + apply;
                     target.PlayEffect("curse");
                 }

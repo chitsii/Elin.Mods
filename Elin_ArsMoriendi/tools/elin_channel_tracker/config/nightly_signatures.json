@@ -1,7 +1,7 @@
 {
   "kind": "signature_catalog",
   "schema_version": "1.0.0",
-  "generated_at_utc": "2026-02-28T12:02:25Z",
+  "generated_at_utc": "2026-05-10T04:47:31Z",
   "symbols": {
     "ActPlan.Update": [
       "void(PointTarget)"
@@ -24,6 +24,10 @@
     ],
     "Quest.Create": [
       "Quest(System.String,System.String,Chara,System.Boolean)"
+    ],
+    "Card.DamageHP": [
+      "void(System.Int64,AttackSource,Card)",
+      "void(System.Int64,System.Int32,System.Int32,AttackSource,Card,System.Boolean,Thing,Chara,System.Int32)"
     ]
   }
 }

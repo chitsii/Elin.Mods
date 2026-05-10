@@ -180,7 +180,7 @@ namespace Elin_SukutsuArena.MapWeapon
                 int damage = Dice.Roll(param.Power / 10, 6, param.Power / 5, caster);
 
                 // ダメージ適用
-                target.DamageHP(damage, eleId, param.Power, AttackSource.None, caster);
+                CardDamageHpPatchTarget.Apply(target, damage, eleId, param.Power, AttackSource.None, caster);
 
                 count++;
             }

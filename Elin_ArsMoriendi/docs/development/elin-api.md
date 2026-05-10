@@ -12,6 +12,14 @@
 | `chara.SetSummon(duration)` | 一時召喚（ターン経過で消滅） |
 | `SpawnListChara.Get(id, filter)` | フィルタ付きスポーンリスト取得 |
 
+## `Card.DamageHP` の互換呼び出し（実装確認済み）
+
+- 最終確認: 2026-05-10
+- Elin 23.304 Nightly で `Card.DamageHP(long, int, int, AttackSource, Card, bool, Thing, Chara)` に `resistPenetrationLevel` 引数が追加され、9引数版になった。
+- C# の optional 引数はコンパイル時に呼び出しシグネチャが焼き込まれるため、安定版DLLでビルドした直接呼び出しは Nightly で `MissingMethodException` や効果不発の原因になる。
+- Ars Moriendi 内で `DamageHP` を使う場合は直接呼び出さず、`CardDamageHpCompat.Apply(...)` を使う。
+- `CardDamageHpCompat` は実行時に `Card.DamageHP` の8引数版/9引数版を解決し、Nightly では `resistPenetrationLevel` まで渡す。
+
 ## 種族由来Featの個体単位打ち消し（実装確認済み）
 
 - 最終確認: 2026-03-07

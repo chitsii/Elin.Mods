@@ -25,6 +25,17 @@ class CompatDefaultTests(unittest.TestCase):
             text,
         )
 
+    def test_card_damagehp_strict_signatures_include_stable_and_nightly_forms(self):
+        text = _read("src/Compat/CompatSymbol.cs")
+        self.assertIn(
+            'new CompatMethodSignature("DamageHP", typeof(void), new[] { typeof(long), typeof(int), typeof(int), typeof(AttackSource), typeof(Card), typeof(bool), typeof(Thing), typeof(Chara), typeof(int) })',
+            text,
+        )
+        self.assertIn(
+            'new CompatMethodSignature("DamageHP", typeof(void), new[] { typeof(long), typeof(int), typeof(int), typeof(AttackSource), typeof(Card), typeof(bool), typeof(Thing), typeof(Chara) })',
+            text,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

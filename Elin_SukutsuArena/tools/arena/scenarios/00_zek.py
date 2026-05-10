@@ -367,7 +367,7 @@ def define_zek_main_drama(builder: ArenaDramaBuilder):
     ).jump(post_game_choices)
 
     # パーティメンバー用選択肢
-    # inject_unique(): バニラの_invite, _joinParty, _leaveParty, _buy, _heal等を追加
+    # inject_unique(): CWL側でバニラ選択肢を現在会話へ追加
     builder.step(post_game_choices).inject_unique().choice(
         rec_intro,
         "おすすめの商品は？",

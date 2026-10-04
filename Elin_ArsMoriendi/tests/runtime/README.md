@@ -118,6 +118,11 @@ AddServant(一時登録)ではなく公開RegisterRitualServantでfixtureを作�
    ```
 
 2. `tests/runtime/_artifacts/pr4-save-handoff.json` がreadyの証拠。
+   handoffはownershipVersion=3。専用managed Newtonsoft serializerでbaseline(tracked/party/home/keys/values)、
+   各fixtureのUID/名前/残寿命/owner UID、PC/zone/Game identityを保存し、書出した一時ファイルを同じ読込経路で検証してから公開する。
+   Unity JsonUtilityでScript内のbaseline型が欠落した旧version=2は修復せず拒否する。
+   欠落/null/型違い/重複・未知field、所有者・名前token・配列長の不整合はprepare/verify failed。
+   baselineを現ゲームから再採取して旧handoffを通すことはしない。証拠をarchiveし、清浄な専用saveからprepareをやり直す。
    **fixtureがまだゲーム内にいる間に**別の専用slotへ実際にsaveし、save成功・slot/path/hashを外部manifestへ記録する。
    保存に成功した場合だけ、handoffのtokenを同じpathの `.saved` ファイルへ書く。
 
@@ -171,3 +176,7 @@ game型なしのtest-helper policyを直接テストする。既存global/carryo
 cleanup反例は実runtime cleanupが使うArsPr4CleanupBoundary.Runを直接実行する。
 mapの所有Aに加えてglobal/map/carryoverの未所有Bが同UIDでも、mutation callbackが0回でBが残ることを検証する。
 またguard後に同UIDのBが追加されても、参照限定carryover削除がBを削除しないことを確認する。
+handoff回帰は実runtimeが使うArsPr4HandoffCodec.WriteNew/Readを直接実行し、全必須fieldとbaselineのroundtripを検証する。
+ゲーム同梱のmanaged Newtonsoft.Json.dllを参照するだけで、Unity JsonUtility/native型を実行しない。
+別のインストール先は上のdotnet testに `/p:GameRoot=...` を指定する。
+旧baseline欠落・null/型違い・duplicate/unknown field・不正owner/version/UID等の拒否も検証する。

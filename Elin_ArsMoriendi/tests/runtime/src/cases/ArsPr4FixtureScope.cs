@@ -387,15 +387,8 @@ public static class ArsPr4SummonObserver
     }
 }
 
-[System.Serializable]
-public sealed class ArsPr4Baseline
+public sealed partial class ArsPr4Baseline
 {
-    public int[] tracked;
-    public int[] party;
-    public int[] home;
-    public string[] keys;
-    public int[] values;
-
     public static ArsPr4Baseline Capture()
     {
         var mgr = Elin_ArsMoriendi.NecromancyManager.Instance;

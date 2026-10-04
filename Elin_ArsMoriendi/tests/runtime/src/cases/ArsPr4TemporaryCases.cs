@@ -145,20 +145,8 @@ public static class ArsPr4Controls
     }
 }
 
-[System.Serializable]
-public sealed class ArsPr4Handoff
+public sealed partial class ArsPr4Handoff
 {
-    public int ownershipVersion;
-    public string token;
-    public string pcName;
-    public int masterUid;
-    public int zoneUid;
-    public int gameIdentity;
-    public int[] uids;
-    public string[] names;
-    public int[] durations;
-    public ArsPr4Baseline baseline;
-
     public static string PathFor(RuntimeTestContext ctx)
     {
         return System.IO.Path.Combine(ctx.ModRoot, "tests", "runtime", "_artifacts", "pr4-save-handoff.json");
@@ -169,14 +157,14 @@ public sealed class ArsPr4Handoff
         var scope = ctx.Get<ArsPr4FixtureScope>("pr4.scope");
         var data = new ArsPr4Handoff
         {
-            ownershipVersion = 2,
+            ownershipVersion = ArsPr4HandoffCodec.CurrentVersion,
             token = scope.Token,
             pcName = EClass.pc.Name,
             masterUid = EClass.pc.uid,
             zoneUid = EClass._zone.uid,
             gameIdentity = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(EClass.game),
             baseline = scope.Baseline,
-            uids = new int[6], names = new string[6], durations = new int[6]
+            uids = new int[6], names = new string[6], durations = new int[6], ownerUids = new int[6]
         };
         var roles = new[] { "pr4.skeleton", "pr4.undead", "pr4.ordinary", "pr4.enemy", "pr4.enemyOwner", "pr4.permanent" };
         for (int i = 0; i < roles.Length; i++)
@@ -185,6 +173,7 @@ public sealed class ArsPr4Handoff
             data.uids[i] = card.uid;
             data.names[i] = card.c_altName;
             data.durations[i] = card.c_summonDuration;
+            data.ownerUids[i] = card.c_uidMaster;
         }
         return data;
     }
@@ -214,8 +203,7 @@ public sealed class ArsPr4TemporarySavePrepareCase : RuntimeCaseBase, IRuntimeCo
         var data = ArsPr4Handoff.Capture(ctx);
         var path = ArsPr4Handoff.PathFor(ctx);
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
-        System.IO.File.WriteAllText(path + ".tmp", UnityEngine.JsonUtility.ToJson(data, true));
-        System.IO.File.Move(path + ".tmp", path);
+        ArsPr4HandoffCodec.WriteNew(path, data);
         ctx.Log("handoff:ready:" + path + ":token=" + data.token);
         float deadline = UnityEngine.Time.realtimeSinceStartup + 120f;
         // External runtime owner saves to a dedicated slot, then acknowledges the exact token.
@@ -240,10 +228,7 @@ public sealed class ArsPr4TemporarySaveVerifyCase : RuntimeCaseBase
         ArsPr4FixtureScope.Guard();
         string path = ArsPr4Handoff.PathFor(ctx);
         RuntimeAssertions.Require(System.IO.File.Exists(path), "Prepare handoff missing.");
-        var data = UnityEngine.JsonUtility.FromJson<ArsPr4Handoff>(System.IO.File.ReadAllText(path));
-        RuntimeAssertions.Require(data != null && data.ownershipVersion == 2 && data.uids != null && data.uids.Length == 6 && data.baseline != null
-            && data.names != null && data.names.Length == 6 && data.durations != null && data.durations.Length == 6,
-            "Invalid/legacy PR4 ownership handoff. Do not clean unknown cards; restore dedicated save.");
+        var data = ArsPr4HandoffCodec.Read(path);
         RuntimeAssertions.Require(System.IO.File.Exists(path + ".saved") && System.IO.File.ReadAllText(path + ".saved").Trim() == data.token,
             "Dedicated save acknowledgement absent/mismatched.");
         RuntimeAssertions.Require(data.pcName == EClass.pc.Name && data.masterUid == EClass.pc.uid && data.zoneUid == EClass._zone.uid,
@@ -256,6 +241,7 @@ public sealed class ArsPr4TemporarySaveVerifyCase : RuntimeCaseBase
         {
             var candidate = ArsPr4FixtureScope.Resolve(data.uids[i]);
             if (candidate != null && candidate.c_altName == data.names[i]
+                && candidate.c_uidMaster == data.ownerUids[i]
                 && data.names[i].StartsWith(ArsPr4FixtureScope.NamePrefix + data.token, System.StringComparison.Ordinal))
                 scope.Own(candidate, roles[i], false);
         }
@@ -264,6 +250,7 @@ public sealed class ArsPr4TemporarySaveVerifyCase : RuntimeCaseBase
         {
             var card = ArsPr4FixtureScope.Resolve(data.uids[i]);
             RuntimeAssertions.Require(card != null && card.c_altName == data.names[i]
+                && card.c_uidMaster == data.ownerUids[i]
                 && data.names[i].StartsWith(ArsPr4FixtureScope.NamePrefix + data.token, System.StringComparison.Ordinal),
                 "Saved fixture missing/name mismatch: " + data.uids[i]);
             scope.Own(card, roles[i], false);

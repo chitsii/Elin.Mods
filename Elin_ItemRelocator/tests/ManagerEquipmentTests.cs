@@ -113,4 +113,25 @@ public sealed class ManagerEquipmentTests {
 
         Assert.Equal(new[] { item }, destination.AddedThings);
     }
+
+    [Fact]
+    public void DisabledProfile_HidesPreviewAndBlocksBulkButPreservesSingleApiContract() {
+        var item = AddItem("pc");
+        item.Num = 7;
+        var profile = manager.GetProfile(destination);
+        Assert.Contains(item, manager.GetMatches(destination));
+
+        profile.Enabled = false;
+        Assert.Empty(manager.GetMatches(destination));
+        manager.ExecuteRelocation(destination);
+        Assert.Empty(destination.AddedThings);
+        Assert.Same(EClass.pc, item.parent);
+        Assert.Equal(7, item.Num);
+
+        manager.RelocateSingleThing(item, destination);
+        Assert.Equal(new[] { item }, destination.AddedThings);
+        Assert.Same(destination, item.parent);
+        Assert.Equal(7, item.Num);
+        Assert.False(profile.Enabled);
+    }
 }

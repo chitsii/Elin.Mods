@@ -10,11 +10,18 @@ preset writes, or automatic equipment removal are added.
 | ID | Expected evidence |
 | --- | --- |
 | `pr9.item.equipped_all_owners` | PC, generated human follower and generated animal party member; normal/cursed equipment excluded by preview and both move paths; native manual unequip reappears without clearing a demonstrably nonempty cache; unequipped transfer preserves quantity. |
-| `pr9.item.live_cache_rule_owner` | Post-preview important/hardlock/hotbar/rule/profile/scope/PC-to-party/PC-to-zone changes, destination lock/NPC ownership/destruction/replacement, source gift/NPC ownership/install/destruction, same destination: no native transfer. Moving a gifted item's destination out of PC ownership revokes eligibility. |
+| `pr9.item.live_cache_rule_owner` | Post-preview important/hardlock/hotbar/rule/scope/PC-to-party/PC-to-zone changes, destination lock/NPC ownership/destruction/replacement, source gift/NPC ownership/install/destruction, same destination: no native transfer. Moving a gifted item's destination out of PC ownership revokes eligibility. Profile disable hides preview and stops bulk; an independent fixture verifies that the direct single API preserves its existing ability to transfer with the profile disabled. |
 | `pr9.item.execution_boundary` | Test-only ConditionText subclass first uses the real text predicate, then changes only generated fixture state on the second match call (after bulk collection). Important/hardlock/equipped/destination lock/destruction must prevent the subsequent native transfer. Tagged `fault_injection`. |
 | `pr9.item.native_stack_capacity` | Single/bulk: normal quantity 11 preserved, double move calls native AddThing once; native split 13 into 8+5, true 1x1 full destination merges to 13 without adding a slot; incompatible cursed stack remains at source with quantity 7; merged source cannot execute twice. |
 
 ## Runtime Safety And Prerequisites
+
+`RelocationProfile.Enabled` and `RelocationRule.Enabled` have different existing
+contracts. Disabling the profile gates preview and bulk relocation; the direct
+single-item API does not check that flag. The profile scenario verifies bulk
+preservation first, then uses a separate generated item/container for the single
+API contract. Disabling the actual rule still blocks both transfer paths. Later
+scope/ownership/protection scenarios remain in the same run with fresh profiles.
 
 Only the runtime operator runs these cases. Use a backed-up disposable save whose
 PC name contains `RUNTIME_TEST`, a safe neutral zone, empty PC weapon slot, and an

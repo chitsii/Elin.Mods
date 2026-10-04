@@ -115,7 +115,32 @@ public sealed class Pr9LiveCacheIntegrationCase : Pr9RelocationCase
                     break;
                 case "rule": profile.Rules[0].Enabled = false; break;
                 case "emptyrule": profile.Rules.Clear(); break;
-                case "profile": profile.Enabled = false; break;
+                case "profile":
+                    profile.Enabled = false;
+                    Pr9RelocationFixtures.Require(!f.PreviewHas(destination, target), "Disabled profile appeared in preview.");
+                    f.Move(destination, target, true);
+                    Pr9RelocationFixtures.Require(!profile.Enabled && f.MoveCount(target) == 0 && target.parent == f.Pc
+                        && target.GetRootCard() == f.Pc && target.Num == 7 && target.c_equippedSlot == 0,
+                        "Disabled profile bulk execution changed its source.");
+                    ctx.Log("profile-disabled:preview=0:bulk=0:uid=" + target.uid + ":num=7:passed");
+
+                    // The single API historically ignores profile.Enabled. Use
+                    // independent native fixtures so its move cannot invalidate
+                    // the bulk preservation check or later protection scenarios.
+                    var singleDestination = Destination(f);
+                    var singleTarget = f.CreateThing("rock", 7);
+                    f.Pc.AddThing(singleTarget, false);
+                    var singleProfile = f.Profile(singleDestination, singleTarget);
+                    Pr9RelocationFixtures.Require(f.PreviewHas(singleDestination, singleTarget),
+                        "Single API independent fixture precondition failed.");
+                    singleProfile.Enabled = false;
+                    f.Move(singleDestination, singleTarget, false);
+                    Pr9RelocationFixtures.Require(!singleProfile.Enabled && f.MoveCount(singleTarget) == 1 && singleTarget.parent == singleDestination
+                        && singleTarget.GetRootCard() == singleDestination && singleTarget.Num == 7
+                        && singleTarget.c_equippedSlot == 0 && !singleTarget.isDestroyed && !f.Pc.things.Contains(singleTarget),
+                        "Disabled profile single API changed its existing transfer contract.");
+                    ctx.Log("profile-disabled:single=1:uid=" + singleTarget.uid + ":num=7:passed");
+                    continue;
                 case "scope": profile.Scope = Elin_ItemRelocator.RelocationProfile.FilterScope.ZoneOnly; break;
                 case "petsscope": profile.Scope = Elin_ItemRelocator.RelocationProfile.FilterScope.PetsOnly; break;
                 case "zoneowner":

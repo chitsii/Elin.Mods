@@ -21,6 +21,7 @@
     <Compile Include="..\..\src\Core\IFlagStorage.cs" LinkBase="Core" />
     <Compile Include="..\..\src\Core\InMemoryFlagStorage.cs" LinkBase="Core" />
     <Compile Include="..\..\src\Migration\FlagMigration.cs" LinkBase="Migration" />
+    <Compile Include="..\..\src\ArenaGimmickHealingRules.cs" LinkBase="Arena" />
   </ItemGroup>
 
 </Project>

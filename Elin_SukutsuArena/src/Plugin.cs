@@ -97,9 +97,7 @@ public class Plugin : BaseUnityPlugin
             (AccessTools.Method(typeof(Region), nameof(Region.CheckRandomSites)), "Region.CheckRandomSites"),
             (AccessTools.Method(typeof(DramaManager), "ParseLine"), "DramaManager.ParseLine"),
             (CardDamageHpPatchTarget.Resolve("ValidateHarmonyPatches"), "Card.DamageHP"),
-            (AccessTools.Method(typeof(Card), nameof(Card.HealHP),
-                new[] { typeof(int), typeof(HealSource) }),
-                "Card.HealHP"),
+            (CardHealHpPatchTarget.Resolve("ValidateHarmonyPatches"), "Card.HealHP"),
         };
 
         foreach (var (method, label) in checks)

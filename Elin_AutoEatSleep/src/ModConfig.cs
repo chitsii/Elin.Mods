@@ -17,9 +17,9 @@ namespace Elin_AutoEatSleep
         public ModConfig(ConfigFile config)
         {
             AutoEatEnabled = config.Bind("AutoEat", "Enabled", true, "Enable Auto Eat");
-            // StatsHunger: 0=Normal, 1=Hungry, 2=VeryHungry, 3=Starving
-            // Default to 1 (Hungry). Using literal to avoid dependency issues or definition mismatch.
-            HungerThreshold = config.Bind("AutoEat", "HungerThreshold", 1, "Hunger threshold to trigger auto eat");
+            // StatsHunger: 0=Bloated, 1=Filled, 2=Normal, 3=Hungry, 4=VeryHungry, 5=Starving.
+            // ConfigFile preserves any user-set value; this default only applies when the key is absent.
+            HungerThreshold = config.Bind("AutoEat", "HungerThreshold", 3, "Hunger threshold to trigger auto eat");
             UseContainerFilter = config.Bind("AutoEat", "UseContainerFilter", false, "Only search for food in specific containers");
             ContainerId = config.Bind("AutoEat", "ContainerId", "cooler", "Partial name or ID of the container to search for food");
 

@@ -10,6 +10,7 @@ namespace Elin_AutoEatSleep
     public class AutoEatLogic
     {
         public static AIAct _savedAI;
+        private static bool _isEating;
 
         // Hook into HotItemActionSleep.Perform
         [HarmonyPatch(typeof(HotItemActionSleep), "Perform")]
@@ -92,6 +93,7 @@ namespace Elin_AutoEatSleep
                 if (pc == null || pc.hunger == null) return;
 
                 if (!Plugin.Instance.MyConfig.AutoEatEnabled.Value) return;
+                if (_isEating) return;
 
                 if (pc.hunger.GetPhase() < Plugin.Instance.MyConfig.HungerThreshold.Value)
                     return;
@@ -102,7 +104,15 @@ namespace Elin_AutoEatSleep
                 if (food != null)
                 {
                      // UnityEngine.Debug.Log("[Elin_AutoEatSleep] Eating " + food.Name);
-                     pc.InstantEat(food, true);
+                     _isEating = true;
+                     try
+                     {
+                         pc.InstantEat(food, true);
+                     }
+                     finally
+                     {
+                         _isEating = false;
+                     }
                 }
              }
              catch (System.Exception ex)

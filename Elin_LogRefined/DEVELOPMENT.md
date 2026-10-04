@@ -40,6 +40,13 @@
 - `PatchChara.AddCondition`
   - Strict: `Condition AddCondition(Condition, bool)`。
   - Fallback: `Condition` 引数を持つ、または戻り値が `Condition` / `bool` の `AddCondition`。
+  - `null` 戻り値は拒否/無効化/stance解除として扱い、入力 `Condition` へは fallback しない。
+  - 既存 `Condition` への stack 成功は `Condition.OnStacked(int)` を同一 AddCondition scope 内で観測した場合のみ記録する。
+
+- `PatchConditionOnStackedEvidence.OnStacked`
+  - Strict: `void OnStacked(int)`。
+  - Fallback: 引数1つの `void OnStacked`。
+  - `PatchChara.AddCondition` の入れ子 scope 内だけで stack 成功の正の証拠として使う。
 
 - `PatchMsgBlock.Append`
   - Strict: `void Append(string, Color)`。

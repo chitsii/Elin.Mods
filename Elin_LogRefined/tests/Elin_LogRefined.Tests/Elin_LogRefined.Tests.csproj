@@ -1,0 +1,102 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+    <PackageReference Include="NUnit" Version="3.14.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\src\**\*.cs" LinkBase="Source" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>..\..\elin_link\BepInEx\core\0Harmony.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="BepInEx.Core">
+      <HintPath>..\..\elin_link\BepInEx\core\BepInEx.Core.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="BepInEx.Unity">
+      <HintPath>..\..\elin_link\BepInEx\core\BepInEx.Unity.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Elin">
+      <HintPath>..\..\elin_link\Elin_Data\Managed\Elin.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Plugins">
+      <HintPath>..\..\elin_link\Elin_Data\Managed\Plugins.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Plugins.BaseCore">
+      <HintPath>..\..\elin_link\Elin_Data\Managed\Plugins.BaseCore.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Plugins.UI">
+      <HintPath>..\..\elin_link\Elin_Data\Managed\Plugins.UI.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Plugins.Util">
+      <HintPath>..\..\elin_link\Elin_Data\Managed\Plugins.Util.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Plugins.Sound">
+      <HintPath>..\..\elin_link\Elin_Data\Managed\Plugins.Sound.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Reflex">
+      <HintPath>..\..\elin_link\Elin_Data\Managed\Reflex.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="DOTween">
+      <HintPath>..\..\elin_link\Elin_Data\Managed\DOTween.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\elin_link\Elin_Data\Managed\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>..\..\elin_link\Elin_Data\Managed\UnityEngine.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\..\elin_link\Elin_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>..\..\elin_link\Elin_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>..\..\elin_link\Elin_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>..\..\elin_link\Elin_Data\Managed\UnityEngine.UI.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>..\..\elin_link\Elin_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>..\..\elin_link\Elin_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="ModOptions">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\workshop\content\2135150\3381182341\ModOptions.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+</Project>
+

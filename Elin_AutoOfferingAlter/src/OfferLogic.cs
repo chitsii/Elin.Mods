@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace Elin_AutoOfferingAlter
 {
@@ -8,113 +6,92 @@ namespace Elin_AutoOfferingAlter
     {
         public static void Process(Thing container)
         {
+            Chara actor = EClass.pc;
+            if (container == null || actor == null || actor.faith == null)
+            {
+                return;
+            }
+
+            Religion faith = actor.faith;
+            OfferingEffectContext effectContext;
+            // Validate the actual world map before any native Split or metadata changes.
+            if (!OfferingEffectContext.TryCreate(container, actor, out effectContext)) return;
+
             // Setup fake altar
             TraitAltar fakeAltar = new TraitAltar();
             fakeAltar.SetOwner(container);
 
-            if (ModConfig.EnableLog.Value)
-            {
-                Plugin.Log.LogInfo($"[Elin_AutoOfferingAlter] Processing container: {container.Name} (UID:{container.uid})");
-            }
+            string originalName = container.c_altName;
+            string originalDeity = container.c_idDeity;
+            fakeAltar.SetDeity(faith.id);
+            container.c_altName = faith.Name;
 
-            // Create a safe list of items to iterate since offerings destroy items
-            List<Thing> thingsToProcess = new List<Thing>();
-            foreach (Thing t in container.things)
-            {
-                thingsToProcess.Add(t);
-            }
+            OfferingBatchRunner<Thing> batchRunner = new OfferingBatchRunner<Thing>(
+                getNum: item => item.Num,
+                isDestroyed: item => item.isDestroyed,
+                isNonConsuming: item => item.id == "water",
+                split: (item, amount) => item.Split(amount),
+                isDetached: item => item.parent == null,
+                returnDetached: item => container.AddThing(item),
+                canContinue: () => CanContinue(actor, faith) && effectContext.IsCurrent());
 
-            /*
-            if (ModConfig.EnableLog.Value)
+            try
             {
-                Plugin.Log.LogInfo($"[DEBUG] Container contains {thingsToProcess.Count} items.");
-            }
-            */
-
-            foreach (Thing t in thingsToProcess)
-            {
-                if (fakeAltar.CanOffer(t))
+                if (ModConfig.EnableLog.Value)
                 {
-                    // Temporarily rename container for better log messages ("You offer to [God]")
-                    string originalName = container.c_altName;
-                    fakeAltar.SetDeity(EClass.pc.faith.id);
-                    container.c_altName = EClass.pc.faith.Name;
+                    Plugin.Log.LogInfo($"[Elin_AutoOfferingAlter] Processing container: {container.Name} (UID:{container.uid})");
+                }
 
-                    try
+                // Create a safe list of items to iterate since offerings destroy items
+                List<Thing> thingsToProcess = new List<Thing>();
+                foreach (Thing t in container.things)
+                {
+                    thingsToProcess.Add(t);
+                }
+
+                /*
+                if (ModConfig.EnableLog.Value)
+                {
+                    Plugin.Log.LogInfo($"[DEBUG] Container contains {thingsToProcess.Count} items.");
+                }
+                */
+
+                foreach (Thing t in thingsToProcess)
+                {
+                    if (!CanContinue(actor, faith) || !effectContext.IsCurrent() || t == null || t.isDestroyed || !fakeAltar.CanOffer(actor, t))
                     {
-                        OptimizeAndOffer(t, fakeAltar.Deity, (itemToOffer) =>
-                        {
-                            if (ModConfig.EnableLog.Value)
-                            {
-                                Plugin.Log.LogInfo($"[Elin_AutoOfferingAlter] Offering item: {itemToOffer.Name} (x{itemToOffer.Num})");
-                            }
-                            fakeAltar.OnOffer(EClass.pc, itemToOffer);
-                        });
+                        continue;
                     }
-                    finally
+
+                    int unitValue = faith.GetOfferingValue(t, 1);
+                    OfferingBatchResult result = batchRunner.Run(t, unitValue, itemToOffer =>
                     {
-                        container.c_altName = originalName;
+                        // A Split callback can change the context after the pre-split gate.
+                        if (!CanContinue(actor, faith) || !effectContext.IsCurrent()) return;
+                        if (ModConfig.EnableLog.Value)
+                        {
+                            Plugin.Log.LogInfo($"[Elin_AutoOfferingAlter] Offering item: {itemToOffer.Name} (x{itemToOffer.Num})");
+                        }
+                        using (effectContext.Enter())
+                            fakeAltar.OnOffer(actor, itemToOffer);
+                    });
+
+                    if (result == OfferingBatchResult.Stopped)
+                    {
+                        return;
                     }
                 }
+            }
+            finally
+            {
+                container.c_idDeity = originalDeity;
+                container.c_altName = originalName;
             }
         }
 
-        // Formerly StackOptimizer.cs
-        private static void OptimizeAndOffer(Thing t, Religion faith, Action<Thing> onOffer)
+        private static bool CanContinue(Chara actor, Religion faith)
         {
-            if (t.Num <= 1)
-            {
-                onOffer(t);
-                return;
-            }
-
-            int unitVal = faith.GetOfferingValue(t, 1);
-            if (unitVal <= 0)
-            {
-                onOffer(t);
-                return;
-            }
-
-            // Calculate optimal batch size to hit ~1500 value (min 1 faith point)
-            int targetVal = 1500;
-            int batchSize = (targetVal + unitVal - 1) / unitVal;
-
-            // Cap at 3000 value if possible to avoid waste
-            int maxVal = 3000;
-            if (batchSize * unitVal > maxVal)
-            {
-                batchSize = Math.Max(1, maxVal / unitVal);
-            }
-
-            // Digest remainder first
-            int remainder = t.Num % batchSize;
-
-            if (remainder > 0)
-            {
-                if (remainder < t.Num)
-                {
-                    onOffer(t.Split(remainder));
-                }
-                else
-                {
-                    onOffer(t);
-                    return;
-                }
-            }
-
-            // Digest batches
-            while (t.Num > 0)
-            {
-                if (t.Num > batchSize)
-                {
-                    onOffer(t.Split(batchSize));
-                }
-                else
-                {
-                    onOffer(t);
-                    break;
-                }
-            }
+            return EClass.pc == actor && actor != null && !actor.isDead && actor.faith == faith;
         }
     }
 }

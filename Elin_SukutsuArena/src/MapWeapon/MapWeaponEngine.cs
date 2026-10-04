@@ -177,12 +177,13 @@ namespace Elin_SukutsuArena.MapWeapon
                 }
 
                 // ダメージ計算（Dice.Rollを使用）
-                int damage = Dice.Roll(param.Power / 10, 6, param.Power / 5, caster);
+                long damage = Dice.Roll(param.Power / 10, 6, param.Power / 5, caster);
 
                 // ダメージ適用
-                CardDamageHpPatchTarget.Apply(target, damage, eleId, param.Power, AttackSource.None, caster);
-
-                count++;
+                if (CardDamageHpPatchTarget.Apply(target, damage, eleId, param.Power, AttackSource.None, caster))
+                {
+                    count++;
+                }
             }
 
             return count;

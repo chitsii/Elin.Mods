@@ -13,6 +13,7 @@
     <PackageReference Include="NUnit" Version="3.14.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
     <PackageReference Include="Moq" Version="4.20.70" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
   <!-- CwlQuestFramework ソースファイルを直接コンパイル -->
@@ -21,6 +22,8 @@
     <Compile Include="..\..\src\Core\IFlagStorage.cs" LinkBase="Core" />
     <Compile Include="..\..\src\Core\InMemoryFlagStorage.cs" LinkBase="Core" />
     <Compile Include="..\..\src\Migration\FlagMigration.cs" LinkBase="Migration" />
+    <Compile Include="..\..\src\ArenaGimmickHealingRules.cs" LinkBase="Arena" />
+    <Compile Include="..\..\src\ArenaReturnPointState.cs" LinkBase="Arena" />
   </ItemGroup>
 
 </Project>

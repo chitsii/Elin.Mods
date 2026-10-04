@@ -20,10 +20,8 @@ public sealed class PatchTargetsCoreMethodsCase : RuntimeCaseBase
         var parseLine = CriticalCaseHelpers.RequireMethod(typeof(DramaManager), "ParseLine", null);
         var damageHp = CardDamageHpPatchTarget.Resolve("PatchTargetsCoreMethodsCase");
         RuntimeAssertions.Require(damageHp != null, "Card.DamageHP compatible target not found.");
-        var healHp = CriticalCaseHelpers.RequireMethod(
-            typeof(Card),
-            nameof(Card.HealHP),
-            new[] { typeof(int), typeof(HealSource) });
+        var healHp = CardHealHpPatchTarget.Resolve("PatchTargetsCoreMethodsCase");
+        RuntimeAssertions.Require(healHp != null, "Card.HealHP compatible target not found.");
 
         ctx.Set("zoneActivate", zoneActivate);
         ctx.Set("zoneShouldAutoRevive", shouldAutoRevive);

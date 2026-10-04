@@ -58,6 +58,15 @@ public sealed class ArenaBattlePipelineContractCase : RuntimeCaseBase
         RuntimeAssertions.Require(typeof(ZoneInstance).IsAssignableFrom(typeof(ZoneInstanceArenaBattle)), "ZoneInstanceArenaBattle must derive from ZoneInstance.");
         RuntimeAssertions.Require(typeof(ZonePreEnterEvent).IsAssignableFrom(typeof(ZonePreEnterArenaBattle)), "ZonePreEnterArenaBattle must derive from ZonePreEnterEvent.");
 
+        var instance = new ZoneInstanceArenaBattle
+        {
+            returnX = 123,
+            returnZ = 456
+        };
+        RuntimeAssertions.Require(
+            instance.x == 123 && instance.z == 456,
+            "ZoneInstanceArenaBattle must mirror returnX/returnZ into base ZoneInstance.x/z for vanilla return transitions.");
+
         var pendingDirectDrama = ReflectionCompat.GetStaticFieldOrPropertyValue(
             typeof(ZoneInstanceArenaBattle),
             "PendingDirectDrama");

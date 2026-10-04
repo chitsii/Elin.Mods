@@ -3,6 +3,13 @@ using Xunit;
 namespace Elin_ItemRelocator.Tests;
 
 public sealed class RelocationDecisionPolicyTests {
+    public static TheoryData<RelocationScope, bool, bool> OwnerScopes => new() {
+        { RelocationScope.Inventory, true, false },
+        { RelocationScope.Both, true, false },
+        { RelocationScope.PetsOnly, false, true },
+        { RelocationScope.ZoneOnly, false, false }
+    };
+
     private static RelocationDecisionInput ValidInput() => new() {
         Scope = RelocationScope.Both,
         DestinationAvailable = true,
@@ -10,6 +17,41 @@ public sealed class RelocationDecisionPolicyTests {
         DestinationHasCapacityForThing = true,
         ItemCanBeDropped = true
     };
+
+    [Theory]
+    [MemberData(nameof(OwnerScopes))]
+    public void EquippedItem_IsExcludedRegardlessOfOwner(RelocationScope scope, bool pcOwned, bool petOwned) {
+        var input = ValidInput();
+        input.Scope = scope;
+        input.ItemIsPcOwned = pcOwned;
+        input.ItemIsPetOwned = petOwned;
+        input.ItemIsEquipped = true;
+
+        Assert.False(RelocationDecisionPolicy.CanPreview(input));
+        Assert.False(RelocationDecisionPolicy.CanMove(input));
+    }
+
+    [Theory]
+    [MemberData(nameof(OwnerScopes))]
+    public void UnequippedItem_RemainsEligibleInItsOwnerScope(RelocationScope scope, bool pcOwned, bool petOwned) {
+        var input = ValidInput();
+        input.Scope = scope;
+        input.ItemIsPcOwned = pcOwned;
+        input.ItemIsPetOwned = petOwned;
+
+        Assert.True(RelocationDecisionPolicy.CanPreview(input));
+        Assert.True(RelocationDecisionPolicy.CanMove(input));
+    }
+
+    [Fact]
+    public void CanMove_RejectsItemEquippedAfterPreview() {
+        var input = ValidInput();
+        Assert.True(RelocationDecisionPolicy.CanPreview(input));
+
+        input.ItemIsEquipped = true;
+
+        Assert.False(RelocationDecisionPolicy.CanMove(input));
+    }
 
     [Fact]
     public void CanPreview_RechecksItemProtectionsAfterCacheWasBuilt() {
@@ -85,10 +127,15 @@ public sealed class RelocationDecisionPolicyTests {
     }
 
     [Fact]
-    public void CanMove_PreservesExistingCursedEquippedProtection() {
+    public void CanMove_AllowsItemAfterItIsManuallyUnequipped() {
         var input = ValidInput();
-        input.ItemIsEquippedAndCursed = true;
+        input.ItemIsEquipped = true;
 
         Assert.False(RelocationDecisionPolicy.CanMove(input));
+
+        input.ItemIsEquipped = false;
+
+        Assert.True(RelocationDecisionPolicy.CanPreview(input));
+        Assert.True(RelocationDecisionPolicy.CanMove(input));
     }
 }

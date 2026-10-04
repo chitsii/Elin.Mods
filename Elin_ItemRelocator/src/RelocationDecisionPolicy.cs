@@ -21,7 +21,7 @@ namespace Elin_ItemRelocator {
         public bool ItemIsAbility;
         public bool DestinationIsPcOwned;
         public bool ItemCanBeDropped;
-        public bool ItemIsEquippedAndCursed;
+        public bool ItemIsEquipped;
         public bool ItemIsContainerWithContents;
         public bool ItemIsMoney;
         public bool ItemIsGifted;
@@ -47,7 +47,7 @@ namespace Elin_ItemRelocator {
                 return false;
             if (!input.ItemCanBeDropped)
                 return false;
-            if (input.ItemIsEquippedAndCursed)
+            if (input.ItemIsEquipped)
                 return false;
             if (input.ItemIsContainerWithContents && !input.DestinationIsPcOwned)
                 return false;

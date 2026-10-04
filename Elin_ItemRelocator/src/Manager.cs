@@ -190,8 +190,6 @@ namespace Elin_ItemRelocator {
                 return;
             if (!t.trait.CanBeDropped)
                 return;
-            if (t.isEquipped && t.IsCursed)
-                return;
             if (t.IsContainer && t.things.Count > 0 && !destIsPC)
                 return;
 
@@ -205,6 +203,7 @@ namespace Elin_ItemRelocator {
             // フラグ計算: GetRootCard() は1回だけ
             bool tOwned = t.GetRootCard() == EClass.pc;
 
+            // Keep equipment in the cache; the live policy handles slot changes.
             _cachedCandidates.Add(new Candidate {
                 Thing = t,
                 Flags = (byte)((tOwned ? CF.IsPCOwned : 0) | (isPetOwned ? CF.IsPetOwned : 0) | CF.IsRelocatable)
@@ -528,7 +527,7 @@ namespace Elin_ItemRelocator {
                 ItemIsAbility = t?.trait is TraitAbility,
                 DestinationIsPcOwned = destIsPC,
                 ItemCanBeDropped = t?.trait?.CanBeDropped == true,
-                ItemIsEquippedAndCursed = t is not null && t.isEquipped && t.IsCursed,
+                ItemIsEquipped = t is not null && t.isEquipped,
                 ItemIsContainerWithContents = t is not null && t.IsContainer && t.things.Count > 0,
                 ItemIsMoney = t?.id == "money",
                 ItemIsGifted = t is not null && t.isGifted,

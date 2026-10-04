@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <Nullable>disable</Nullable>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
@@ -17,5 +17,6 @@
 
   <ItemGroup>
     <Compile Include="..\src\RelocationDecisionPolicy.cs" Link="RelocationDecisionPolicy.cs" />
+    <Compile Include="..\src\Manager.cs" Link="Manager.cs" />
   </ItemGroup>
 </Project>

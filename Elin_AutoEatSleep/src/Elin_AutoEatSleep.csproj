@@ -6,52 +6,77 @@
     <RootNamespace>Elin_AutoEatSleep</RootNamespace>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <OutputPath>..\_bin\$(AssemblyName)_$(Configuration)_$(Platform)\</OutputPath>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>default</LangVersion>
+    <GamePath Condition="'$(GamePath)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Elin</GamePath>
+    <ManagedPath>$(GamePath)\Elin_Data\Managed</ManagedPath>
+    <BepInExPath>$(GamePath)\BepInEx</BepInExPath>
+    <OutputPath>..\..\.codex-build\Elin_AutoEatSleep\out\$(Configuration)\</OutputPath>
+    <IntermediateOutputPath>..\..\.codex-build\Elin_AutoEatSleep\obj\$(Configuration)\</IntermediateOutputPath>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="BepInEx.Analyzers" Version="1.0.*" PrivateAssets="all" />
-    <PackageReference Include="BepInEx.Core" Version="5.*" />
-    <PackageReference Include="BepInEx.PluginInfoProps" Version="1.*" />
-    <PackageReference Include="UnityEngine.Modules" Version="2020.3.48" IncludeAssets="compile" />
-    <!-- Critical for building .NET Framework without VS -->
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
-  </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="Plugin.cs" />
+    <Compile Include="ModConfig.cs" />
+    <Compile Include="AutoEatLogic.cs" />
+    <Compile Include="ConfigUI.cs" />
+    <Compile Include="Localize.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>$(BepInExPath)\core\0Harmony.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="BepInEx.Core">
+      <HintPath>$(BepInExPath)\core\BepInEx.Core.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="BepInEx.Unity">
+      <HintPath>$(BepInExPath)\core\BepInEx.Unity.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="Elin">
-      <HintPath>.\..\elin_link\Elin_Data\Managed\Elin.dll</HintPath>
+      <HintPath>$(ManagedPath)\Elin.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Plugins">
-      <HintPath>.\..\elin_link\Elin_Data\Managed\Plugins.dll</HintPath>
+      <HintPath>$(ManagedPath)\Plugins.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Plugins.BaseCore">
-      <HintPath>.\..\elin_link\Elin_Data\Managed\Plugins.BaseCore.dll</HintPath>
+      <HintPath>$(ManagedPath)\Plugins.BaseCore.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Plugins.UI">
-      <HintPath>.\..\elin_link\Elin_Data\Managed\Plugins.UI.dll</HintPath>
+      <HintPath>$(ManagedPath)\Plugins.UI.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="0Harmony">
-      <HintPath>.\..\elin_link\BepInEx\core\0Harmony.dll</HintPath>
+    <Reference Include="UnityEngine">
+      <HintPath>$(ManagedPath)\UnityEngine.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(ManagedPath)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(ManagedPath)\UnityEngine.UI.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
 
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="call $(SolutionDir)config.bat" />
-    <Exec Command="xcopy $(SolutionDir)data\resource\ $(TargetDir)resource\ /s /e /h /y /i" Condition="Exists('$(SolutionDir)data\resource\')" />
-    <Exec Command="xcopy $(SolutionDir)data\publish\* $(TargetDir) /s /e /h /y /i" Condition="Exists('$(SolutionDir)data\publish\')" />
-    <Exec Command="xcopy $(TargetDir)$(TargetName).dll $(SolutionDir)elin_link\BepInEx\plugins\$(AssemblyName)\ /Y" />
+  <Target Name="Deploy" DependsOnTargets="Build" Condition="'$(DeployToGame)' == 'true'">
+    <PropertyGroup>
+      <DeployPackagePath Condition="'$(DeployPackagePath)' == ''">$(GamePath)\Package\$(AssemblyName)</DeployPackagePath>
+    </PropertyGroup>
+    <MakeDir Directories="$(DeployPackagePath)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DeployPackagePath)" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\package.xml" DestinationFolder="$(DeployPackagePath)" />
   </Target>
 
 </Project>

@@ -17,7 +17,8 @@ public sealed class ServantRitualCreateAndTrackCase : RuntimeCaseBase
         var mgr = Elin_ArsMoriendi.NecromancyManager.Instance;
         RuntimeAssertions.Require(mgr != null, "NecromancyManager.Instance unavailable.");
 
-        var servant = ctx.SpawnCharaWithRollback("putty", level: 5);
+        var scope = ArsPr4FixtureScope.Start(ctx);
+        var servant = scope.Spawn("ritual", 5);
         RuntimeAssertions.Require(servant != null, "Failed to spawn temporary servant candidate.");
         RuntimeAssertions.Require(!mgr.IsServant(servant.uid), "Spawned chara already tracked as servant.");
 
@@ -36,7 +37,7 @@ public sealed class ServantRitualCreateAndTrackCase : RuntimeCaseBase
     {
         var mgr = ctx.Get<Elin_ArsMoriendi.NecromancyManager>("manager");
         var servant = ctx.Get<Chara>("servant");
-        mgr.AddServant(servant);
+        mgr.RegisterRitualServant(servant, resurrectionLevel: 1);
     }
 
     public override void Verify(RuntimeTestContext ctx)
@@ -45,14 +46,15 @@ public sealed class ServantRitualCreateAndTrackCase : RuntimeCaseBase
         var servant = ctx.Get<Chara>("servant");
         int countBefore = ctx.Get<int>("countBefore");
 
-        RuntimeAssertions.Require(mgr.IsServant(servant.uid), "AddServant did not register the servant UID.");
+        RuntimeAssertions.Require(mgr.IsServant(servant.uid), "RegisterRitualServant did not register the servant UID.");
         RuntimeAssertions.Require(
             mgr.ServantCount >= countBefore + 1,
-            "ServantCount did not increase after AddServant.");
+            "ServantCount did not increase after RegisterRitualServant.");
 
         string key = ServantFlagPrefix + servant.uid;
         int stored = Elin_ArsMoriendi.DialogFlagStore.GetInt(EClass.player?.dialogFlags, key);
-        RuntimeAssertions.Require(stored == 1, "Servant dialog flag not persisted after AddServant.");
+        RuntimeAssertions.Require(stored == 1, "Servant dialog flag not persisted after RegisterRitualServant.");
+        ArsPr4FixtureScope.RequirePermanent(servant);
     }
 
     public override void Cleanup(RuntimeTestContext ctx)
@@ -73,13 +75,12 @@ public sealed class ServantReleaseDetachAndCleanupCase : RuntimeCaseBase
         var mgr = Elin_ArsMoriendi.NecromancyManager.Instance;
         RuntimeAssertions.Require(mgr != null, "NecromancyManager.Instance unavailable.");
 
-        var servant = ctx.SpawnCharaWithRollback("putty", level: 6);
+        var scope = ArsPr4FixtureScope.Start(ctx);
+        var servant = scope.Spawn("release", 6);
         RuntimeAssertions.Require(servant != null, "Failed to spawn release target.");
         RuntimeAssertions.Require(EClass.pc != null, "PC unavailable.");
 
-        servant.MakeMinion(EClass.pc);
-        servant.isSummon = false;
-        mgr.AddServant(servant);
+        mgr.RegisterRitualServant(servant, resurrectionLevel: 1);
 
         ctx.Set("manager", mgr);
         ctx.Set("servant", servant);

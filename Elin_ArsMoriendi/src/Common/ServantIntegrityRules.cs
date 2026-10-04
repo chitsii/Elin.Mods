@@ -50,12 +50,22 @@ namespace Elin_ArsMoriendi
             bool isPcFactionOrMinion,
             bool hasPcMasterUid,
             bool hasResolvedPcMaster,
+            bool hasLocalOrCarryoverRuntimeRecord,
             bool isInReserve)
         {
             if (isDestroyed)
                 return false;
 
-            return isInReserve || isPcFactionOrMinion || hasPcMasterUid || hasResolvedPcMaster;
+            return isInReserve
+                || isPcFactionOrMinion
+                || hasPcMasterUid
+                || hasResolvedPcMaster
+                || hasLocalOrCarryoverRuntimeRecord;
+        }
+
+        public static bool ShouldPersistServantRecord(bool isTemporarySummon)
+        {
+            return !isTemporarySummon;
         }
 
         public static bool ShouldPurgeBrokenServantRemnant(RemnantSnapshot snapshot)

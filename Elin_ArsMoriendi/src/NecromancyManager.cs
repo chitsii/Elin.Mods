@@ -52,6 +52,14 @@ namespace Elin_ArsMoriendi
             PurgeBrokenRemnant,
         }
 
+        private enum ServantUidSource
+        {
+            Missing,
+            Global,
+            CurrentMap,
+            CarryoverMap,
+        }
+
         // ============================================================
         // Soul Unit Constants
         // ============================================================
@@ -271,6 +279,7 @@ namespace Elin_ArsMoriendi
             if (_loadedForGame == EClass.game) return;
             _loadedForGame = EClass.game;
             LoadFromDialogFlags();
+            RecoverTemporaryServantsFromRuntime();
             PruneOrphanedServants();
             PurgeBrokenServantRemnants();
             EnsureStashedServantsInHomeZoneOnLoad();
@@ -475,6 +484,121 @@ namespace Elin_ArsMoriendi
             return rows[index - 1].id ?? "";
         }
 
+        private static bool TryResolveTrackedServant(
+            int uid,
+            out Chara? chara,
+            out ServantUidSource source)
+        {
+            chara = null;
+            source = ServantUidSource.Missing;
+            if (uid <= 0) return false;
+
+            if (EClass.game?.cards?.globalCharas != null
+                && EClass.game.cards.globalCharas.TryGetValue(uid, out chara)
+                && chara != null)
+            {
+                source = ServantUidSource.Global;
+                return true;
+            }
+
+            if (EClass._map?.charas != null)
+            {
+                foreach (var candidate in EClass._map.charas)
+                {
+                    if (candidate?.uid != uid) continue;
+                    chara = candidate;
+                    source = ServantUidSource.CurrentMap;
+                    return true;
+                }
+            }
+
+            var carryover = EClass.player?.listCarryoverMap;
+            if (carryover != null)
+            {
+                foreach (var candidate in carryover)
+                {
+                    if (candidate?.uid != uid) continue;
+                    chara = candidate;
+                    source = ServantUidSource.CarryoverMap;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsTemporarySummonedServant(Chara servant)
+        {
+            return servant != null
+                && (servant.isSummon || servant.c_summonDuration > 0)
+                && !servant.IsGlobal;
+        }
+
+        private static ServantRuntimeLocation ToRuntimeLocation(ServantUidSource source)
+        {
+            return source switch
+            {
+                ServantUidSource.Global => ServantRuntimeLocation.Global,
+                ServantUidSource.CurrentMap => ServantRuntimeLocation.CurrentMap,
+                ServantUidSource.CarryoverMap => ServantRuntimeLocation.CarryoverMap,
+                _ => ServantRuntimeLocation.Missing,
+            };
+        }
+
+        private static ServantRuntimeSnapshot CreateRuntimeSnapshot(
+            Chara servant,
+            ServantUidSource source)
+        {
+            bool hasPcMasterUid = EClass.pc != null && servant.c_uidMaster == EClass.pc.uid;
+            bool hasResolvedPcMaster = EClass.pc != null
+                && EClass._map != null
+                && servant.c_uidMaster != 0
+                && servant.FindMaster() == EClass.pc;
+            return new ServantRuntimeSnapshot(
+                servant.uid,
+                ToRuntimeLocation(source),
+                servant.isDestroyed,
+                servant.isDead,
+                servant.IsGlobal,
+                servant.isSummon,
+                servant.c_summonDuration,
+                servant.HasCondition<ConUndeadServantPresence>(),
+                HasUndeadServantTraitMarker(servant),
+                servant.IsPCFactionOrMinion,
+                hasPcMasterUid,
+                hasResolvedPcMaster);
+        }
+
+        private static ServantUidSource GetRuntimeSourceFor(Chara servant)
+        {
+            if (servant == null)
+                return ServantUidSource.Missing;
+
+            if (servant.IsGlobal)
+                return ServantUidSource.Global;
+
+            var carryover = EClass.player?.listCarryoverMap;
+            if (carryover != null)
+            {
+                foreach (var candidate in carryover)
+                {
+                    if (candidate == servant || candidate?.uid == servant.uid)
+                        return ServantUidSource.CarryoverMap;
+                }
+            }
+
+            if (EClass._map?.charas != null)
+            {
+                foreach (var candidate in EClass._map.charas)
+                {
+                    if (candidate == servant || candidate?.uid == servant.uid)
+                        return ServantUidSource.CurrentMap;
+                }
+            }
+
+            return ServantUidSource.Missing;
+        }
+
         // ============================================================
         // Spell Unlock System
         // ============================================================
@@ -579,8 +703,7 @@ namespace Elin_ArsMoriendi
             EnsureGameStateLoaded();
             foreach (var uid in _servantUidList)
             {
-                Chara? chara = null;
-                EClass.game?.cards?.globalCharas?.TryGetValue(uid, out chara);
+                TryResolveTrackedServant(uid, out Chara? chara, out _);
                 if (chara == null) continue;
                 EnsureServantVisualState(chara);
                 ModLog.Log("RefreshServantVisuals: refreshed visuals for {0} (uid={1})", chara.Name, uid);
@@ -668,8 +791,7 @@ namespace Elin_ArsMoriendi
 
             foreach (var uid in _servantUidList)
             {
-                Chara? chara = null;
-                EClass.game?.cards?.globalCharas?.TryGetValue(uid, out chara);
+                TryResolveTrackedServant(uid, out Chara? chara, out _);
                 if (chara == null || chara.isDestroyed) continue;
                 if (!chara.isDead)
                     alive.Add(chara);
@@ -703,8 +825,7 @@ namespace Elin_ArsMoriendi
 
             foreach (var uid in _servantUidList)
             {
-                Chara? chara = null;
-                EClass.game?.cards?.globalCharas?.TryGetValue(uid, out chara);
+                TryResolveTrackedServant(uid, out Chara? chara, out _);
                 if (chara == null || chara.isDestroyed) continue;
                 result.Add((chara, !chara.isDead));
             }
@@ -736,6 +857,7 @@ namespace Elin_ArsMoriendi
             EnsureGameStateLoaded();
             if (servant == null || servant.isDestroyed || servant.isDead) return false;
             if (!_servantUidList.Contains(servant.uid)) return false;
+            if (isStashed && IsTemporarySummonedServant(servant)) return false;
 
             var enh = GetEnhancement(servant.uid);
             if (enh.IsStashed == isStashed)
@@ -838,8 +960,7 @@ namespace Elin_ArsMoriendi
                 var enh = GetEnhancement(uid);
                 if (!enh.IsStashed) continue;
 
-                Chara? chara = null;
-                EClass.game?.cards?.globalCharas?.TryGetValue(uid, out chara);
+                TryResolveTrackedServant(uid, out Chara? chara, out _);
                 if (chara == null || chara.isDestroyed)
                 {
                     pending++;
@@ -925,6 +1046,45 @@ namespace Elin_ArsMoriendi
             TrackServantRecord(servant, ServantRegistrationKind.SummonedTemporary);
         }
 
+        private int RecoverTemporaryServantsFromRuntime()
+        {
+            int recovered = 0;
+
+            recovered += RecoverTemporaryServantsFromRuntimeList(
+                EClass._map?.charas,
+                ServantUidSource.CurrentMap);
+            recovered += RecoverTemporaryServantsFromRuntimeList(
+                EClass.player?.listCarryoverMap,
+                ServantUidSource.CarryoverMap);
+
+            if (recovered > 0)
+                ModLog.Log("Recovered {0} temporary servant(s) from runtime map/carryover state.", recovered);
+            return recovered;
+        }
+
+        private int RecoverTemporaryServantsFromRuntimeList(
+            IEnumerable<Chara>? candidates,
+            ServantUidSource source)
+        {
+            if (candidates == null) return 0;
+
+            int recovered = 0;
+            foreach (var candidate in candidates)
+            {
+                if (candidate == null) continue;
+                if (_servantUidList.Contains(candidate.uid)) continue;
+
+                var snapshot = CreateRuntimeSnapshot(candidate, source);
+                if (!ServantRuntimeTracking.ShouldRecoverTemporaryServant(snapshot))
+                    continue;
+
+                TrackServantRecord(candidate, ServantRegistrationKind.SummonedTemporary);
+                recovered++;
+            }
+
+            return recovered;
+        }
+
         public void RegisterRitualServant(Chara servant, int resurrectionLevel)
         {
             EnsureGameStateLoaded();
@@ -972,7 +1132,9 @@ namespace Elin_ArsMoriendi
             if (!_servantUidList.Contains(servant.uid))
             {
                 _servantUidList.Add(servant.uid);
-                SetFlag(ServantPrefix + servant.uid, 1);
+                bool temporary = kind == ServantRegistrationKind.SummonedTemporary;
+                if (ServantIntegrityRules.ShouldPersistServantRecord(temporary))
+                    SetFlag(ServantPrefix + servant.uid, 1);
             }
 
             EnsureServantVisualState(servant);
@@ -983,8 +1145,7 @@ namespace Elin_ArsMoriendi
         {
             foreach (var uid in _servantUidList)
             {
-                Chara? chara = null;
-                EClass.game?.cards?.globalCharas?.TryGetValue(uid, out chara);
+                TryResolveTrackedServant(uid, out Chara? chara, out _);
                 if (chara == null) continue;
                 EnsureServantVisualState(chara);
             }
@@ -1029,10 +1190,28 @@ namespace Elin_ArsMoriendi
             UntrackServantRecord(uid, removePresence: true);
         }
 
+        public bool UntrackEndedTemporaryServant(Chara servant)
+        {
+            EnsureGameStateLoaded();
+            if (servant == null)
+                return false;
+
+            var snapshot = CreateRuntimeSnapshot(servant, GetRuntimeSourceFor(servant));
+            if (!ServantRuntimeTracking.ShouldUntrackTemporaryServant(
+                    snapshot,
+                    _servantUidList.Contains(servant.uid)))
+                return false;
+
+            UntrackServantRecord(servant.uid, removePresence: true);
+            ModLog.Log("Temporary servant untracked after death/expiration: {0} (uid={1})",
+                servant.Name,
+                servant.uid);
+            return true;
+        }
+
         private void UntrackServantRecord(int uid, bool removePresence)
         {
-            Chara? chara = null;
-            EClass.game?.cards?.globalCharas?.TryGetValue(uid, out chara);
+            TryResolveTrackedServant(uid, out Chara? chara, out _);
             if (chara != null)
                 ClearServantVisualMarkers(chara, removePresence);
 
@@ -1079,8 +1258,7 @@ namespace Elin_ArsMoriendi
             var removed = new List<int>();
             foreach (var uid in _servantUidList)
             {
-                Chara? chara = null;
-                EClass.game?.cards?.globalCharas?.TryGetValue(uid, out chara);
+                TryResolveTrackedServant(uid, out Chara? chara, out ServantUidSource source);
                 if (chara == null)
                 {
                     removed.Add(uid);
@@ -1089,11 +1267,14 @@ namespace Elin_ArsMoriendi
 
                 bool hasPcMasterUid = EClass.pc != null && chara.c_uidMaster == EClass.pc.uid;
                 bool hasResolvedPcMaster = EClass.pc != null && EClass._map != null && chara.FindMaster() == EClass.pc;
+                bool hasLocalOrCarryoverRuntimeRecord = ServantRuntimeTracking.ShouldRecoverTemporaryServant(
+                    CreateRuntimeSnapshot(chara, source));
                 if (!ServantIntegrityRules.ShouldKeepTrackedServant(
                     chara.isDestroyed,
                     chara.IsPCFactionOrMinion,
                     hasPcMasterUid,
                     hasResolvedPcMaster,
+                    hasLocalOrCarryoverRuntimeRecord,
                     IsInHearthReserve(chara)))
                 {
                     removed.Add(uid);
@@ -1102,8 +1283,7 @@ namespace Elin_ArsMoriendi
 
             foreach (var uid in removed)
             {
-                Chara? chara = null;
-                EClass.game?.cards?.globalCharas?.TryGetValue(uid, out chara);
+                TryResolveTrackedServant(uid, out Chara? chara, out _);
                 if (chara != null)
                     CleanupServantState(chara, ServantCleanupMode.UntrackOnly);
                 else
@@ -1478,6 +1658,7 @@ namespace Elin_ArsMoriendi
         public void ReconcileServantRuntimeStates()
         {
             EnsureGameStateLoaded();
+            RecoverTemporaryServantsFromRuntime();
             PruneOrphanedServants();
             PurgeBrokenServantRemnants();
             int active = 0;
@@ -1485,8 +1666,7 @@ namespace Elin_ArsMoriendi
 
             foreach (var uid in _servantUidList)
             {
-                Chara? chara = null;
-                EClass.game?.cards?.globalCharas?.TryGetValue(uid, out chara);
+                TryResolveTrackedServant(uid, out Chara? chara, out _);
                 if (chara == null || chara.isDestroyed) continue;
 
                 var enh = GetEnhancement(uid);

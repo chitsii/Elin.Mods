@@ -49,6 +49,7 @@ namespace Elin_ArsMoriendi.Tests
                 isPcFactionOrMinion: true,
                 hasPcMasterUid: false,
                 hasResolvedPcMaster: false,
+                hasLocalOrCarryoverRuntimeRecord: false,
                 isInReserve: false);
 
             Assert.That(result, Is.True);
@@ -62,6 +63,7 @@ namespace Elin_ArsMoriendi.Tests
                 isPcFactionOrMinion: false,
                 hasPcMasterUid: true,
                 hasResolvedPcMaster: false,
+                hasLocalOrCarryoverRuntimeRecord: false,
                 isInReserve: false);
 
             Assert.That(result, Is.True);
@@ -75,6 +77,7 @@ namespace Elin_ArsMoriendi.Tests
                 isPcFactionOrMinion: false,
                 hasPcMasterUid: false,
                 hasResolvedPcMaster: true,
+                hasLocalOrCarryoverRuntimeRecord: false,
                 isInReserve: false);
 
             Assert.That(result, Is.True);
@@ -88,7 +91,22 @@ namespace Elin_ArsMoriendi.Tests
                 isPcFactionOrMinion: false,
                 hasPcMasterUid: false,
                 hasResolvedPcMaster: false,
+                hasLocalOrCarryoverRuntimeRecord: false,
                 isInReserve: true);
+
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
+        public void ShouldKeepTrackedServant_TemporarySummonLocalOrCarryover_KeepsTracked()
+        {
+            bool result = ServantIntegrityRules.ShouldKeepTrackedServant(
+                isDestroyed: false,
+                isPcFactionOrMinion: false,
+                hasPcMasterUid: false,
+                hasResolvedPcMaster: false,
+                hasLocalOrCarryoverRuntimeRecord: true,
+                isInReserve: false);
 
             Assert.That(result, Is.True);
         }
@@ -101,9 +119,17 @@ namespace Elin_ArsMoriendi.Tests
                 isPcFactionOrMinion: false,
                 hasPcMasterUid: false,
                 hasResolvedPcMaster: false,
+                hasLocalOrCarryoverRuntimeRecord: false,
                 isInReserve: false);
 
             Assert.That(result, Is.False);
+        }
+
+        [TestCase(false, ExpectedResult = true)]
+        [TestCase(true, ExpectedResult = false)]
+        public bool ShouldPersistServantRecord_DistinguishesPermanentFromTemporary(bool isTemporarySummon)
+        {
+            return ServantIntegrityRules.ShouldPersistServantRecord(isTemporarySummon);
         }
 
         [Test]

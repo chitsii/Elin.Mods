@@ -98,7 +98,7 @@ namespace Elin_ArsMoriendi
                     if (dealt >= capDamage) continue;
 
                     double rawPctDamage = target.MaxHP * hitPct * chainMul;
-                    int rolledDice = Dice.Roll(diceNum, diceSides, 0, caster);
+                    long rolledDice = Dice.Roll(diceNum, diceSides, 0, caster);
                     double hitDamage = Math.Max(rawPctDamage, (double)rolledDice);
                     long apply = (long)Math.Floor(Math.Min(hitDamage, capDamage - dealt));
                     if (apply <= 0) continue;

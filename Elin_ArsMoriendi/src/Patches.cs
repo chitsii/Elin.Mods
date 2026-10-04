@@ -247,6 +247,28 @@ namespace Elin_ArsMoriendi
     }
 
     /// <summary>
+    /// Remove memory-only Ars temporary servant tracking as soon as the summon actually ends.
+    /// Permanent servants remain tracked for corpse/revival flows.
+    /// </summary>
+    [HarmonyPatch(typeof(Chara), nameof(Chara.Die))]
+    [HarmonyPriority(Priority.Last)]
+    public static class Patch_Chara_Die_TemporaryServantCleanup
+    {
+        static void Postfix(Chara __instance)
+        {
+            try
+            {
+                NecromancyManager.Instance.UntrackEndedTemporaryServant(__instance);
+            }
+            catch (Exception ex)
+            {
+                ModLog.Warn($"Temporary servant cleanup error: {ex.Message}");
+                Plugin.ReportPatchRuntimeFailure(nameof(Patch_Chara_Die_TemporaryServantCleanup));
+            }
+        }
+    }
+
+    /// <summary>
     /// Harmony patch: servants are excluded from butcher-knife targeting.
     /// Replaces the target scan so vanilla slaughter never offers servant targets.
     /// </summary>

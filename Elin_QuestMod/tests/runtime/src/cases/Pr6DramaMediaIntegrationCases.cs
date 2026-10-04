@@ -2,11 +2,12 @@
 public abstract class Pr6QuestMediaCase : RuntimeCaseBase
 {
     protected Pr6QuestMediaFixture Fixture;
+    protected virtual Pr6AudioCoverage AudioCoverage => Pr6AudioCoverage.None;
     public override System.Collections.Generic.IReadOnlyList<string> Tags => new[] { "integration", "pr6" };
 
     public override void Prepare(RuntimeTestContext ctx)
     {
-        Fixture = new Pr6QuestMediaFixture(ctx);
+        Fixture = new Pr6QuestMediaFixture(ctx, AudioCoverage);
         ctx.RegisterRollback("pr6.media.cleanup", () => Fixture.Dispose());
         Fixture.Install();
     }
@@ -54,6 +55,7 @@ public sealed class Pr6QuestEmptyMediaCase : Pr6QuestMediaCase
 
 public sealed class Pr6QuestEffectFailureCase : Pr6QuestMediaCase
 {
+    protected override Pr6AudioCoverage AudioCoverage => Pr6AudioCoverage.Dispatch;
     public override string Id => "pr6.quest.effect_failure_sound_attempted";
     public override System.Collections.Generic.IReadOnlyList<string> Tags => new[] { "integration", "pr6", "fault_injection" };
     public override void Execute(RuntimeTestContext ctx)
@@ -137,6 +139,7 @@ public abstract class Pr6QuestMediaCoroutineCase : Pr6QuestMediaCase, IRuntimeCo
 
 public sealed class Pr6QuestMediaActualCase : Pr6QuestMediaCoroutineCase
 {
+    protected override Pr6AudioCoverage AudioCoverage => Pr6AudioCoverage.Playback;
     public override string Id => "pr6.quest.fx_sound_actual";
     public override System.Collections.IEnumerator ExecuteAsync(RuntimeTestContext ctx)
     {
@@ -161,6 +164,7 @@ public sealed class Pr6QuestMediaActualCase : Pr6QuestMediaCoroutineCase
 
 public sealed class Pr6QuestShowcaseMediaCase : Pr6QuestMediaCoroutineCase
 {
+    protected override Pr6AudioCoverage AudioCoverage => Pr6AudioCoverage.Playback;
     public override string Id => "pr6.quest.showcase_cue_media_actual";
     public override System.Collections.IEnumerator ExecuteAsync(RuntimeTestContext ctx)
     {
@@ -216,7 +220,8 @@ public sealed class Pr6QuestMediaFixture : System.IDisposable
     private Effect ExpectedEffectActivation;
     private readonly System.Collections.Generic.Dictionary<SoundSource, UnityEngine.AudioSource> RecordedAudio = new System.Collections.Generic.Dictionary<SoundSource, UnityEngine.AudioSource>();
     private readonly System.Collections.Generic.Dictionary<SoundSource, UnityEngine.Transform> SoundParents = new System.Collections.Generic.Dictionary<SoundSource, UnityEngine.Transform>();
-    private readonly SoundData ReviveData, ExtraData;
+    private readonly SoundData ReviveData;
+    private readonly Pr6AudioCoverage AudioCoverage;
     private readonly object RuntimeContext, Resolver;
     private readonly System.Reflection.MethodInfo ExecuteMethod, ContextMethod, ResolverMethod;
     private readonly HarmonyLib.Harmony Observer;
@@ -233,15 +238,22 @@ public sealed class Pr6QuestMediaFixture : System.IDisposable
     public SoundSource SoundResult;
     private UnityEngine.AudioClip ObservedClip;
 
-    public Pr6QuestMediaFixture(RuntimeTestContext ctx)
+    public Pr6QuestMediaFixture(RuntimeTestContext ctx, Pr6AudioCoverage audioCoverage)
     {
         Context = ctx;
+        AudioCoverage = audioCoverage;
         RuntimeAssertions.Require(Active == null, "Another PR6 observer is active.");
         RuntimeAssertions.Require(EClass.pc != null && EClass.pc.Name.Contains("RUNTIME_TEST"), "Dedicated RUNTIME_TEST PC required.");
         RuntimeAssertions.Require(EClass.ui != null && EClass.player != null && EClass.player.dialogFlags != null, "UI/player/flags unavailable.");
         RuntimeAssertions.Require(LayerDrama.Instance == null && !(EClass.ui.TopLayer is LayerDrama), "Close existing drama before this case.");
-        RuntimeAssertions.Require(Effect.manager != null && SoundManager.current != null, "Effect/audio manager unavailable.");
-        RuntimeAssertions.Require(!SoundManager.ignoreSounds && UnityEngine.AudioListener.volume > 0f && !UnityEngine.AudioListener.pause, "Audio is muted/paused; prepare failed.");
+        RuntimeAssertions.Require(Effect.manager != null, "Effect manager unavailable.");
+        ctx.Log("audio_environment: coverage=" + audioCoverage + "; listener_volume=" + UnityEngine.AudioListener.volume + "; listener_pause=" + UnityEngine.AudioListener.pause + "; focused=" + UnityEngine.Application.isFocused + "; ignoreSounds=" + SoundManager.ignoreSounds + "; physical_output/human_observation=not_verified");
+        if (audioCoverage != Pr6AudioCoverage.None)
+        {
+            RuntimeAssertions.Require(SoundManager.current != null, "Native audio manager unavailable.");
+            ReviveData = SoundManager.current.GetData("revive");
+        }
+        Pr6AudioPrerequisites.RequireEnvironment(audioCoverage, SoundManager.current != null, ReviveData != null, SoundManager.ignoreSounds, UnityEngine.AudioListener.pause);
         Pc = EClass.pc; X = Pc.pos.x; Z = Pc.pos.z; Hp = Pc.hp; Top = EClass.ui.TopLayer;
         Flags = EClass.player.dialogFlags;
         var service = ModRuntimeReflection.RequireType("Elin_QuestMod.Quest.QuestStateService");
@@ -249,10 +261,10 @@ public sealed class Pr6QuestMediaFixture : System.IDisposable
         ScopedFlags = SnapshotFlags();
         BaselineEffects = new System.Collections.Generic.HashSet<Effect>(Effect.manager.list);
         BaselineSounds = new System.Collections.Generic.HashSet<SoundSource>();
-        foreach (var sound in SoundManager.current.listSfx) if (sound != null && sound.isPlaying) BaselineSounds.Add(sound);
-        ReviveData = SoundManager.current.GetData("revive");
-        ExtraData = SoundManager.current.GetData("base.ok");
-        RuntimeAssertions.Require(ReviveData != null && ExtraData != null, "Known native sound data is missing.");
+        if (audioCoverage != Pr6AudioCoverage.None)
+            foreach (var sound in SoundManager.current.listSfx)
+                // Listener pause can hide a live channel from AudioSource.isPlaying.
+                if (sound != null && Pr6AudioPrerequisites.ProtectBaselineChannel(sound.isPlaying, UnityEngine.AudioListener.pause, sound.gameObject.activeInHierarchy, sound.source != null && sound.source.clip != null)) BaselineSounds.Add(sound);
         var contextType = ModRuntimeReflection.RequireType("Elin_QuestMod.Drama.GameQuestDramaRuntimeContext");
         var resolverType = ModRuntimeReflection.RequireType("Elin_QuestMod.Drama.QuestDramaResolver");
         RuntimeContext = System.Activator.CreateInstance(contextType);
@@ -268,8 +280,7 @@ public sealed class Pr6QuestMediaFixture : System.IDisposable
     public void Install()
     {
         Active = this;
-        CaptureSoundData(ReviveData);
-        CaptureSoundData(ExtraData);
+        if (ReviveData != null) CaptureSoundData(ReviveData);
         var effect = RequireMethod(typeof(Card), "PlayEffect", new[] { typeof(string), typeof(bool), typeof(float), typeof(UnityEngine.Vector3) });
         var sound = RequireMethod(typeof(Card), "PlaySound", new[] { typeof(string), typeof(float), typeof(bool) });
         var ep = effect.GetParameters(); var sp = sound.GetParameters();
@@ -354,7 +365,7 @@ public sealed class Pr6QuestMediaFixture : System.IDisposable
     public static void NativeSoundPrefix(SoundSource __instance, SoundData __0, out bool __state)
     {
         var f = Active;
-        __state = f != null && f.Observing && (__0 == f.ReviveData || __0 == f.ExtraData);
+        __state = f != null && f.Observing && f.ReviveData != null && __0 == f.ReviveData;
         if (f != null && !__state && f.CapturedSources.Contains(__instance)) f.ReusedSounds.Add(__instance);
         if (!__state) return;
         RuntimeAssertions.Require(!f.BaselineSounds.Contains(__instance), "Native audio attempted to reuse a pre-existing playing channel.");
@@ -445,12 +456,14 @@ public sealed class Pr6QuestMediaFixture : System.IDisposable
 
     public void AssertAudio()
     {
+        RuntimeAssertions.Require(AudioCoverage == Pr6AudioCoverage.Playback, "Case has no playback coverage.");
+        Pr6AudioPrerequisites.RequireEnvironment(AudioCoverage, SoundManager.current != null, ReviveData != null, SoundManager.ignoreSounds, UnityEngine.AudioListener.pause);
         RuntimeAssertions.Require(SoundResult != null && SoundResult.source != null && ObservedClip != null, "Native sound returned no audio channel/clip.");
         var source = SoundResult.source;
-        RuntimeAssertions.Require(source.clip == ObservedClip && source.isPlaying && source.enabled && source.gameObject.activeInHierarchy && !source.mute && source.volume > 0f, "Native audio channel is not playing the observed audible-volume clip.");
+        RuntimeAssertions.Require(source.clip == ObservedClip && source.isPlaying && source.enabled && source.gameObject.activeInHierarchy && !source.mute && source.volume > 0f, "Native audio channel is not playing the observed clip at positive source volume.");
         RuntimeAssertions.Require(source.spatialBlend == 0f, "Native root-PC audio must be non-spatial.");
         RuntimeAssertions.Require(ClipBelongsTo(SoundResult.data, ObservedClip), "Audio channel clip does not belong to requested native sound data.");
-        Context.Log("audio_channel: instance=" + source.GetInstanceID() + "; clip=" + ObservedClip.name + "; samples=" + ObservedClip.samples + "; volume=" + source.volume + "; spatialBlend=" + source.spatialBlend + "; isPlaying=" + source.isPlaying + "; mixer=" + (source.outputAudioMixerGroup == null ? "none" : source.outputAudioMixerGroup.name));
+        Context.Log("audio_channel: instance=" + source.GetInstanceID() + "; clip=" + ObservedClip.name + "; samples=" + ObservedClip.samples + "; source_volume=" + source.volume + "; listener_volume=" + UnityEngine.AudioListener.volume + "; focused=" + UnityEngine.Application.isFocused + "; spatialBlend=" + source.spatialBlend + "; isPlaying=" + source.isPlaying + "; mixer=" + (source.outputAudioMixerGroup == null ? "none" : source.outputAudioMixerGroup.name) + "; physical_output/human_observation=not_verified");
     }
     private static bool ClipBelongsTo(SoundData data, UnityEngine.AudioClip clip)
     {

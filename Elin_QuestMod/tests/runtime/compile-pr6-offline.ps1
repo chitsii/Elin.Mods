@@ -90,8 +90,31 @@ $guardResult | Write-Output
 if ($guardExit -ne 0) { throw 'Managed cleanup counterexamples failed.' }
 Add-Type -Path (Join-Path $modRoot "elin_link\BepInEx\core\Mono.Cecil.dll")
 $game = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((Join-Path $managed "Elin.dll"))
+$soundAssembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((Join-Path $managed 'Plugins.Sound.dll'))
 $compiled = [Mono.Cecil.AssemblyDefinition]::ReadAssembly($dllPath)
 try {
+    # Characterize only managed native dispatch, never Unity playback/hardware output.
+    $managerType = $soundAssembly.MainModule.Types | Where-Object FullName -EQ SoundManager
+    $sourceType = $soundAssembly.MainModule.Types | Where-Object FullName -EQ SoundSource
+    $managerPlay = @($managerType.Methods | Where-Object { $_.Name -eq '_Play' -and $_.Parameters.Count -eq 3 -and $_.Parameters[0].ParameterType.FullName -eq 'SoundData' })
+    $sourcePlay = @($sourceType.Methods | Where-Object { $_.Name -eq 'Play' -and $_.Parameters.Count -eq 3 -and $_.Parameters[0].ParameterType.FullName -eq 'SoundData' })
+    if ($managerPlay.Count -ne 1 -or $sourcePlay.Count -ne 1) { throw 'Native sound dispatch targets changed.' }
+    $audioEvidence = [System.Collections.Generic.List[string]]::new()
+    foreach ($method in @($managerPlay[0], $sourcePlay[0])) {
+        $callOperands = @($method.Body.Instructions | Where-Object {
+            $_.Operand -is [Mono.Cecil.MethodReference] -and $_.OpCode.Code.ToString() -in @('Call', 'Callvirt')
+        } | ForEach-Object Operand)
+        $forbidden = @($callOperands | Where-Object {
+            ($_.DeclaringType.FullName -eq 'UnityEngine.AudioListener' -and $_.Name -eq 'get_volume') -or
+            ($_.DeclaringType.FullName -eq 'UnityEngine.Application' -and $_.Name -eq 'get_isFocused')
+        })
+        if ($forbidden.Count -ne 0) { throw ('Native sound has a direct listener-volume/focus dependency: ' + $method.FullName) }
+        $target = if ($method.DeclaringType.FullName -eq 'SoundManager') { 'SoundSource' } else { 'UnityEngine.AudioSource' }
+        $playCalls = @($callOperands | Where-Object { $_.DeclaringType.FullName -eq $target -and $_.Name -eq 'Play' })
+        if ($playCalls.Count -ne 1) { throw ('Native audio Play call chain changed: ' + $method.FullName) }
+        $audioEvidence.Add($method.FullName + ' -> ' + $playCalls[0].FullName + '; direct_listener_volume/focus_calls=0; runtime_not_executed')
+    }
+    $audioEvidence | Set-Content (Join-Path $OutputRoot 'native-audio-call-chain.txt') -Encoding utf8
     $card = $game.MainModule.Types | Where-Object FullName -EQ Card
     $native = @($card.Methods | Where-Object { $_.Name -in @('PlayEffect', 'PlaySound') -and $_.Parameters[0].ParameterType.FullName -eq 'System.String' })
     if ($native.Count -ne 2) { throw "Native string media overload count changed." }
@@ -118,11 +141,34 @@ try {
     $names = @('Pr6QuestFxOnlyCase', 'Pr6QuestEmptyMediaCase', 'Pr6QuestEffectFailureCase', 'Pr6QuestSoundFailureCase', 'Pr6QuestCleanupOwnershipCase', 'Pr6QuestMediaActualCase', 'Pr6QuestShowcaseMediaCase')
     $found = @($compiled.MainModule.Types | Where-Object Name -In $names)
     if ($found.Count -ne $names.Count) { throw "Compiled suite lacks a concrete PR6 case." }
+    $expectedCoverage = [ordered]@{
+        Pr6QuestFxOnlyCase = 0; Pr6QuestEmptyMediaCase = 0; Pr6QuestEffectFailureCase = 1
+        Pr6QuestSoundFailureCase = 0; Pr6QuestCleanupOwnershipCase = 0
+        Pr6QuestMediaActualCase = 2; Pr6QuestShowcaseMediaCase = 2
+    }
+    $coverageEvidence = [ordered]@{}
+    foreach ($case in $found) {
+        $owner = $case
+        $getter = @($owner.Methods | Where-Object Name -EQ get_AudioCoverage)
+        while ($getter.Count -eq 0) {
+            $baseName = $owner.BaseType.FullName
+            $owner = $compiled.MainModule.Types | Where-Object FullName -EQ $baseName
+            if ($null -eq $owner) { throw ('No compiled audio coverage getter for ' + $case.Name) }
+            $getter = @($owner.Methods | Where-Object Name -EQ get_AudioCoverage)
+        }
+        $constants = @($getter[0].Body.Instructions | Where-Object { $_.OpCode.Code.ToString() -in @('Ldc_I4_0', 'Ldc_I4_1', 'Ldc_I4_2') })
+        if ($constants.Count -ne 1) { throw ('Inspect nonconstant audio coverage getter: ' + $case.Name) }
+        $value = [int]$constants[0].OpCode.Code.ToString().Substring(7)
+        if ($value -ne $expectedCoverage[$case.Name]) { throw ('Wrong compiled audio prerequisite assignment: ' + $case.Name) }
+        $coverageEvidence[$case.Name] = @('None', 'Dispatch', 'Playback')[$value]
+    }
     @{
         status = 'compile_only_passed'; runtimeExecuted = $false
         generatedSource = $csxPath; compiledAssembly = $dllPath; caseTypes = $names
         scriptCompiledAssembly = $scriptDllPath; untouchedScriptCompiled = $true
         managedCleanupCounterexamples = 'passed'; gameTypesCreatedByManagedTests = $false
+        compiledAudioCoverageVerified = $coverageEvidence
+        nativeManagedAudioCallChainVerified = @($audioEvidence)
         nativeEffectActivationPathsVerified = @($activationPaths | ForEach-Object FullName)
         cleanupGuardSourceSha256 = (Get-FileHash (Join-Path $runtimeRoot 'src\cases\Pr6MediaCleanupGuards.cs')).Hash
         gameDllSha256 = (Get-FileHash (Join-Path $managed 'Elin.dll')).Hash
@@ -130,5 +176,5 @@ try {
         sourceSha256 = (Get-FileHash (Join-Path $runtimeRoot 'src\cases\Pr6DramaMediaIntegrationCases.cs')).Hash
     } | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $OutputRoot 'compile-summary.json') -Encoding utf8
 }
-finally { $compiled.Dispose(); $game.Dispose() }
+finally { $compiled.Dispose(); $soundAssembly.Dispose(); $game.Dispose() }
 Write-Host 'PR6 generated-source compile passed; game/runtime assertions NOT executed.'

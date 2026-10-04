@@ -1,4 +1,26 @@
 // Pure managed guards shared by the native fixture and offline counterexamples.
+public enum Pr6AudioCoverage { None, Dispatch, Playback }
+
+public static class Pr6AudioPrerequisites
+{
+    public static bool ProtectBaselineChannel(bool isPlaying, bool listenerPaused, bool activeInHierarchy, bool hasClip)
+    {
+        return isPlaying || (listenerPaused && activeInHierarchy && hasClip);
+    }
+
+    // Global listener volume/focus are output conditions, not channel/clip prerequisites.
+    public static void RequireEnvironment(Pr6AudioCoverage coverage, bool managerAvailable, bool dataAvailable, bool ignoreSounds, bool listenerPaused)
+    {
+        if (coverage == Pr6AudioCoverage.None) return;
+        if (coverage != Pr6AudioCoverage.Dispatch && coverage != Pr6AudioCoverage.Playback)
+            throw new System.InvalidOperationException("Unknown PR6 audio coverage.");
+        if (!managerAvailable || !dataAvailable)
+            throw new System.InvalidOperationException("Native audio manager/requested revive data unavailable.");
+        if (coverage == Pr6AudioCoverage.Playback && (ignoreSounds || listenerPaused))
+            throw new System.InvalidOperationException("Native playback requires ignoreSounds=false and AudioListener.pause=false.");
+    }
+}
+
 public sealed class Pr6ActivationOwnership<T> where T : class
 {
     private sealed class ReferenceComparer : System.Collections.Generic.IEqualityComparer<T>

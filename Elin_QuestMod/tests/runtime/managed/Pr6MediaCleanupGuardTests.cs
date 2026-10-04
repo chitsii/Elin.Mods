@@ -11,6 +11,43 @@ public static class Pr6MediaCleanupGuardTests
     {
         try
         {
+            Check("no audio coverage needs no manager data or playback", () =>
+            {
+                Pr6AudioPrerequisites.RequireEnvironment(Pr6AudioCoverage.None, false, false, true, true);
+            });
+            Check("dispatch permits ignoreSounds and paused listener without claiming playback", () =>
+            {
+                Pr6AudioPrerequisites.RequireEnvironment(Pr6AudioCoverage.Dispatch, true, true, true, true);
+            });
+            Check("native sound coverage still needs manager and requested data", () =>
+            {
+                foreach (var coverage in new[] { Pr6AudioCoverage.Dispatch, Pr6AudioCoverage.Playback })
+                {
+                    RejectAudio(coverage, false, true, false, false);
+                    RejectAudio(coverage, true, false, false, false);
+                }
+            });
+            Check("playback rejects ignored or paused engine audio", () =>
+            {
+                RejectAudio(Pr6AudioCoverage.Playback, true, true, true, false);
+                RejectAudio(Pr6AudioCoverage.Playback, true, true, false, true);
+                RejectAudio(Pr6AudioCoverage.Playback, true, true, true, true);
+            });
+            Check("playback permits running channel observation", () =>
+            {
+                Pr6AudioPrerequisites.RequireEnvironment(Pr6AudioCoverage.Playback, true, true, false, false);
+            });
+            Check("unknown audio coverage cannot silently pass", () =>
+            {
+                RejectAudio((Pr6AudioCoverage)99, true, true, false, false);
+            });
+            Check("paused live channel stays protected while inactive pool remains available", () =>
+            {
+                Require(Pr6AudioPrerequisites.ProtectBaselineChannel(false, true, true, true), "Paused live channel lost baseline protection.");
+                Require(Pr6AudioPrerequisites.ProtectBaselineChannel(true, false, true, true), "Playing baseline channel lost protection.");
+                Require(!Pr6AudioPrerequisites.ProtectBaselineChannel(false, true, false, true), "Inactive pooled channel incorrectly protected.");
+                Require(!Pr6AudioPrerequisites.ProtectBaselineChannel(false, true, true, false), "Clipless paused channel incorrectly protected.");
+            });
             Check("initial activation remains owned", () =>
             {
                 var item = new object(); var leases = new Pr6ActivationOwnership<object>();
@@ -104,6 +141,13 @@ public static class Pr6MediaCleanupGuardTests
     {
         var leases = new Pr6ActivationOwnership<object>();
         leases.CaptureCreated(instance); leases.ObserveActivation(instance, true); return leases;
+    }
+    private static void RejectAudio(Pr6AudioCoverage coverage, bool manager, bool data, bool ignored, bool paused)
+    {
+        bool rejected = false;
+        try { Pr6AudioPrerequisites.RequireEnvironment(coverage, manager, data, ignored, paused); }
+        catch (System.InvalidOperationException) { rejected = true; }
+        Require(rejected, "Audio prerequisite silently accepted an unsupported environment.");
     }
     private static System.Collections.Generic.Dictionary<string, int> Flags(params object[] pairs)
     {

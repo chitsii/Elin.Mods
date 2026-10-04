@@ -61,6 +61,27 @@ try {
     }
     if ($ids.Count -ne 7 -or @($ids | Select-Object -Unique).Count -ne 7) { throw 'Expected seven unique concrete PR1 cases in generated DLL.' }
     $ids | Sort-Object | ForEach-Object { Write-Output "offline-case: $_" }
+    $context = $assembly.MainModule.Types | Where-Object FullName -eq 'Pr1NativePcContext'
+    if ($null -eq $context) { throw 'Native PC context missing: generated NPC has no native fixture faction.' }
+    $contextCalls = @($context.Methods | Where-Object HasBody | ForEach-Object {
+        $_.Body.Instructions | Where-Object { $_.OpCode.Name -in @('call', 'callvirt', 'newobj') } |
+            ForEach-Object { [string]$_.Operand }
+    })
+    foreach ($required in @('FactionManager::OnCreateGame()', 'Chara::SetFaction(Faction)', 'Player::.ctor()')) {
+        if (-not ($contextCalls | Where-Object { $_.Contains($required) })) { throw "Native PC context omits $required" }
+    }
+    $run = ($assembly.MainModule.Types | Where-Object FullName -eq 'Pr1AutoEatFixture').Methods | Where-Object Name -eq 'Run'
+    $finallyInstructions = @($run.Body.ExceptionHandlers | Where-Object HandlerType -eq 'Finally' | ForEach-Object {
+        $start = $_.HandlerStart.Offset
+        $end = if ($null -eq $_.HandlerEnd) { [int]::MaxValue } else { $_.HandlerEnd.Offset }
+        $run.Body.Instructions | Where-Object { $_.Offset -ge $start -and $_.Offset -lt $end }
+    })
+    foreach ($field in @('Game::player', 'Game::factions')) {
+        if (-not ($finallyInstructions | Where-Object { $_.OpCode.Name -eq 'stfld' -and ([string]$_.Operand).Contains($field) })) {
+            throw "Fixture finally does not restore $field"
+        }
+    }
+    Write-Output 'Offline context contract: real faction initialization/assignment and Player/FactionManager finally restoration present. Native runtime NOT executed.'
 }
 finally { $assembly.Dispose() }
 

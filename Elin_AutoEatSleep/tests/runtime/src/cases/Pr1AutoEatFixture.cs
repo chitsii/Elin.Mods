@@ -22,6 +22,8 @@ public sealed class Pr1AutoEatFixture
     private bool cleaned, active, capturedStatics;
     private string configDirectory;
     private string baselineState, baselineConfigBytes;
+    private Pr1NativeOriginalRefs baselineReferences;
+    private Pr1NativePcContext nativeContext;
     private Pr1FixtureOwnership<Card> ownership;
     private readonly System.Collections.Generic.List<ConSleep> createdSleeps = new System.Collections.Generic.List<ConSleep>();
 
@@ -76,6 +78,7 @@ public sealed class Pr1AutoEatFixture
         Set("ResumeAiOnWake", true);
 
         baselineState = OriginalState(EClass.player);
+        baselineReferences = new Pr1NativeOriginalRefs();
         baselineConfigBytes = FileState((string)Property(originalConfigFile, "ConfigFilePath"));
         var originalUids = new System.Collections.Generic.HashSet<int>();
         RememberOriginalTree(EClass.pc, originalUids);
@@ -98,7 +101,16 @@ public sealed class Pr1AutoEatFixture
         ownership.RecordMove(Actor, Actor.parent);
         RuntimeAssertions.Require(Actor.renderer != null, "Native fixture renderer unavailable.");
         Actor.party = new Party();
+        Actor.party.SetLeader(Actor);
         Actor.party.members.Add(Actor);
+        Actor.party.uidMembers.Add(Actor.uid);
+        RuntimeAssertions.Require(Actor.party.uidLeader == Actor.uid && object.ReferenceEquals(Actor.party.leader, Actor)
+            && Actor.party.members.Count == 1 && object.ReferenceEquals(Actor.party.members[0], Actor)
+            && Actor.party.uidMembers.Count == 1 && Actor.party.uidMembers[0] == Actor.uid,
+            "Native fixture leader/member UID preparation failed.");
+        RuntimeAssertions.Require(!Actor.IsGlobal && !EClass.game.cards.globalCharas.ContainsKey(Actor.uid),
+            "Party preparation must not register fixture globally.");
+        nativeContext = new Pr1NativePcContext(Actor);
         Actor.things.SetSize(7, 5);
         Actor.SetAI(new AI_Idle());
         for (int value = 1; value <= 100; value++)
@@ -231,23 +243,37 @@ public sealed class Pr1AutoEatFixture
             if (row.trait == null || (System.Array.IndexOf(row.trait, "FoodPrepared") < 0
                 && System.Array.IndexOf(row.trait, "TraitFoodPrepared") < 0)) continue;
             var thing = Own(ThingGen.Create(row.id));
-            if (thing.trait is TraitFoodPrepared && !(thing.trait is TraitLunch)
+            if (thing.trait.GetType() == typeof(TraitFoodPrepared)
+                && thing.id != "681" && thing.id != "pie_meat" && thing.id != "pie_fish"
                 && Actor.CanEat(thing, true) && !thing.c_isImportant) return thing;
         }
         throw new System.InvalidOperationException("No native non-leftover prepared food source; fixture blocked.");
     }
     public Thing CreateContainer()
     {
-        foreach (string id in new[] { "cooler", "chest" })
+        var rows = new System.Collections.Generic.List<SourceThing.Row>(EClass.sources.things.rows);
+        rows.Sort((left, right) => System.StringComparer.Ordinal.Compare(left.id, right.id));
+        string traitName = typeof(TraitContainer).Name.Substring("Trait".Length);
+        foreach (var row in rows)
         {
-            if (!EClass.sources.cards.map.ContainsKey(id)) continue;
-            var box = Own(ThingGen.Create(id));
-            if (!box.IsContainer || box.things == null) continue;
+            if (string.IsNullOrEmpty(row.id) || row.trait == null || row.trait.Length == 0 || row.trait[0] != traitName
+                || !EClass.sources.cards.map.ContainsKey(row.id) || !EClass.sources.things.map.ContainsKey(row.id)) continue;
+            var box = Own(ThingGen.Create(row.id));
+            if (!box.IsContainer || box.trait.GetType() != typeof(TraitContainer) || box.things == null
+                || !object.ReferenceEquals(box.things.owner, box) || box.things.width <= 0
+                || box.things.height <= 0 || box.things.MaxCapacity <= 0) continue;
+            // Native Prespawn may create contents; only factory-recorded descendants can be removed.
+            var contents = new System.Collections.Generic.List<Thing>(box.things);
+            foreach (var thing in contents) ownership.DestroyChecked(thing, card => card.Destroy());
+            RuntimeAssertions.Require(box.things.Count == 0, "Owned native container contents were not cleared.");
             AddFixtureThing(Actor, box);
-            ctx.Log("fixture:container=" + box.uid + ":id=" + box.id);
+            ctx.Log("fixture:container=" + box.uid + ":id=" + box.id + ":sourceId=" + row.id
+                + ":sourceTrait=" + string.Join(",", row.trait) + ":nativeTrait=" + box.trait.GetType().FullName
+                + ":width=" + box.things.width + ":height=" + box.things.height
+                + ":capacity=" + box.things.MaxCapacity + ":createdContentsRemoved=" + contents.Count);
             return box;
         }
-        throw new System.InvalidOperationException("Native container source unavailable.");
+        throw new System.InvalidOperationException("No loaded ordinary TraitContainer source with native capacity; use the read-only source catalog probe.");
     }
     public Thing Own(Thing thing)
     {
@@ -301,6 +327,9 @@ public sealed class Pr1AutoEatFixture
         RuntimeAssertions.Require(createdSleeps.Contains(sleep) && object.ReferenceEquals(sleep.owner, Actor)
             && Actor.conditions.Contains(sleep) && object.ReferenceEquals(Actor.conSleep, sleep),
             "Condition.Kill refused: sleep is not the owned fixture condition.");
+        RuntimeAssertions.Require(!sleep.slept && sleep.pcSleep == 0 && sleep.uidRide == 0
+            && sleep.uidParasite == 0 && !sleep.pickup,
+            "Condition.Kill refused: overnight/mount/pickup paths are outside the removal fixture.");
         sleep.Kill(true);
     }
     public AIAct SavedAI
@@ -314,8 +343,11 @@ public sealed class Pr1AutoEatFixture
     {
         RuntimeAssertions.Require(!active, "Nested fixture activation.");
         var originalPlayer = EClass.player;
+        var originalGame = EClass.game;
+        var originalFactions = originalGame.factions;
         RuntimeAssertions.Require((originalPlayer.chara.Name ?? "").IndexOf("RUNTIME_TEST", System.StringComparison.Ordinal) >= 0,
             "PR1 activation dedicated-save guard rejected.");
+        var originalReferences = new Pr1NativeOriginalRefs();
         string before = OriginalState(originalPlayer);
         string originalBytes = FileState((string)Property(originalConfigFile, "ConfigFilePath"));
         var oldConfig = configField.GetValue(plugin);
@@ -334,16 +366,37 @@ public sealed class Pr1AutoEatFixture
             active = true;
             configField.SetValue(plugin, config);
             SavedAI = null;
-            EClass.game.player = new Player { chara = Actor, uidChara = Actor.uid };
+            originalGame.factions = nativeContext.Factions;
+            originalGame.player = nativeContext.CreatePlayer();
             Pr1AutoEatObserver.Current = Observer;
-            RuntimeAssertions.Require(Actor.IsPC && Actor.party.leader == Actor, "Native PC/party fixture activation failed.");
+            var probe = Pr1NativePrerequisiteProbe.Capture(ctx.Log, Actor, Food, Important, nativeContext.Factions);
+            RuntimeAssertions.Require(probe.Errors == 0,
+                "Read-only prerequisite probe had getter errors; native functional calls skipped. See native-prereq logs.");
+            bool isPc = Actor.IsPC;
+            bool samePc = object.ReferenceEquals(EClass.pc, Actor);
+            bool isLeader = object.ReferenceEquals(Actor.party.leader, Actor);
+            bool isPcParty = Actor.IsPCParty;
+            bool tracksHunger = Actor.hunger.TrackPhaseChange;
+            ctx.Log("activation:uid=" + Actor.uid + ":isPC=" + isPc + ":samePC=" + samePc
+                + ":leader=" + isLeader + ":uidLeader=" + Actor.party.uidLeader
+                + ":isPCParty=" + isPcParty + ":tracksHunger=" + tracksHunger
+                + ":global=" + Actor.IsGlobal + ":members=" + Actor.party.members.Count
+                + ":uidMembers=" + string.Join(",", Actor.party.uidMembers));
+            RuntimeAssertions.Require(isPc && isLeader, "Native PC/party fixture activation failed.");
+            RuntimeAssertions.Require(samePc && isPcParty && tracksHunger,
+                "Fixture did not enter the native PC/PC-party hunger phase tracking path.");
+            nativeContext.RequireReady(EClass.player, Food);
+            ctx.Log("native-context:faction=" + Actor.idFaction + ":factionLookup=true:elementFallbackAndBonus=true"
+                + ":actorSourceBodyRendererOwners=true:playerContainers=true:foodVomitSleepStats=true");
             RuntimeAssertions.Require(Actor.CanEat(Food, true), "PC native CanEat precondition failed.");
             action();
         }
         finally
         {
             Pr1AutoEatObserver.Current = null;
-            EClass.game.player = originalPlayer;
+            EClass.core.game = originalGame;
+            originalGame.player = originalPlayer;
+            originalGame.factions = originalFactions;
             configField.SetValue(plugin, oldConfig);
             SavedAI = oldSavedAI;
             eatingGuard.SetValue(null, oldEatingGuard);
@@ -355,11 +408,14 @@ public sealed class Pr1AutoEatFixture
             active = false;
             RuntimeAssertions.Require(Important.Num == importantNum && object.ReferenceEquals(Important.parent, importantParent),
                 "Important fixture control consumed or moved.");
-            bool restored = before == OriginalState(originalPlayer) && originalBytes == FileState((string)Property(originalConfigFile, "ConfigFilePath"));
+            bool restored = originalReferences.Matches() && before == OriginalState(originalPlayer)
+                && originalBytes == FileState((string)Property(originalConfigFile, "ConfigFilePath"));
             if (!restored) restorationBlocked = true;
             RuntimeAssertions.Require(restored,
                 "Original PC/player/world/config changed: stop and reload dedicated save.");
             ctx.Log("restore:player/PC/inventory/elements/conditions/AI/karma/flags/config=unchanged");
+            ctx.Log("restore:game/player/PC/party/memberLists/leader/global/carryoverRefsAndContents=unchanged");
+            ctx.Log("restore:factionManager/dictionary/roles/factionRefs/relations/elementRefsAndRawValues=unchanged");
         }
     }
     public void ExpectNoMeal(string label)
@@ -497,6 +553,7 @@ public sealed class Pr1AutoEatFixture
         {
             if (baselineState == null) return;
             RuntimeAssertions.Require(baselineState == OriginalState(EClass.player)
+                && baselineReferences.Matches()
                 && baselineConfigBytes == FileState((string)Property(originalConfigFile, "ConfigFilePath"))
                 && object.ReferenceEquals(configField.GetValue(plugin), originalConfig)
                 && object.ReferenceEquals(SavedAI, originalSavedAI), "Original state not restored after cleanup.");

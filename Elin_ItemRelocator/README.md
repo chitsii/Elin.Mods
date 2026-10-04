@@ -91,6 +91,7 @@
     - **お気に入り**: `Thing.c_isImportant` が有効なアイテム
     - **破壊済み/設置物**: `Thing.isDestroyed` または `Thing.placeState == PlaceState.installed`
     - **ロック品**: `Thing.lockedHard` 状態のアイテム
+    - **装備中**: PC・従者・ペットを問わず、`Thing.isEquipped` が有効なアイテム。呪いの有無に関係なく、プレビュー・一括転送・個別転送から除外します。転送直前にも装備状態を再確認し、自動で装備解除は行いません。
 
 - **InvOwner準拠の判定**:
     - **スキル/能力**: PC所有コンテナ以外への移動禁止（出荷箱など）

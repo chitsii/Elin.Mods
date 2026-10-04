@@ -1,11 +1,12 @@
 using HarmonyLib;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace Elin_AutoOfferingAlter
 {
     [HarmonyPatch]
-    public class PatchRecipe
+    public class PatchOfferingBoxSourceInit
     {
         public static MethodBase TargetMethod()
         {
@@ -104,10 +105,17 @@ namespace Elin_AutoOfferingAlter
             return clone;
         }
 
-        // Keep the Craft patch to apply the saved display name.
+    }
+
+    // Item recipes use this override, which does not call Recipe.Craft.
+    // Keep this separate from the SourceManager TargetMethod patch class.
+    [HarmonyPatch(typeof(RecipeCard), nameof(RecipeCard.Craft), new Type[] {
+        typeof(BlessedState), typeof(bool), typeof(List<Thing>), typeof(TraitCrafter), typeof(bool)
+    })]
+    public class PatchOfferingBoxCraft
+    {
         [HarmonyPostfix]
-        [HarmonyPatch(typeof(Recipe), "Craft")]
-        public static void Postfix_Craft(Recipe __instance, ref Thing __result)
+        public static void Postfix_Craft(RecipeCard __instance, ref Thing __result)
         {
             if (__result == null) return;
 

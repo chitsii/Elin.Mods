@@ -19,6 +19,7 @@ $env:TMP = $env:TEMP
 New-Item -ItemType Directory -Force -Path $env:TEMP | Out-Null
 $productArg = @()
 if ($SleepOfferAssembly) { $productArg = @('-p:SleepOfferAssembly=' + [System.IO.Path]::GetFullPath($SleepOfferAssembly)) }
+$productDll = if ($SleepOfferAssembly) { [System.IO.Path]::GetFullPath($SleepOfferAssembly) } else { Join-Path $modRoot '_bin\Elin_AutoOfferingAlter.dll' }
 $caseFiles = @(Get-ChildItem (Join-Path $PSScriptRoot 'src\cases') -Filter '*.cs' -File)
 $ids = @()
 foreach ($file in $caseFiles) {
@@ -33,6 +34,11 @@ $counterexampleProject = Join-Path $PSScriptRoot 'offline\Pr8ReloadContents.Test
 if ($LASTEXITCODE -ne 0) { throw 'Reload counterexample compile failed.' }
 & (Join-Path $output 'reload-counterexamples-out\Pr8ReloadContents.Tests.exe')
 if ($LASTEXITCODE -ne 0) { throw 'Reload conservation counterexamples failed.' }
+$patchProject = Join-Path $PSScriptRoot 'offline\PatchRegistration.Tests.csproj'
+& dotnet build $patchProject --no-restore '-p:UseSharedCompilation=false' ('-p:IntermediateOutputPath=' + (Join-Path $output 'patch-registration-obj\')) ('-p:OutputPath=' + (Join-Path $output 'patch-registration-out\'))
+if ($LASTEXITCODE -ne 0) { throw 'Patch registration test compile failed.' }
+& (Join-Path $output 'patch-registration-out\Pr8PatchRegistration.Tests.exe') $productDll (Join-Path $modRoot 'elin_link\Elin_Data\Managed') (Join-Path $modRoot 'elin_link\BepInEx\core')
+if ($LASTEXITCODE -ne 0) { throw 'Offline product Harmony registration failed.' }
 & dotnet build $project --no-restore '-p:UseSharedCompilation=false' ('-p:OutputPath=' + (Join-Path $output 'source-out\')) ('-p:IntermediateOutputPath=' + (Join-Path $output 'source-obj\')) @productArg
 if ($LASTEXITCODE -ne 0) { throw 'Native source compile failed.' }
 $csx = Join-Path $output 'pr8-generated.csx'
@@ -51,4 +57,4 @@ $source = Join-Path $output 'pr8-generated-compile.cs'
 [System.IO.File]::WriteAllText($source, $adapted)
 & dotnet build $project --no-restore '-p:UseSharedCompilation=false' ('-p:GeneratedCompileSource=' + $source) ('-p:OutputPath=' + (Join-Path $output 'generated-out\')) ('-p:IntermediateOutputPath=' + (Join-Path $output 'generated-obj\')) @productArg
 if ($LASTEXITCODE -ne 0) { throw 'Generated using-stripped csx compile failed.' }
-Write-Host "PASS: reload conservation counterexamples; 11 unique guarded cases; native source and generated-source compile. Game/CWL execution not performed."
+Write-Host "PASS: product Harmony registration; reload conservation counterexamples; 11 unique guarded cases; native source and generated-source compile. Game/CWL execution not performed."

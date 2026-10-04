@@ -125,6 +125,11 @@ public static class Pr3ArenaObserver
 
 public sealed class Pr3ArenaManifest
 {
+    public int SchemaVersion = 2;
+    public string CoordinateScenario;
+    public int MasterUid;
+    public int ReturnX;
+    public int ReturnZ;
     public string Token;
     public string SaveId;
     public string PreparedUtc;
@@ -235,6 +240,9 @@ public sealed class Pr3ArenaFixture
         RuntimeAssertions.Require(File.Exists(path), "Run return_save_prepare first; manifest missing.");
         var state = Newtonsoft.Json.JsonConvert.DeserializeObject<Pr3ArenaManifest>(File.ReadAllText(path));
         RuntimeAssertions.Require(state != null && state.Token != null && state.Token.StartsWith("RUNTIME_TEST_PR3_", StringComparison.Ordinal), "Invalid PR3 manifest.");
+        RuntimeAssertions.Require(Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(path)).Value<int>("SchemaVersion") == 2 &&
+            (state.CoordinateScenario == "npc_distinct" || state.CoordinateScenario == "without_master"),
+            "Obsolete artificial-migration manifest: reload dedicated baseline; do not claim normal-save coverage.");
         RuntimeAssertions.Require(state.SaveId == Game.id && state.PcUid == EClass.pc.uid, "Manifest belongs to a different save/PC.");
         if (requireReload)
             RuntimeAssertions.Require(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(EClass.game) != state.PreparedGameIdentity,
@@ -283,11 +291,30 @@ public sealed class Pr3ArenaFixture
         if (noHealing) Origin.events.Add(new Elin_SukutsuArena.RandomBattle.ZoneEventNoHealing());
     }
 
-    public void CreateBattle(RuntimeTestContext ctx, bool legacySave = false)
+    public void CreateBattle(RuntimeTestContext ctx, bool distinctMaster = false)
     {
+        State.CoordinateScenario = distinctMaster ? "npc_distinct" : "without_master";
+        if (distinctMaster)
+        {
+            CreateTarget(ctx);
+            var point = new Point(State.EntryX + 1, State.EntryZ);
+            RuntimeAssertions.Require(point.IsValid && !point.IsBlocked && point.Charas.Count == 0, "Choose a free, safe tile next to the PC for the owned master.");
+            Target.AddCondition<ConSleep>(1000, true);
+            Origin.AddCard(Target, point);
+            RuntimeAssertions.Require(Target.pos.x == point.x && Target.pos.z == point.z && EClass._map.FindChara(Target.uid) == Target,
+                "Native master fixture was not placed at its independent return point.");
+            State.MasterUid = Target.uid;
+            State.ReturnX = point.x;
+            State.ReturnZ = point.z;
+        }
+        else
+        {
+            State.MasterUid = 0;
+            State.ReturnX = State.ReturnZ = 0;
+        }
         var instance = new ZoneInstanceArenaBattle
         {
-            uidMaster = 0, uidZone = Origin.uid, returnX = State.EntryX, returnZ = State.EntryZ,
+            uidMaster = State.MasterUid, uidZone = Origin.uid, returnX = State.ReturnX, returnZ = State.ReturnZ,
             rewardPlat = 3, rewardPotion = 0, stageId = State.Token
         };
         var before = new HashSet<int>(EClass.game.spatials.map.Keys);
@@ -320,13 +347,16 @@ public sealed class Pr3ArenaFixture
             }
         };
         Battle.events.AddPreEnter(new ZonePreEnterArenaBattle { stageId = State.Token, stageData = stage });
-        if (legacySave)
-        {
-            // Deliberately create old-save input. The verify case must not manually resync it.
-            instance.x = 0;
-            instance.z = 0;
-        }
+        AssertCoordinates(instance);
         ctx.Log("battle_uid=" + Battle.uid + "; stage=" + State.Token + "; base=" + instance.x + "," + instance.z + "; return=" + instance.returnX + "," + instance.returnZ);
+    }
+
+    public void AssertCoordinates(ZoneInstanceArenaBattle instance)
+    {
+        RuntimeAssertions.Require(instance.x == State.EntryX && instance.z == State.EntryZ &&
+            instance.returnX == State.ReturnX && instance.returnZ == State.ReturnZ &&
+            instance.uidMaster == State.MasterUid && instance.uidZone == State.OriginUid,
+            "Saved PC entry base coordinates, independent return fields, or zone/master UID changed; do not repair them in the test.");
     }
 
     public void AssertReturn(RuntimeTestContext ctx)
@@ -334,6 +364,14 @@ public sealed class Pr3ArenaFixture
         RuntimeAssertions.Require(EClass.pc.uid == State.PcUid && EClass._zone.uid == State.OriginUid, "Return zone/PC UID mismatch.");
         RuntimeAssertions.Require(EClass.pc.pos.x == State.EntryX && EClass.pc.pos.z == State.EntryZ, "Native return did not reach entry coordinates.");
         RuntimeAssertions.Require(Pr3ArenaObserver.LeaveCalls == 1, "Expected one actual arena OnLeaveZone call.");
+        RuntimeAssertions.Require(EClass.player.dialogFlags.ContainsKey(Elin_SukutsuArena.Flags.SessionFlagKeys.AutoDialog) &&
+            EClass.player.dialogFlags[Elin_SukutsuArena.Flags.SessionFlagKeys.AutoDialog] == State.MasterUid,
+            "Auto-dialog must retain the master UID; sharing the master's tile is not required.");
+        if (State.MasterUid != 0)
+        {
+            var master = EClass._map.FindChara(State.MasterUid);
+            RuntimeAssertions.Require(master != null && master.c_altName == State.Token, "Saved owned master UID was not restored with the origin map.");
+        }
         RuntimeAssertions.Require(QuestJson() == State.QuestJson, "Quest state changed during isolated arena transition.");
         ctx.Log("native_return=" + EClass._zone.uid + ":" + EClass.pc.pos.x + "," + EClass.pc.pos.z + "; OnLeaveZone=" + Pr3ArenaObserver.LeaveCalls);
     }
@@ -354,6 +392,12 @@ public sealed class Pr3ArenaFixture
         };
         attempt("target", () =>
         {
+            if (Target == null && State.MasterUid != 0)
+            {
+                RuntimeAssertions.Require(EClass._zone.uid == State.OriginUid, "Cannot resolve owned master before return; reload baseline.");
+                Target = EClass._map.FindChara(State.MasterUid);
+                RuntimeAssertions.Require(Target != null && Target.c_altName == State.Token, "Owned master missing or token changed; refuse deletion.");
+            }
             if (Target != null && !Target.isDestroyed) Target.Destroy();
             RuntimeAssertions.Require(Target == null || Target.isDestroyed, "Target fixture remains.");
         });
@@ -578,7 +622,7 @@ public sealed class Pr3ArenaFactoryReturnCoordinatesCase : RuntimeCaseBase
         var before = new HashSet<int>(EClass.game.spatials.map.Keys);
         try
         {
-            // Real product entry: its post-factory synchronization must survive a master/PC position difference.
+            // Native factory stores PC entry in base x/z; the product separately stores the NPC return point.
             Elin_SukutsuArena.ArenaManager.StartBattleByStage("rank_g_trial", f.Target);
         }
         finally
@@ -598,31 +642,38 @@ public sealed class Pr3ArenaFactoryReturnCoordinatesCase : RuntimeCaseBase
         RuntimeAssertions.Require(f.Battle != null, "Real StartBattleByStage did not create a zone; check deployed Package/battle_stages.json.");
         var instance = (ZoneInstanceArenaBattle)f.Battle.instance;
         ctx.Log("factory entry=" + f.State.EntryX + "," + f.State.EntryZ + "; return=" + instance.returnX + "," + instance.returnZ + "; base=" + instance.x + "," + instance.z);
-        RuntimeAssertions.Require(instance.x == instance.returnX && instance.z == instance.returnZ,
-            "Real ArenaManager entry lost returnX/Z synchronization after native CreateInstance. Manager requires post-factory sync.");
+        RuntimeAssertions.Require(instance.x == f.State.EntryX && instance.z == f.State.EntryZ &&
+            instance.returnX == f.Target.pos.x && instance.returnZ == f.Target.pos.z &&
+            instance.uidZone == f.State.OriginUid && instance.uidMaster == f.Target.uid,
+            "Real ArenaManager must preserve PC entry base, independent NPC return coordinates, and zone/master UID.");
     }
     public override void Verify(RuntimeTestContext ctx) { }
 }
 
-public sealed class Pr3ArenaLegacyReturnJsonCase : RuntimeCaseBase
+public sealed class Pr3ArenaReturnSerializationCase : RuntimeCaseBase
 {
-    public override string Id => "pr3.arena.legacy_return_json";
+    public override string Id => "pr3.arena.return_serialization";
     public override IReadOnlyList<string> Tags => new[] { "pr3", "serialization", "arena" };
     public override void Prepare(RuntimeTestContext ctx) { Pr3ArenaFixture.Guard(ctx, false); }
     public override void Execute(RuntimeTestContext ctx)
     {
-        var instance = new ZoneInstanceArenaBattle { returnX = 321, returnZ = 654, uidZone = EClass._zone.uid, stageId = "RUNTIME_TEST_PR3_LEGACY" };
-        string json = Newtonsoft.Json.JsonConvert.SerializeObject(instance, GameIO.jsWriteGame);
-        var old = Newtonsoft.Json.Linq.JObject.Parse(json);
-        old.Remove("x"); old.Remove("z");
-        var loaded = Newtonsoft.Json.JsonConvert.DeserializeObject<ZoneInstanceArenaBattle>(old.ToString(), GameIO.jsReadGame);
-        RuntimeAssertions.Require(loaded != null && loaded.returnX == 321 && loaded.returnZ == 654 && loaded.x == 321 && loaded.z == 654,
-            "Real ZoneInstanceArenaBattle old-key deserialization did not restore base coordinates.");
-        string roundtrip = Newtonsoft.Json.JsonConvert.SerializeObject(loaded, GameIO.jsWriteGame);
-        var again = Newtonsoft.Json.JsonConvert.DeserializeObject<ZoneInstanceArenaBattle>(roundtrip, GameIO.jsReadGame);
-        RuntimeAssertions.Require(again != null && again.x == 321 && again.z == 654 && again.uidZone == EClass._zone.uid,
-            "Native serializer settings lost the return point on roundtrip.");
-        ctx.Log("coverage=object_serialization_only; legacy_without_base_xy=" + old.ToString(Newtonsoft.Json.Formatting.None));
+        foreach (bool withMaster in new[] { true, false })
+        {
+            var instance = new ZoneInstanceArenaBattle
+            {
+                x = 48, z = 49, returnX = withMaster ? 49 : 0, returnZ = withMaster ? 49 : 0,
+                uidMaster = withMaster ? 73 : 0, uidZone = EClass._zone.uid, stageId = "RUNTIME_TEST_PR3_SERIALIZER"
+            };
+            string json = Newtonsoft.Json.JsonConvert.SerializeObject(instance, GameIO.jsWriteGame);
+            var loaded = Newtonsoft.Json.JsonConvert.DeserializeObject<ZoneInstanceArenaBattle>(json, GameIO.jsReadGame);
+            string roundtrip = Newtonsoft.Json.JsonConvert.SerializeObject(loaded, GameIO.jsWriteGame);
+            var again = Newtonsoft.Json.JsonConvert.DeserializeObject<ZoneInstanceArenaBattle>(roundtrip, GameIO.jsReadGame);
+            RuntimeAssertions.Require(again != null && again.x == 48 && again.z == 49 &&
+                again.returnX == instance.returnX && again.returnZ == instance.returnZ &&
+                again.uidMaster == instance.uidMaster && again.uidZone == instance.uidZone,
+                "Normal save must preserve PC entry independently of NPC return or zero-return masterless fields.");
+            ctx.Log("coverage=object_serialization_only; with_master=" + withMaster + "; saved=" + json);
+        }
     }
     public override void Verify(RuntimeTestContext ctx) { }
 }
@@ -630,6 +681,7 @@ public sealed class Pr3ArenaLegacyReturnJsonCase : RuntimeCaseBase
 public abstract class Pr3ArenaTransitionCase : RuntimeCaseBase, IRuntimeCoroutineCase
 {
     protected abstract string Route { get; }
+    protected virtual bool SaveWithoutMaster => false;
     public override IReadOnlyList<string> Tags => new[] { "pr3", "integration", "arena", "destructive", "transition" };
     public override void Prepare(RuntimeTestContext ctx) { throw new InvalidOperationException("Coroutine host required."); }
     public override void Execute(RuntimeTestContext ctx) { throw new InvalidOperationException("Coroutine host required."); }
@@ -646,7 +698,7 @@ public abstract class Pr3ArenaTransitionCase : RuntimeCaseBase, IRuntimeCoroutin
             RuntimeAssertions.Require(!File.Exists(Pr3ArenaFixture.ManifestPath(ctx)), "Existing PR3 handoff manifest: finish/abort it first.");
         if (Route != "save_verify" && Route != "save_abort")
         {
-            f.CreateBattle(ctx, Route == "save_prepare");
+            f.CreateBattle(ctx, Route == "save_prepare" && !SaveWithoutMaster);
             EClass.player.dialogFlags[Elin_SukutsuArena.Flags.SessionFlagKeys.ArenaResult] = 0;
             EClass.player.dialogFlags[Elin_SukutsuArena.Flags.SessionFlagKeys.QuestBattle] = 0;
             EClass.pc.MoveZone(f.Battle, ZoneTransition.EnterState.Center);
@@ -679,17 +731,16 @@ public abstract class Pr3ArenaTransitionCase : RuntimeCaseBase, IRuntimeCoroutin
         if (Route == "save_abort") yield break;
         if (Route == "save_prepare")
         {
-            RuntimeAssertions.Require(instance.x == 0 && instance.z == 0 && instance.returnX == f.State.EntryX && instance.returnZ == f.State.EntryZ,
-                "Legacy save input was overwritten during entry; inspect native pipeline.");
+            f.AssertCoordinates(instance);
             string path = Pr3ArenaFixture.ManifestPath(ctx);
             RuntimeAssertions.Require(!File.Exists(path), "Existing PR3 handoff manifest: finish/abort it before preparing another.");
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             File.WriteAllText(path, Newtonsoft.Json.JsonConvert.SerializeObject(f.State, Newtonsoft.Json.Formatting.Indented));
-            ctx.Log("handoff_manifest=" + path + "; action=externally_save_reload; legacy_base_xy=0,0");
+            ctx.Log("handoff_manifest=" + path + "; action=externally_save_reload; normal_factory_base=" + instance.x + "," + instance.z +
+                "; independent_return=" + instance.returnX + "," + instance.returnZ + "; scenario=" + f.State.CoordinateScenario + "; master_uid=" + instance.uidMaster);
             yield break;
         }
-        RuntimeAssertions.Require(instance.returnX == f.State.EntryX && instance.returnZ == f.State.EntryZ && instance.x == f.State.EntryX && instance.z == f.State.EntryZ,
-            "Arena base/return coordinates differ before exit; verify must not repair them.");
+        f.AssertCoordinates(instance);
         if (Route == "victory")
         {
             foreach (Chara c in new List<Chara>(EClass._map.charas))
@@ -793,6 +844,13 @@ public sealed class Pr3ArenaReturnSaveVerifyCase : Pr3ArenaTransitionCase
     public override string Id => "pr3.arena.return_save_verify";
     protected override string Route => "save_verify";
     public override IReadOnlyList<string> Tags => new[] { "pr3", "save_reload", "destructive", "integration" };
+}
+public sealed class Pr3ArenaReturnSavePrepareWithoutMasterCase : Pr3ArenaTransitionCase
+{
+    public override string Id => "pr3.arena.return_save_prepare_without_master";
+    protected override string Route => "save_prepare";
+    protected override bool SaveWithoutMaster => true;
+    public override IReadOnlyList<string> Tags => new[] { "pr3", "save_reload", "destructive", "prepare_only" };
 }
 public sealed class Pr3ArenaReturnSaveAbortCase : Pr3ArenaTransitionCase
 {

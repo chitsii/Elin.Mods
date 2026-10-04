@@ -1,7 +1,5 @@
 ﻿using Newtonsoft.Json;
 using UnityEngine;
-using System.Runtime.Serialization;
-using Elin_SukutsuArena;
 using Elin_SukutsuArena.Arena;
 using Elin_SukutsuArena.Attributes;
 using Elin_SukutsuArena.Flags;
@@ -20,29 +18,11 @@ public class ZoneInstanceArenaBattle : ZoneInstance
     [JsonProperty]
     public int uidMaster;
 
-    private readonly ArenaReturnPointState _returnPoint = new ArenaReturnPointState();
+    [JsonProperty]
+    public int returnX;
 
     [JsonProperty]
-    public int returnX
-    {
-        get => _returnPoint.ReturnX;
-        set
-        {
-            _returnPoint.ReturnX = value;
-            SyncBaseCoordinates();
-        }
-    }
-
-    [JsonProperty]
-    public int returnZ
-    {
-        get => _returnPoint.ReturnZ;
-        set
-        {
-            _returnPoint.ReturnZ = value;
-            SyncBaseCoordinates();
-        }
-    }
+    public int returnZ;
 
     [JsonProperty]
     public int rewardPlat = 10;
@@ -75,24 +55,6 @@ public class ZoneInstanceArenaBattle : ZoneInstance
     public string defeatDramaId = "";
 
     public override ZoneTransition.EnterState ReturnState => ZoneTransition.EnterState.Exact;
-
-    [OnDeserialized]
-    private void OnDeserialized(StreamingContext context)
-    {
-        SyncReturnPoint();
-    }
-
-    public void SyncReturnPoint()
-    {
-        _returnPoint.SyncBaseCoordinates();
-        SyncBaseCoordinates();
-    }
-
-    private void SyncBaseCoordinates()
-    {
-        x = _returnPoint.BaseX;
-        z = _returnPoint.BaseZ;
-    }
 
     /// <summary>
     /// ゾーン離脱時の処理

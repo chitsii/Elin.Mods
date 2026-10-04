@@ -60,12 +60,13 @@ public sealed class ArenaBattlePipelineContractCase : RuntimeCaseBase
 
         var instance = new ZoneInstanceArenaBattle
         {
-            returnX = 123,
-            returnZ = 456
+            x = 123, z = 456,
+            returnX = 124, returnZ = 456
         };
         RuntimeAssertions.Require(
-            instance.x == 123 && instance.z == 456,
-            "ZoneInstanceArenaBattle must mirror returnX/returnZ into base ZoneInstance.x/z for vanilla return transitions.");
+            instance.x == 123 && instance.z == 456 && instance.returnX == 124 && instance.returnZ == 456 &&
+            typeof(ZoneInstanceArenaBattle).GetField("returnX") != null && typeof(ZoneInstanceArenaBattle).GetField("returnZ") != null,
+            "PC entry base coordinates and NPC return fields must remain independent.");
 
         var pendingDirectDrama = ReflectionCompat.GetStaticFieldOrPropertyValue(
             typeof(ZoneInstanceArenaBattle),

@@ -60,13 +60,14 @@ powershell -ExecutionPolicy Bypass -File .\tests\runtime\run.ps1 -Suite smoke -C
 | --- | --- |
 | `pr3.arena.heal_long` | native `CharaGen.Create` の隔離キャラへ `HealHP(long, None)`。実NoHealingイベント＋arena instanceで2とInt32最大超は引数0・HP不増。イベント解除／外部zoneでは回復。0／負量は引数を維持し、負量の標準HP挙動を観測。 |
 | `pr3.arena.damage_long` | 製品 `CardDamageHpPatchTarget.Apply` から9引数native DamageHPへInt32最大超を渡す。観測引数が一致し、HPは実DLLの99,999,999 capに従って減る。fixtureだけをovercap HPにし、死亡を避ける。 |
-| `pr3.arena.factory_return_coordinates` | 実 `ArenaManager.StartBattleByStage("rank_g_trial", master)` にPCと異なる位置のnative masterを渡し、作成されたinstanceの基底x/zとreturnX/Zの一致をassert。現在のPR3ではfactoryによる上書きが残るため失敗候補。テスト内でSyncReturnPointを呼んで修復しない。 |
-| `pr3.arena.legacy_return_json` | 実 `ZoneInstanceArenaBattle` を `GameIO.jsWriteGame/jsReadGame` でシリアライズ。旧returnX/ZだけのJSONから基底x/zを復元。オブジェクト保存形式の確認であり、実save/reloadの代用ではない。 |
+| `pr3.arena.factory_return_coordinates` | 実 `ArenaManager.StartBattleByStage("rank_g_trial", master)` にPCと異なる位置のnative masterを渡す。基底x/z=PC入口、独自returnX/Z=NPC位置、帰還zoneUIDとNPC UID保持をassert。一致を要求せず、factory後の同期もしない。 |
+| `pr3.arena.return_serialization` | 実 `ZoneInstanceArenaBattle` を `GameIO.jsWriteGame/jsReadGame` で正常保存してroundtrip。PC入口48,49に対してNPC return49,49／masterなしreturn0,0の両方で、基底48,49と独自fields／UIDを維持。実save/reloadの代用ではない。 |
 | `pr3.arena.return_victory` | native instance作成・MoveZone・製品pre-enterで敵を生成。実DamageHPで敵を倒し、製品OnTickの勝利待機・退出へ到達。帰還zoneUIDとPC座標、OnLeaveZone 1回、報酬plat 3、クエスト不変をassert。 |
 | `pr3.arena.return_retreat` | 同じ実入場後、製品 `LeaveZone()` から退出。実結果2と帰還位置をassert。 |
 | `pr3.arena.return_vanilla` | 同じ実入場後、native `MoveZone(..., Return)` が基底x/zを読む経路を確認。実結果2と帰還位置をassert。 |
-| `pr3.arena.return_save_prepare` | 実入場後に旧保存fixtureのbase x/z=0、returnX/Z=入口を保持し、引継ぎmanifestを出力。prepare-onlyで、保存・reload・帰還成功は主張しない。 |
-| `pr3.arena.return_save_verify` | 外部save/reload後、UIDでnative zone/instanceを再取得。手動同期なしで基底x/z復元をassertし、実native退出・元座標到着を確認。 |
+| `pr3.arena.return_save_prepare` | PCの隣の空きtileにsleep中の固有NPCを配置し、native factory＋製品pre-enterで実入場。基底=PC入口／独自return=NPC位置の正常保存fixtureを改変せずmanifest出力。prepare-only。 |
+| `pr3.arena.return_save_prepare_without_master` | 同じ実入場でNPC UID0／独自return0,0／基底=PC入口の正常保存fixtureを作る。prepare-only。 |
+| `pr3.arena.return_save_verify` | 各prepareの外部save/reload後、manifest schema2とUIDでnative instanceを再取得。保存済み基底・独自fields・UIDを手動修復なしでassertし、実退出→PC入口到着とNPC UIDによる会話予約を確認。NPCと同tile到着は要求しない。 |
 | `pr3.arena.return_save_abort` | 保持中のsave fixtureを退出・削除するcleanup-onlyケース。reload前でも使用可能。統合成功の証拠にはしない。 |
 
 HPケースは現在zoneのinstanceとNoHealingイベントを同一フレーム内でfixtureとして設定し、実ゲームCardと製品Harmonyを通します。
@@ -91,10 +92,15 @@ Observerはfixture UID/instanceだけを対象にし、引数・結果を変更�
 
 ### Save/Reload Handoff
 
-1. baselineをコピーし、`pr3.arena.return_save_prepare` を単独実行します。fixture token、zoneUID、PC UID、入口座標と元flags/quests/inventory/cacheを `tests/runtime/_artifacts/pr3-return-<Game.id>.json` に出力します。敵fixtureにはnative ConSleepを付けます。
+1. baselineをコピーし、`pr3.arena.return_save_prepare` を単独実行します。fixture token、zoneUID、PC/NPC UID、入口と独自return座標、元flags/quests/inventory/cacheをschema2の `tests/runtime/_artifacts/pr3-return-<Game.id>.json` に出力します。NPCと敵fixtureにはnative ConSleepを付けます。NPC用にPC右隣の空きtileが必要です。
 2. prepare成功時だけfixtureを保持します。実行担当が専用saveを保存・reloadし、保存時刻、reload、loaded DLL hashとゲームbuildを外部manifestに記録します。ケース自身はGame.Save/Loadを呼びません。
 3. `pr3.arena.return_save_verify` を単独実行します。Gameオブジェクトのidentityが変わったことを補助guardで確認しますが、hashだけを保存・reloadの証明にせず、前項の外部記録を併用してください。
 4. verifyの成功・失敗・例外時に退出、識別token一致のfixture zone/reward、manifestを除去し、元flags/quests/HP/入口位置/cache/drama/event状態をassertします。保存準備を中止する場合は `pr3.arena.return_save_abort`。元baseline saveのreloadを最後に実施します。
+5. 別の専用baselineコピーで `pr3.arena.return_save_prepare_without_master` → 外部save/reload → 同じverifyを実行します。両scenarioの外部記録を残し、同座標fixtureだけでPC≠NPC／masterなしを検証済みとは扱いません。
+
+### 座標同期追加の撤回
+
+基底x/zはnative factoryがPC入口として設定・保存し、独自returnX/ZはNPC位置（masterなしでは0）を保持する元の仕様です。会話はNPC UIDで予約し、NPCと同tile到着は要求しません。今回追加したproperty/helper/OnDeserialized同期は正常保存の基底座標を上書きするため撤回しました。根拠のない旧保存migrationを当然視した `legacy_return_json` と、baseを消す／0へ変える保存fixtureは廃止しました。旧manifestはnormal-save証拠として受け付けません。
 
 rollbackはmutation前に登録しています。非同期ケースは子IEnumeratorをyieldせず、同じenumerator内で期限付きframe待機を行います。
 Scoped cleanupは元inventoryのUID/数量、全dialogFlags、クエストJSON、NoHealingイベント／instance、HP、pending drama、BGM halt、cache、autosave switchを確認します。

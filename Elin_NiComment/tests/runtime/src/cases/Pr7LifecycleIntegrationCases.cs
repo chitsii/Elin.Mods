@@ -20,7 +20,7 @@ public sealed class Pr7NiDeathRealCase : NiPr7Case
         var npcOrigin = Scope.Spawn("npc_origin", EClass.pc.LV);
         var other = Scope.Spawn("origin_control", 1);
         Scope.Row("npc_origin", npcOrigin, () => npcOrigin.Die(origin: other, attackSource: AttackSource.DeathSentence), true, 0, 1);
-        var weak = Scope.Spawn("lower_level", EClass.pc.LV - 1);
+        var weak = Scope.SpawnLowerLevelControl();
         RuntimeAssertions.Require(weak.LV < EClass.pc.LV, "Lower-level control precondition failed.");
         Scope.Row("lower_level", weak, () => weak.Die(origin: EClass.pc, attackSource: AttackSource.DeathSentence), true, 0, 1);
         var mount = Scope.Spawn("mounted_faint", EClass.pc.LV);
@@ -151,11 +151,20 @@ public sealed class NiPr7Scope
     private readonly System.Collections.Generic.Dictionary<Chara, int> cardUids = new System.Collections.Generic.Dictionary<Chara, int>();
     private readonly System.Collections.Generic.Dictionary<Chara, System.Collections.Generic.Dictionary<Thing, int>> generatedItems
         = new System.Collections.Generic.Dictionary<Chara, System.Collections.Generic.Dictionary<Thing, int>>();
+    private bool deathEnvironmentChecked;
 
     public NiPr7Scope(RuntimeTestContext ctx)
     {
         Guard();
         Context = ctx;
+        // Register first so this runs last, even when fixture/world rollback throws.
+        // Capture without calling Chara.mana/stamina (those getters rebind shared Stats).
+        var shared = new NiPr7SharedNativeState();
+        ctx.RegisterRollback("pr7.shared_native_state", () => Rollback(() =>
+        {
+            shared.RestoreAndAssert();
+            ctx.Log("cleanup_shared_native_state:random_reference_and_state:stats_bindings:CC:restored");
+        }));
         baseline = new NiPr7Baseline();
         ctx.RegisterRollback("pr7.original_state", () => Rollback(baseline.RestoreAndAssert));
         ctx.RegisterRollback("pr7.generated_fixtures", () => Rollback(CleanupFixtures));
@@ -184,9 +193,9 @@ public sealed class NiPr7Scope
             "PR7 requires an active gameplay save.");
         RuntimeAssertions.Require((EClass.pc.Name ?? "").IndexOf("RUNTIME_TEST", System.StringComparison.Ordinal) >= 0,
             "PR7 dedicated RUNTIME_TEST save guard rejected (independent of runner parameters).");
-        RuntimeAssertions.Require(!EClass.pc.isDead && EClass.pc.LV >= 2 && EClass.pc.LV <= 50
+        RuntimeAssertions.Require(!EClass.pc.isDead && EClass.pc.LV >= 1 && EClass.pc.LV <= 50
             && EClass.pc.host == null && EClass.pc.ride == null && !(EClass.pc.ai is GoalAutoCombat),
-            "PR7 needs a live, unmounted, idle PC of level 2..50.");
+            "PR7 needs a live, unmounted, idle PC of level 1..50.");
         RuntimeAssertions.Require(EClass.player.karma >= 0, "PR7 requires noncriminal karma to avoid criminal-status transitions.");
         RuntimeAssertions.Require(Elin_NiComment.ModConfig.EnableMod != null && Elin_NiComment.ModConfig.EnableMod.Value
             && Elin_NiComment.NiCommentAPI.IsReady && Elin_NiComment.CommentTrigger.Instance != null,
@@ -236,6 +245,9 @@ public sealed class NiPr7Scope
 
     public Chara Spawn(string role, int level)
     {
+        RequireDeathEnvironment();
+        RuntimeAssertions.Require(level >= 1 && level <= 50, "Generated death fixture level must be 1..50 before boundary setup.");
+        RuntimeAssertions.Require(CardBlueprint.current == null, "Pending native CardBlueprint belongs to another operation; do not consume it.");
         RuntimeAssertions.Require(EClass.sources.charas.map.ContainsKey("bat"), "Native bat source required.");
         var card = CharaGen.Create("bat", level);
         RuntimeAssertions.Require(card != null && card.uid > 0 && !baseline.ProtectedUid(card.uid), "Generated fixture UID is not exclusively new.");
@@ -244,15 +256,118 @@ public sealed class NiPr7Scope
         var items = new System.Collections.Generic.Dictionary<Thing, int>();
         generatedItems.Add(card, items);
         RecordGeneratedItems(card, items);
+        Context.Log("fixture_created:" + role + ":uid=" + card.uid + ":requestedLV=" + level
+            + ":nativeLV=" + card.LV + ":sourceLV=" + card.source.LV + ":genLV=" + card.genLv
+            + ":hp=" + card.hp + ":dead=" + card.isDead + ":destroyed=" + card.isDestroyed);
         RuntimeAssertions.Require(card.held == null, "Generated NPC unexpectedly holds an external object.");
         card.c_altName = "RUNTIME_TEST_PR7_" + token + "_" + role;
         RuntimeAssertions.Require(!card.IsPC && !card.IsGlobal && !card.IsPCFaction && !card.isSummon
-            && !card.IsHuman && card.OriginalHostility < Hostility.Neutral, "Death fixture must be an ordinary hostile generated NPC.");
+            && !card.IsHuman && !card.IsMultisize && card.OriginalHostility < Hostility.Neutral,
+            "Death fixture must be an ordinary single-cell hostile generated NPC.");
+        RuntimeAssertions.Require(card.parent == null && card.currentZone == null && !card.isDead && !card.isDestroyed
+            && card.renderer != null && card.body != null && card.elements != null && card.mana != null,
+            "Native Create did not return a detached live initialized NPC; do not repair dead/external objects.");
+        // Create's level argument is genLv, not an exact LV assignment. Native SetLv
+        // initializes this exclusively owned NPC's level, attributes, HP, mana and stamina.
+        RuntimeAssertions.Require(object.ReferenceEquals(card.SetLv(level), card), "Native SetLv changed fixture identity.");
+        RuntimeAssertions.Require(card.LV == level && card.hp == card.MaxHP && card.hp > 0
+            && card.mana.value == card.mana.max && !card.isDead && !card.isDestroyed,
+            "Native NPC level/stat initialization failed.");
+        RuntimeAssertions.Require(!card.HasElement(488) && !card.HasCondition<ConFaint>(),
+            "Death fixture has a death-scream/faint effect; reject unsafe or non-fresh source.");
         var point = EClass.pc.pos.GetNearestPoint(allowBlock: false, allowChara: false);
-        RuntimeAssertions.Require(point != null, "No safe fixture spawn point.");
-        EClass._zone.AddCard(card, point);
+        RuntimeAssertions.Require(point != null && point.IsInBounds && !point.cell.HasFullBlock, "No safe fixture spawn point; do not destroy map blocks.");
+        RuntimeAssertions.Require(object.ReferenceEquals(EClass._zone.AddCard(card, point), card), "Native AddCard changed fixture identity.");
+        Context.Log("fixture:" + role + ":uid=" + card.uid + ":LV=" + card.LV + ":requestedLV=" + level
+            + ":active=" + card.IsInActiveZone + ":dead=" + card.isDead + ":hp=" + card.hp + ":maxHP=" + card.MaxHP
+            + ":currentZone=" + (card.currentZone == null ? 0 : card.currentZone.uid) + ":activeZone=" + EClass._zone.uid
+            + ":parentZone=" + object.ReferenceEquals(card.parent, EClass._zone)
+            + ":mapRefs=" + CountMapReferences(card) + ":inBounds=" + card.pos.IsInBounds);
         RuntimeAssertions.Require(card.IsInActiveZone && card.LV == level && !card.isDead, "Native NPC fixture setup failed.");
-        Context.Log("fixture:" + role + ":uid=" + card.uid + ":LV=" + card.LV + ":pcLV=" + EClass.pc.LV);
+        RequireLiveDeathFixture(card);
+        baseline.RequirePcLevelUnchanged();
+        return card;
+    }
+
+    private void RequireDeathEnvironment()
+    {
+        baseline.RequireSameWorld();
+        baseline.RequirePcLevelUnchanged();
+        RuntimeAssertions.Require(EClass._zone.IsActiveZone && object.ReferenceEquals(EClass.game.activeZone, EClass._zone)
+            && object.ReferenceEquals(EClass._zone.map, EClass._map) && EClass.pc.IsInActiveZone,
+            "Native death requires the real active zone/map/PC; do not force currentZone or flags.");
+        RuntimeAssertions.Require(EClass.sources.stats.alias.ContainsKey("ConFaint"), "Native ConFaint source required for mounted control.");
+        RuntimeAssertions.Require((int)AttackSource.DeathSentence == 17 && (int)AttackSource.None != 17 && (int)AttackSource.None != 18,
+            "Native Die special-death/mounted-faint branch values changed; review the DLL.");
+        if (!deathEnvironmentChecked)
+        {
+            Context.Log("death_environment:zone=" + EClass._zone.uid + ":active=true:map_identity=true:ConFaint=true:pcLV=" + EClass.pc.LV);
+            deathEnvironmentChecked = true;
+        }
+    }
+
+    private int CountMapReferences(Chara card)
+    {
+        int count = 0;
+        foreach (var current in EClass._map.charas) if (object.ReferenceEquals(current, card)) count++;
+        return count;
+    }
+
+    private void RequireLiveDeathFixture(Chara card)
+    {
+        RuntimeAssertions.Require(Cards.Contains(card) && cardUids[card] == card.uid && !baseline.ProtectedUid(card.uid)
+            && !card.IsPC && !card.IsGlobal && !card.IsPCFaction && !card.isSummon && !card.isDestroyed,
+            "Live death fixture identity/ownership changed; do not call Die.");
+        RuntimeAssertions.Require(card.IsInActiveZone && object.ReferenceEquals(card.currentZone, EClass._zone)
+            && object.ReferenceEquals(card.parent, EClass._zone) && CountMapReferences(card) == 1
+            && card.pos.IsInBounds && card.renderer != null && card.body != null && card.mana != null
+            && card.hp > 0 && !card.isDead && !object.ReferenceEquals(EClass._zone.Boss, card),
+            "Live death fixture lacks native placement/stats or became a boss; do not call Die.");
+        RuntimeAssertions.Require(!card.HasElement(488), "Fixture acquired an area death-scream effect; do not call Die.");
+        var owned = generatedItems[card];
+        RuntimeAssertions.Require(card.held == null && NiPr7Ownership.TreeIsOwned(card, owned),
+            "Unknown held object/descendant entered the fixture; do not call Die.");
+        foreach (var item in owned)
+            RuntimeAssertions.Require(item.Key.uid == item.Value && NiPr7Ownership.TreeIsOwned(item.Key, owned)
+                && NiPr7Ownership.RootIsOwned(item.Key, card, EClass._zone, owned),
+                "Generated descendant identity/owner changed; do not call Die.");
+        if (card.host != null)
+            RuntimeAssertions.Require(Cards.Contains(card.host) && cardUids[card.host] == card.host.uid
+                && !card.host.IsPC && !card.host.isDead && object.ReferenceEquals(card.host.ride, card),
+                "Mounted/faint control must link two live owned NPC instances.");
+    }
+
+    public Chara SpawnLowerLevelControl()
+    {
+        baseline.RequirePcLevelUnchanged();
+        int comparedLevel = EClass.pc.LV - 1;
+        // CharaGen clamps requested levels below 1. Only this generated boundary
+        // control temporarily uses LV0; no PC level-up/scaling operation is needed.
+        var card = Spawn("lower_level", System.Math.Max(1, comparedLevel));
+        if (comparedLevel == 0)
+        {
+            int originalLevel = card.LV;
+            int uid = card.uid;
+            Context.RegisterRollback("pr7.fixture_level:" + uid, () => Rollback(() =>
+            {
+                baseline.RequireSameWorld();
+                RuntimeAssertions.Require(Cards.Contains(card) && card.uid == uid && cardUids[card] == uid
+                    && !baseline.ProtectedUid(uid) && !card.IsPC && !card.IsGlobal && !card.IsPCFaction
+                    && (card.parent == null || object.ReferenceEquals(card.parent, EClass._zone)),
+                    "Lower-level fixture identity/owner changed; do not restore an unknown object.");
+                card.LV = originalLevel;
+                RuntimeAssertions.Require(card.LV == originalLevel, "Generated fixture level restoration failed.");
+                baseline.RequirePcLevelUnchanged();
+                Context.Log("fixture_level_restored:uid=" + uid + ":LV=" + card.LV + ":pcLV=" + EClass.pc.LV);
+            }));
+            // Native LV setter writes only Card._ints[25]; SetLv would also scale
+            // attributes/skills and consume RNG, unrelated to this numeric guard.
+            card.LV = comparedLevel;
+        }
+        RuntimeAssertions.Require(card.LV == comparedLevel && card.LV < EClass.pc.LV,
+            "Lower-level native getter comparison was not established.");
+        Context.Log("lower_level_control:uid=" + card.uid + ":LV=" + card.LV + ":pcLV=" + EClass.pc.LV
+            + ":synthetic_boundary=" + (comparedLevel == 0));
         return card;
     }
 
@@ -287,6 +402,17 @@ public sealed class NiPr7Scope
     public void Row(string label, object fixture, System.Action operation, bool finalized, int notifications, int bodies, bool throws = false)
     {
         RuntimeAssertions.Require(Owns(fixture), "Operation is not scoped to a generated PR7 fixture.");
+        var death = fixture as Chara;
+        if (death != null)
+        {
+            Context.Log("death_before:" + label + ":uid=" + death.uid + ":LV=" + death.LV + ":pcLV=" + EClass.pc.LV
+                + ":hp=" + death.hp + ":dead=" + death.isDead + ":active=" + death.IsInActiveZone
+                + ":mapRefs=" + CountMapReferences(death) + ":host=" + (death.host == null ? 0 : death.host.uid));
+            if (!death.isDead) RequireLiveDeathFixture(death);
+            else RuntimeAssertions.Require(death.uid == cardUids[death] && !death.isDestroyed && death.parent == null
+                && death.currentZone == null && CountMapReferences(death) == 0,
+                "Already-dead control did not retain the native detached dead instance.");
+        }
         int before = Notifications.Count, bodyBefore = BodiesFor(fixture), sendsBefore = Sends;
         int exitsBefore = Finalizers, exceptionsBefore = ExceptionFinalizers;
         bool caught = false;
@@ -311,6 +437,7 @@ public sealed class NiPr7Scope
         RuntimeAssertions.Require(ObservationError == null && Frames.Count == 0 && FireDepth == 0,
             "Observer identity/color/order/stack failure: " + ObservationError);
         RuntimeAssertions.Require(!EClass.pc.isDead, "PC was affected; restore dedicated save.");
+        baseline.RequirePcLevelUnchanged();
     }
 
     private void Rollback(System.Action action)
@@ -482,11 +609,115 @@ public static class NiPr7Observer
     }
 }
 
+// Test-only snapshot of native shared scratch bindings and the actual RNG state.
+// UnityEngine.Random.state covers a different generator. Restoring only Rand's
+// reference loses draws made on the original Random before native SetSeed replaces it.
+public sealed class NiPr7SharedNativeState
+{
+    private readonly System.Reflection.FieldInfo randomField = typeof(Rand).GetField("_random",
+        System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+    private readonly System.Reflection.FieldInfo baseSeedField = typeof(Rand).GetField("baseSeed",
+        System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+    private readonly System.Random random;
+    private readonly int baseSeed;
+    private readonly Chara cc = BaseStats.CC;
+    private readonly System.Collections.Generic.Dictionary<System.Reflection.FieldInfo, int> cursors
+        = new System.Collections.Generic.Dictionary<System.Reflection.FieldInfo, int>();
+    private readonly System.Reflection.FieldInfo seedField;
+    private readonly int[] seedArray, seedValues;
+    private readonly System.Collections.Generic.List<Binding> bindings = new System.Collections.Generic.List<Binding>();
+    private sealed class Binding
+    {
+        public System.Reflection.FieldInfo Field;
+        public Stats Stats;
+        public int[] Raw;
+        public int Index;
+    }
+
+    public NiPr7SharedNativeState()
+    {
+        RuntimeAssertions.Require(randomField != null && randomField.FieldType == typeof(System.Random)
+            && baseSeedField != null && baseSeedField.FieldType == typeof(int), "Native Rand layout changed; do not run fixtures.");
+        random = (System.Random)randomField.GetValue(null);
+        baseSeed = (int)baseSeedField.GetValue(null);
+        RuntimeAssertions.Require(random != null && random.GetType() == typeof(System.Random),
+            "Custom/null native RNG cannot be safely restored; do not run fixtures.");
+        // Mono/.NET Framework Random uses two int cursors and one 56-int array.
+        // Resolve by complete field shape so Mono field-name differences are allowed;
+        // reject new/unsupported layouts before any fixture mutation.
+        foreach (var field in typeof(System.Random).GetFields(System.Reflection.BindingFlags.Instance
+            | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic))
+        {
+            RuntimeAssertions.Require(!field.IsInitOnly, "Readonly RNG state is unsupported; do not run fixtures.");
+            if (field.FieldType == typeof(int)) cursors.Add(field, (int)field.GetValue(random));
+            else
+            {
+                RuntimeAssertions.Require(field.FieldType == typeof(int[]) && seedField == null,
+                    "Unknown RNG field layout; do not run fixtures.");
+                seedField = field;
+                seedArray = (int[])field.GetValue(random);
+                RuntimeAssertions.Require(seedArray != null && seedArray.Length == 56, "Unknown RNG seed array; do not run fixtures.");
+                seedValues = (int[])seedArray.Clone();
+            }
+        }
+        RuntimeAssertions.Require(cursors.Count == 2 && seedField != null, "Incomplete RNG snapshot; do not run fixtures.");
+        foreach (var field in typeof(Stats).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static))
+        {
+            if (!typeof(Stats).IsAssignableFrom(field.FieldType)) continue;
+            var stats = (Stats)field.GetValue(null);
+            RuntimeAssertions.Require(stats != null, "Missing native Stats singleton; do not run fixtures.");
+            bindings.Add(new Binding { Field = field, Stats = stats, Raw = stats.raw, Index = stats.rawIndex });
+        }
+        RuntimeAssertions.Require(bindings.Count == 9, "Native Stats singleton layout changed; do not run fixtures.");
+    }
+
+    public void RestoreAndAssert()
+    {
+        // Cleanup may itself call getters/RNG; this snapshot must be the last rollback.
+        // Restore bindings/CC even if a reflection write to RNG state fails.
+        try
+        {
+            foreach (var cursor in cursors) cursor.Key.SetValue(random, cursor.Value);
+            System.Array.Copy(seedValues, seedArray, seedValues.Length);
+            seedField.SetValue(random, seedArray);
+            baseSeedField.SetValue(null, baseSeed);
+            randomField.SetValue(null, random);
+        }
+        finally
+        {
+            foreach (var binding in bindings)
+            {
+                binding.Stats.raw = binding.Raw;
+                binding.Stats.rawIndex = binding.Index;
+            }
+            BaseStats.CC = cc;
+        }
+        RequireUnchanged();
+    }
+
+    public void RequireUnchanged()
+    {
+        RuntimeAssertions.Require(object.ReferenceEquals(randomField.GetValue(null), random)
+            && (int)baseSeedField.GetValue(null) == baseSeed, "Native RNG reference/baseSeed differs after rollback.");
+        foreach (var cursor in cursors)
+            RuntimeAssertions.Require((int)cursor.Key.GetValue(random) == cursor.Value, "Native RNG cursor differs after rollback.");
+        RuntimeAssertions.Require(object.ReferenceEquals(seedField.GetValue(random), seedArray), "Native RNG array identity differs after rollback.");
+        for (int i = 0; i < seedValues.Length; i++)
+            RuntimeAssertions.Require(seedArray[i] == seedValues[i], "Native RNG array contents differ after rollback.");
+        foreach (var binding in bindings)
+            RuntimeAssertions.Require(object.ReferenceEquals(binding.Field.GetValue(null), binding.Stats)
+                && object.ReferenceEquals(binding.Stats.raw, binding.Raw) && binding.Stats.rawIndex == binding.Index,
+                "Native Stats binding differs after rollback: " + binding.Field.Name);
+        RuntimeAssertions.Require(object.ReferenceEquals(BaseStats.CC, cc), "Native BaseStats.CC differs after rollback.");
+    }
+}
+
 public sealed class NiPr7Baseline
 {
     private readonly Chara pc = EClass.pc;
     private readonly object game = EClass.game, player = EClass.player, map = EClass._map, zone = EClass._zone;
     private readonly int karma = EClass.player.karma;
+    private readonly int pcLevel = EClass.pc.LV, pcExperience = EClass.pc.exp;
     private readonly UnityEngine.Random.State random = UnityEngine.Random.state;
     private readonly System.Collections.Generic.List<Chara> mapCards = new System.Collections.Generic.List<Chara>(EClass._map.charas);
     private readonly System.Collections.Generic.List<Chara> dead = new System.Collections.Generic.List<Chara>(EClass._map.deadCharas);
@@ -579,6 +810,7 @@ public sealed class NiPr7Baseline
     public void RestoreAndAssert()
     {
         RequireSameWorld();
+        RequirePcLevelUnchanged();
         EClass.player.karma = karma;
         UnityEngine.Random.state = random;
         RuntimeAssertions.Require(Same(mapCards, EClass._map.charas) && Same(dead, EClass._map.deadCharas) && Same(mapItems, EClass._map.things)
@@ -600,5 +832,12 @@ public sealed class NiPr7Baseline
         RuntimeAssertions.Require(inventory == Things(pc) && party == Party() && !pc.isDead
             && Elin_NiComment.NiCommentAPI.IsReady && Elin_NiComment.ModConfig.EnableMod.Value
             && !Elin_NiComment.Llm.LlmConfig.EnableLlm.Value, "PC inventory/party/config/overlay invariant failed; reload save.");
+    }
+
+    public void RequirePcLevelUnchanged()
+    {
+        RequireSameWorld();
+        RuntimeAssertions.Require(pc.LV == pcLevel && pc.exp == pcExperience,
+            "PC level/experience changed; this fixture must not level or restore the PC. Reload dedicated save.");
     }
 }

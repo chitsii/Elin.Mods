@@ -94,6 +94,7 @@ if ($ownershipExit -ne 0) { throw 'Offline ownership counterexample checks faile
     generatedCsx = $csxPath; compiledAssembly = $dllPath
     scriptAssembly = $scriptDll
     ownershipChecks = 7
+    sharedNativeStateChecks = 11
     scriptWarningIds = @($emitted.Diagnostics | Where-Object Severity -eq Warning | ForEach-Object Id | Sort-Object -Unique)
     nativeGameSha256 = (Get-FileHash (Join-Path $RepoRoot 'Elin_NiComment\elin_link\Elin_Data\Managed\Elin.dll')).Hash
     niCommentSha256 = (Get-FileHash $NiCommentDll).Hash

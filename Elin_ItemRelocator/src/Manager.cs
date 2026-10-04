@@ -225,26 +225,9 @@ namespace Elin_ItemRelocator {
                 BuildCache(profile, container);
             }
 
-            // ホットバーアイテムを再利用HashSetに収集
-            _hotbarPool.Clear();
-            var bars = EClass.player.hotbars.bars;
-            for (int b = 0; b < bars.Length; b++) {
-                var bar = bars[b];
-                if (bar is null)
-                    continue;
-                var pages = bar.pages;
-                for (int p = 0; p < pages.Count; p++) {
-                    var items = pages[p].items;
-                    for (int i = 0; i < items.Count; i++) {
-                        var item = items[i];
-                        if (item is { Thing: not null })
-                            _hotbarPool.Add(item.Thing);
-                    }
-                }
-            }
+            CollectHotbarPool();
 
             List<Thing> matches = new();
-            var scope = profile.Scope;
             var rules = profile.Rules;
             int ruleCount = rules.Count;
             if (ruleCount == 0)
@@ -254,41 +237,17 @@ namespace Elin_ItemRelocator {
             for (int i = 0; i < _cachedCandidates.Count; i++) {
                 var c = _cachedCandidates[i];
 
-                // コンテナを除外
-                if (c.Thing.IsContainer)
+                // ルール判定 (最も重い処理)
+                bool match = IsAnyRuleMatch(c.Thing, rules);
+                var decision = CreateDecisionInput(c.Thing, container, profile, match, destinationHasCapacityForThing: true);
+                if (!RelocationDecisionPolicy.CanPreview(decision))
                     continue;
 
-                // スコープ判定 (高速: ビット演算)
-                bool isOwned = (c.Flags & CF.IsPCOwned) != 0;
-                bool isPet = (c.Flags & CF.IsPetOwned) != 0;
-
-                if (scope == RelocationProfile.FilterScope.Inventory && !isOwned)
-                    continue;
-                if (scope == RelocationProfile.FilterScope.ZoneOnly && (isOwned || isPet))
-                    continue;
-                if (scope == RelocationProfile.FilterScope.PetsOnly && !isPet)
-                    continue;
-                if (scope == RelocationProfile.FilterScope.Both && isPet) // Both = PC + Zone (exclude Pets)
-                    continue;
-
-                // ホットバー判定 (高速: HashSet参照)
-                if (_hotbarPool.Contains(c.Thing))
-                    continue;
+                matches.Add(c.Thing);
 
                 // Limit Check
                 if (searchLimit > 0 && matches.Count >= searchLimit)
                     break;
-
-                // ルール判定 (最も重い処理)
-                bool match = false;
-                for (int r = 0; r < ruleCount; r++) {
-                    if (rules[r].IsMatch(c.Thing)) {
-                        match = true;
-                        break;
-                    }
-                }
-                if (match)
-                    matches.Add(c.Thing);
             }
 
             // Apply Sorting
@@ -463,15 +422,21 @@ namespace Elin_ItemRelocator {
         }
 
         public void ExecuteRelocation(Thing container) {
+            var profile = GetProfile(container);
+            BuildCache(profile, container);
             var matches = new List<Thing>(GetMatches(container, -1));
             int count = 0;
 
             for (int i = 0; i < matches.Count; i++) {
                 var t = matches[i];
-                if (t.isDestroyed || t.c_isImportant || t.placeState == PlaceState.installed)
+
+                bool match = IsAnyRuleMatch(t, profile.Rules);
+                bool hasCapacity = container?.things != null && !container.things.IsFull(t);
+                var decision = CreateDecisionInput(t, container, profile, match, hasCapacity);
+                if (!RelocationDecisionPolicy.CanPreview(decision))
                     continue;
 
-                if (container.things.IsFull()) {
+                if (!decision.DestinationHasCapacityForThing) {
                     Msg.Say(RelocatorLang.GetText(RelocatorLang.LangKey.Msg_ContainerFull));
                     break;
                 }
@@ -489,33 +454,19 @@ namespace Elin_ItemRelocator {
         }
 
         public void RelocateSingleThing(Thing t, Thing container) {
-            if (t.isDestroyed || t.c_isImportant)
-                return;
+            var profile = GetProfile(container);
+            CollectHotbarPool();
 
-            // 事前判定
-            bool destIsPC = IsPCOwned(container);
-            if (container.trait is TraitToolBelt || container.c_lockLv != 0 || container.isNPCProperty) {
+            bool match = IsAnyRuleMatch(t, profile.Rules);
+            bool hasCapacity = container?.things != null && !container.things.IsFull(t);
+            var decision = CreateDecisionInput(t, container, profile, match, hasCapacity);
+
+            if (!RelocationDecisionPolicy.CanPreview(decision)) {
                 EClass.pc.PlaySound("beep");
                 return;
             }
 
-            // アイテム側の判定
-            if (t.c_lockedHard || t.placeState == PlaceState.installed)
-                return;
-            if (t.trait is TraitToolBelt)
-                return;
-            if (t.trait is TraitAbility && !destIsPC)
-                return;
-            if (!t.trait.CanBeDropped)
-                return;
-            if (t.isEquipped && t.IsCursed)
-                return;
-            if (t.IsContainer && t.things.Count > 0 && !destIsPC)
-                return;
-            if (!destIsPC && (t.id == "money" || t.isGifted || t.isNPCProperty))
-                return;
-
-            if (container.things.IsFull()) {
+            if (!decision.DestinationHasCapacityForThing) {
                 Msg.Say(RelocatorLang.GetText(RelocatorLang.LangKey.Msg_ContainerFull));
                 return;
             }
@@ -523,6 +474,101 @@ namespace Elin_ItemRelocator {
             container.AddThing(t);
             EClass.pc.PlaySound("grab");
             Msg.Say(string.Format(RelocatorLang.GetText(RelocatorLang.LangKey.Msg_Moved), t.Name));
+        }
+
+        private void CollectHotbarPool() {
+            _hotbarPool.Clear();
+            var bars = EClass.player?.hotbars?.bars;
+            if (bars is null)
+                return;
+
+            for (int b = 0; b < bars.Length; b++) {
+                var bar = bars[b];
+                if (bar is null)
+                    continue;
+                var pages = bar.pages;
+                for (int p = 0; p < pages.Count; p++) {
+                    var items = pages[p].items;
+                    for (int i = 0; i < items.Count; i++) {
+                        var item = items[i];
+                        if (item is { Thing: not null })
+                            _hotbarPool.Add(item.Thing);
+                    }
+                }
+            }
+        }
+
+        private bool IsAnyRuleMatch(Thing t, List<RelocationRule> rules) {
+            if (t is null || rules is null || rules.Count == 0)
+                return false;
+
+            for (int r = 0; r < rules.Count; r++) {
+                if (rules[r].IsMatch(t))
+                    return true;
+            }
+            return false;
+        }
+
+        private RelocationDecisionInput CreateDecisionInput(Thing t, Thing container, RelocationProfile profile, bool sourceRuleMatches, bool destinationHasCapacityForThing) {
+            bool destIsPC = IsPCOwned(container);
+            bool destinationAvailable = IsDestinationAvailable(container);
+
+            return new RelocationDecisionInput {
+                Scope = ToDecisionScope(profile?.Scope ?? RelocationProfile.FilterScope.Both),
+                DestinationAvailable = destinationAvailable,
+                SourceRuleMatches = sourceRuleMatches,
+                DestinationHasCapacityForThing = destinationHasCapacityForThing,
+                ItemAlreadyInDestination = t is not null && container is not null && (t.parent == container || container.things.Contains(t)),
+                ItemIsDestroyed = t is null || t.isDestroyed,
+                ItemIsContainer = t is not null && t.IsContainer,
+                ItemIsImportant = t is not null && t.c_isImportant,
+                ItemIsInstalled = t is not null && t.placeState == PlaceState.installed,
+                ItemIsLockedHard = t is not null && t.c_lockedHard,
+                ItemIsToolbelt = t?.trait is TraitToolBelt,
+                ItemIsAbility = t?.trait is TraitAbility,
+                DestinationIsPcOwned = destIsPC,
+                ItemCanBeDropped = t?.trait?.CanBeDropped == true,
+                ItemIsEquippedAndCursed = t is not null && t.isEquipped && t.IsCursed,
+                ItemIsContainerWithContents = t is not null && t.IsContainer && t.things.Count > 0,
+                ItemIsMoney = t?.id == "money",
+                ItemIsGifted = t is not null && t.isGifted,
+                ItemIsNpcProperty = t is not null && t.isNPCProperty,
+                ItemIsPcOwned = IsPCOwned(t),
+                ItemIsPetOwned = IsPetOwned(t),
+                ItemIsOnHotbar = t is not null && _hotbarPool.Contains(t)
+            };
+        }
+
+        private bool IsDestinationAvailable(Thing container) {
+            if (container is null || container.isDestroyed)
+                return false;
+            if (container.trait is TraitToolBelt)
+                return false;
+            if (container.c_lockLv != 0 || container.isNPCProperty)
+                return false;
+            return true;
+        }
+
+        private bool IsPetOwned(Thing t) {
+            var root = t?.GetRootCard();
+            if (root is not Chara chara || EClass.pc?.party == null)
+                return false;
+
+            foreach (var member in EClass.pc.party.members) {
+                if (member == chara && !member.IsPC && member.IsAliveInCurrentZone)
+                    return true;
+            }
+            return false;
+        }
+
+        private RelocationScope ToDecisionScope(RelocationProfile.FilterScope scope) {
+            return scope switch {
+                RelocationProfile.FilterScope.Inventory => RelocationScope.Inventory,
+                RelocationProfile.FilterScope.ZoneOnly => RelocationScope.ZoneOnly,
+                RelocationProfile.FilterScope.PetsOnly => RelocationScope.PetsOnly,
+                RelocationProfile.FilterScope.Both => RelocationScope.Both,
+                _ => RelocationScope.Both
+            };
         }
 
         public string GetDisplayValue(Thing t, RelocationProfile profile) {

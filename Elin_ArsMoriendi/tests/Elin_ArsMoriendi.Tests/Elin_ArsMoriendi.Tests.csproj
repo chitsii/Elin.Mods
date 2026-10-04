@@ -19,6 +19,7 @@
     <Compile Include="..\..\src\NecromancyCalculations.cs" LinkBase="Source" />
     <Compile Include="..\..\src\Common\DialogFlagStore.cs" LinkBase="Source" />
     <Compile Include="..\..\src\Common\ServantIntegrityRules.cs" LinkBase="Source" />
+    <Compile Include="..\..\src\Common\ServantRuntimeTracking.cs" LinkBase="Source" />
     <Compile Include="..\..\src\CommonQuest\Conditions\QuestCooldownPolicy.cs" LinkBase="Source" />
     <Compile Include="..\..\src\CommonQuest\Conditions\QuestCondition.cs" LinkBase="Source" />
     <Compile Include="..\..\src\CommonQuest\Start\QuestStartService.cs" LinkBase="Source" />

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <UseSharedCompilation>false</UseSharedCompilation>
+    <GameRoot Condition="'$(GameRoot)' == ''">C:/Program Files (x86)/Steam/steamapps/common/Elin</GameRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../src/cases/ArsPr4SummonOwnership.cs" Link="ArsPr4SummonOwnership.cs" />
+    <Compile Include="../src/cases/ArsPr4CleanupBoundary.cs" Link="ArsPr4CleanupBoundary.cs" />
+    <Compile Include="../src/cases/ArsPr4HandoffCodec.cs" Link="ArsPr4HandoffCodec.cs" />
+    <Reference Include="Newtonsoft.Json"><HintPath>$(GameRoot)/Elin_Data/Managed/Newtonsoft.Json.dll</HintPath></Reference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+    <PackageReference Include="NUnit" Version="3.14.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

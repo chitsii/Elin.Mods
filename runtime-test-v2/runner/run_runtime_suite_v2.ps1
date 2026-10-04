@@ -1,9 +1,13 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [string]$ModRoot = "",
     [string]$RequiredNameContains = "RUNTIME_TEST",
     [int]$TimeoutSeconds = 180,
-    [string]$PipeName = "Elin\\Console",
+    [string]$PipeName = "Elin\Console",
+    [ValidateSet("Auto", "Game", "LegacyCwl")]
+    [string]$ScriptBackend = "Auto",
+    [ValidateRange(1, 60)]
+    [int]$CommandTimeoutSeconds = 30,
     [string]$CaseId = "",
     [string]$Tag = "",
     [string]$PlayerLogPath = "",
@@ -21,34 +25,7 @@ function Write-Info {
     Write-Host "[runtime-v2] $Message"
 }
 
-function Send-CwlCommand {
-    param(
-        [string]$Command,
-        [string]$NamedPipe,
-        [int]$ConnectTimeoutMs = 5000
-    )
-
-    $client = New-Object System.IO.Pipes.NamedPipeClientStream(
-        ".",
-        $NamedPipe,
-        [System.IO.Pipes.PipeDirection]::Out
-    )
-
-    try {
-        $client.Connect($ConnectTimeoutMs)
-        $writer = New-Object System.IO.StreamWriter($client)
-        try {
-            $writer.AutoFlush = $true
-            $writer.WriteLine($Command)
-        }
-        finally {
-            $writer.Dispose()
-        }
-    }
-    finally {
-        $client.Dispose()
-    }
-}
+. (Join-Path $PSScriptRoot "runtime_transport.ps1")
 
 function Resolve-PlayerLogPath {
     param([string]$ExplicitPath)
@@ -262,16 +239,15 @@ if ($null -eq $modSrcRoot) {
 }
 
 $artifactRoot = Join-Path $runtimeRoot "_artifacts"
-$runId = Get-Date -Format "yyyyMMdd_HHmmss"
+$runId = (Get-Date -Format "yyyyMMdd_HHmmss_fff") + "_" + [Guid]::NewGuid().ToString("N").Substring(0, 8)
 $runDir = Join-Path $artifactRoot $runId
 $resultPath = Join-Path $runDir "result.json"
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) "runtime-test-v2"
 $tempRunDir = Join-Path $tempRoot $runId
-$generatedPath = Join-Path $tempRunDir "runtime_suite_v2_generated.csx"
-$artifactGeneratedPath = Join-Path $runDir "runtime_suite_v2_generated.csx"
+$generatedPath = Join-Path $tempRunDir "runtime_suite_v2_generated.cs"
+$artifactGeneratedPath = Join-Path $runDir "runtime_suite_v2_generated.cs"
 
 New-Item -ItemType Directory -Path $runDir -Force | Out-Null
-New-Item -ItemType Directory -Path $tempRunDir -Force | Out-Null
 
 $resolvedPlayerLogPath = $null
 $playerLogBaseline = [ordered]@{ Exists = $false; Length = 0L; LastWriteUtc = "" }
@@ -287,7 +263,13 @@ if (-not $DisablePlayerLogDiff) {
 }
 
 $exitCode = 0
+$phase = "build"
+$transportDiagnostics = [Collections.Generic.List[object]]::new()
+$detectedBackend = ""
+# Older wrappers supplied two literal backslashes. Normalize only that known default.
+if ($PipeName -eq 'Elin\\Console') { $PipeName = 'Elin\Console' }
 try {
+    New-Item -ItemType Directory -Path $tempRunDir -Force | Out-Null
     & $buildScript `
         -ModRoot $modRoot `
         -RuntimeRoot $runtimeRoot `
@@ -303,18 +285,17 @@ try {
     Write-Info ("mod_src_root: {0}" -f $modSrcRoot)
     Write-Info ("result path: {0}" -f $resultPath)
 
-    Send-CwlCommand -Command "cwl.cs.is_ready" -NamedPipe $PipeName
-    $generatedPathForCwl = $generatedPath -replace '\\', '/'
-    Write-Info ("cwl.cs.file arg: {0}" -f $generatedPathForCwl)
-    Send-CwlCommand -Command ("cwl.cs.file {0}" -f $generatedPathForCwl) -NamedPipe $PipeName
-
     if ($KeepGeneratedSource) {
-        Copy-Item -Path $generatedPath -Destination $artifactGeneratedPath -Force
+        Copy-Item -LiteralPath $generatedPath -Destination $artifactGeneratedPath -Force
         Write-Info ("generated source kept: {0}" -f $artifactGeneratedPath)
     }
-    else {
-        Write-Info "generated source kept: false (use -KeepGeneratedSource to retain)"
-    }
+    $phase = "readiness"
+    $detectedBackend = Resolve-RuntimeScriptBackend -NamedPipe $PipeName -Backend $ScriptBackend -Diagnostics $transportDiagnostics
+    Write-Info ("scripting backend: {0}" -f $detectedBackend)
+    $phase = "script_request"
+    $ack = Invoke-RuntimeScriptFile -Path $generatedPath -NamedPipe $PipeName -Backend $detectedBackend -ResponseTimeoutMs ($CommandTimeoutSeconds * 1000) -Diagnostics $transportDiagnostics
+    Write-Info ("script acknowledgement: {0}" -f $ack)
+    $phase = "suite_result"
 
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     while (-not (Test-Path $resultPath)) {
@@ -332,7 +313,7 @@ try {
 
     Write-Info ("status={0} total={1} passed={2} failed={3}" -f $status, $total, $passed, $failed)
 
-    if ($status -ne "passed" -or $failed -gt 0) {
+    if ($status -ne "passed" -or $failed -gt 0 -or $total -le 0 -or $passed -ne $total) {
         Write-Info ("FAILED: inspect result file -> {0}" -f $resultPath)
         $exitCode = 1
     }
@@ -341,25 +322,45 @@ try {
     }
 }
 catch {
-    Write-Error $_
     $exitCode = 1
+    $runnerError = [ordered]@{
+        status = "runner_failed"
+        phase = $phase
+        case_id = $CaseId
+        suite = $Suite
+        error_type = $_.Exception.GetType().FullName
+        message = $_.Exception.Message
+        details = $_.ToString()
+        utc = [DateTime]::UtcNow.ToString("o")
+        result_exists = Test-Path -LiteralPath $resultPath
+        case_execution_confirmed = $false
+    }
+    try { $runnerError | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $runDir "runner-error.json") -Encoding UTF8 }
+    catch { Write-Warning ("Cannot preserve runner error: {0}" -f $_.Exception.Message) }
+    Write-Error -Message $runnerError.message -ErrorAction Continue
 }
 finally {
-    if (-not $DisablePlayerLogDiff) {
-        Write-PlayerLogDiffArtifacts `
-            -Path $resolvedPlayerLogPath `
-            -Baseline $playerLogBaseline `
-            -RunDir $runDir
-    }
-
     try {
-        if (Test-Path $tempRunDir) {
-            Remove-Item -Recurse -Force $tempRunDir
+        [ordered]@{ requested_backend = $ScriptBackend; detected_backend = $detectedBackend; pipe = $PipeName; attempts = @($transportDiagnostics.ToArray()) } |
+            ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $runDir "transport.json") -Encoding UTF8
+    }
+    catch { Write-Warning ("Cannot preserve transport diagnostics: {0}" -f $_.Exception.Message) }
+    try {
+        if (-not $DisablePlayerLogDiff) {
+            Write-PlayerLogDiffArtifacts -Path $resolvedPlayerLogPath -Baseline $playerLogBaseline -RunDir $runDir
         }
     }
-    catch {
-        Write-Info ("temp cleanup failed: {0}" -f $_.Exception.Message)
+    catch { Write-Warning ("Cannot preserve Player.log delta: {0}" -f $_.Exception.Message) }
+    finally {
+        try {
+            if (Test-Path -LiteralPath $tempRunDir) {
+                $resolvedTemp = [IO.Path]::GetFullPath($tempRunDir)
+                $allowedParent = [IO.Path]::GetFullPath($tempRoot).TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+                if (-not $resolvedTemp.StartsWith($allowedParent, [StringComparison]::OrdinalIgnoreCase)) { throw "Temporary cleanup target is outside runtime-test-v2." }
+                Remove-Item -LiteralPath $resolvedTemp -Recurse -Force
+            }
+        }
+        catch { Write-Warning ("Temporary cleanup failed: {0}" -f $_.Exception.Message) }
     }
 }
-
 exit $exitCode

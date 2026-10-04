@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework><LangVersion>latest</LangVersion>
+    <AssemblyName>Elin.RuntimeTestPipe</AssemblyName><EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <GamePath Condition="'$(GamePath)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Elin</GamePath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="CommandPump.cs"/><Compile Include="RuntimePipeHarness.cs"/>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all"/>
+    <Reference Include="0Harmony"><HintPath>$(GamePath)\BepInEx\core\0Harmony.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="BepInEx.Core"><HintPath>$(GamePath)\BepInEx\core\BepInEx.Core.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="BepInEx.Unity"><HintPath>$(GamePath)\BepInEx\core\BepInEx.Unity.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Elin"><HintPath>$(GamePath)\Elin_Data\Managed\Elin.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Plugins.BaseCore"><HintPath>$(GamePath)\Elin_Data\Managed\Plugins.BaseCore.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Plugins.Modding"><HintPath>$(GamePath)\Elin_Data\Managed\Plugins.Modding.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Plugins.Scripting"><HintPath>$(GamePath)\Elin_Data\Managed\Plugins.Scripting.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(GamePath)\Elin_Data\Managed\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine"><HintPath>$(GamePath)\Elin_Data\Managed\UnityEngine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Plugins"><HintPath>$(GamePath)\Elin_Data\Managed\Plugins.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>

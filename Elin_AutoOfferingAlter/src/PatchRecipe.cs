@@ -1,6 +1,5 @@
 using HarmonyLib;
-using System.Collections.Generic;
-using UnityEngine;
+using System;
 using System.Reflection;
 
 namespace Elin_AutoOfferingAlter
@@ -8,25 +7,62 @@ namespace Elin_AutoOfferingAlter
     [HarmonyPatch]
     public class PatchRecipe
     {
-        // Patch SourceManager.Init to inject our custom item BEFORE the game builds recipes.
-        // This allows the game to naturally discover the item and generate a valid recipe for it.
+        public static MethodBase TargetMethod()
+        {
+            MethodInfo method = AccessTools.DeclaredMethod(typeof(SourceManager), nameof(SourceManager.Init), Type.EmptyTypes);
+            if (method == null ||
+                method.DeclaringType != typeof(SourceManager) ||
+                method.IsGenericMethod ||
+                method.ContainsGenericParameters ||
+                method.GetParameters().Length != 0)
+            {
+                throw new MissingMethodException("Expected declared non-generic SourceManager.Init().");
+            }
+
+            return method;
+        }
+
+        // SourceManager.Init calls things.Init before recipes.Init. Add the row before
+        // that standard Init builds SourceThing.map so the recipe can resolve it.
         [HarmonyPrefix]
-        [HarmonyPatch(typeof(SourceManager), "Init")]
         public static void Prefix_SourceManager_Init(SourceManager __instance)
         {
+            if (__instance == null || __instance.initialized)
+            {
+                return;
+            }
+
+            InjectOfferingBoxRow(__instance.things);
+        }
+
+        private static void InjectOfferingBoxRow(SourceThing source)
+        {
+            if (source == null || source.rows == null)
+            {
+                return;
+            }
+
             string customId = Plugin.ID_OFFERING_BOX;
+            SourceThing.Row row = null;
 
-            // Efficient check if already added
-            if (__instance.things.map.ContainsKey(customId)) return;
+            foreach (SourceThing.Row sourceRow in source.rows)
+            {
+                if (sourceRow.id == customId)
+                {
+                    return;
+                }
+                if (sourceRow.id == "chest6")
+                {
+                    row = sourceRow;
+                }
+            }
 
-            // Find base row for "chest6" (Sturdy Box)
-            SourceThing.Row row = __instance.things.map.TryGetValue("chest6", out var chest6) ? chest6 : null;
+            if (row == null)
+            {
+                return;
+            }
 
-            if (row == null) return;
-
-            // Clone the row using Reflection
-            MethodInfo cloneMethod = typeof(object).GetMethod("MemberwiseClone", BindingFlags.NonPublic | BindingFlags.Instance);
-            SourceThing.Row newRow = (SourceThing.Row)cloneMethod.Invoke(row, null);
+            SourceThing.Row newRow = CloneSourceThingRow(row);
 
             if (ModConfig.EnableLog.Value)
             {
@@ -35,25 +71,40 @@ namespace Elin_AutoOfferingAlter
                 Plugin.Log.LogInfo("Src Components: " + (row.components != null ? string.Join(",", row.components) : "null"));
             }
 
-            // Set properties
             newRow.id = customId;
-            newRow.factory = new string[] { "self" }; // Simple craft requires "self" explicitly
-            // Retain original components/level from chest6
-            newRow.recipeKey = new string[] { "*" }; // Ensure it is treated as a known/valid recipe source
+            newRow.factory = new string[] { "self" };
+            newRow.recipeKey = new string[] { "*" };
             newRow.name_JP = "信仰の箱";
             newRow.name = "Offering Box";
 
-            // Add to database
-            __instance.things.rows.Add(newRow);
-            if (!__instance.things.map.ContainsKey(customId))
-            {
-                __instance.things.map.Add(customId, newRow);
-            }
+            source.rows.Add(newRow);
 
             if (ModConfig.EnableLog.Value) Plugin.Log.LogInfo("Injected custom item: " + customId);
         }
 
-        // Keep the Craft patch to apply specific tags and names
+        private static SourceThing.Row CloneSourceThingRow(SourceThing.Row row)
+        {
+            MethodInfo cloneMethod = typeof(object).GetMethod("MemberwiseClone", BindingFlags.NonPublic | BindingFlags.Instance);
+            SourceThing.Row clone = (SourceThing.Row)cloneMethod.Invoke(row, null);
+
+            foreach (FieldInfo field in typeof(SourceThing.Row).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+            {
+                if (!field.FieldType.IsArray)
+                {
+                    continue;
+                }
+
+                Array array = field.GetValue(row) as Array;
+                if (array != null)
+                {
+                    field.SetValue(clone, array.Clone());
+                }
+            }
+
+            return clone;
+        }
+
+        // Keep the Craft patch to apply the saved display name.
         [HarmonyPostfix]
         [HarmonyPatch(typeof(Recipe), "Craft")]
         public static void Postfix_Craft(Recipe __instance, ref Thing __result)
@@ -62,7 +113,6 @@ namespace Elin_AutoOfferingAlter
 
             if (__instance.id == Plugin.ID_OFFERING_BOX)
             {
-                __result.c_idDeity = Plugin.ID_OFFERING_BOX;
                 __result.c_altName = "信仰の箱";
 
                 if (ModConfig.EnableLog.Value)

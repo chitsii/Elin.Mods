@@ -7,13 +7,21 @@ namespace Elin_NiComment
 {
     // ========== Tier S ==========
 
-    [HarmonyPatch(typeof(Card), nameof(Card.Die))]
-    static class CardDiePatch
+    [HarmonyPatch(typeof(Chara), nameof(Chara.Die))]
+    static class CharaDiePatch
     {
-        static void Postfix(Card __instance, Card origin)
+        private static readonly LifecycleEventGate DeathEvents = new LifecycleEventGate();
+
+        static void Prefix(Chara __instance, out LifecycleEventGate.State __state)
+        {
+            __state = DeathEvents.Begin(__instance, __instance == null || __instance.isDead);
+        }
+
+        static void Postfix(Chara __instance, Card origin, LifecycleEventGate.State __state)
         {
             try
             {
+                if (!DeathEvents.Finish(__state, __instance != null && __instance.isDead)) return;
                 if (!NiCommentAPI.IsReady || CommentTrigger.Instance == null) return;
 
                 if (__instance.IsPC)
@@ -21,7 +29,7 @@ namespace Elin_NiComment
                     CommentTrigger.Instance.FireBarrage(
                         CommentTexts.PcDeath, new Color(1f, 0.27f, 0.27f));
                 }
-                else if (__instance.isChara && EClass.pc != null
+                else if (EClass.pc != null
                     && __instance.LV >= EClass.pc.LV
                     && origin != null && origin.IsPC)
                 {
@@ -31,19 +39,34 @@ namespace Elin_NiComment
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[NiComment] CardDiePatch: {ex.Message}");
+                Debug.LogWarning($"[NiComment] CharaDiePatch: {ex.Message}");
             }
+        }
+
+        static Exception Finalizer(Exception __exception, LifecycleEventGate.State __state)
+        {
+            DeathEvents.Abort(__state);
+            return __exception;
         }
     }
 
-    [HarmonyPatch(typeof(Quest), nameof(Quest.OnComplete))]
+    [HarmonyPatch(typeof(Quest), nameof(Quest.Complete))]
     static class QuestCompletePatch
     {
-        static void Postfix()
+        private static readonly LifecycleEventGate CompleteEvents = new LifecycleEventGate();
+
+        static void Prefix(Quest __instance, out LifecycleEventGate.State __state)
+        {
+            __state = CompleteEvents.Begin(__instance, __instance == null || __instance.isComplete);
+        }
+
+        static void Postfix(Quest __instance, LifecycleEventGate.State __state)
         {
             try
             {
+                if (!CompleteEvents.Finish(__state, __instance != null && __instance.isComplete)) return;
                 if (!NiCommentAPI.IsReady || CommentTrigger.Instance == null) return;
+
                 CommentTrigger.Instance.FireBarrage(
                     CommentTexts.QuestComplete, new Color(1f, 0.84f, 0f));
             }
@@ -52,9 +75,15 @@ namespace Elin_NiComment
                 Debug.LogWarning($"[NiComment] QuestCompletePatch: {ex.Message}");
             }
         }
+
+        static Exception Finalizer(Exception __exception, LifecycleEventGate.State __state)
+        {
+            CompleteEvents.Abort(__state);
+            return __exception;
+        }
     }
 
-    // ========== SayRaw → LLM ==========
+    // ========== SayRaw -> LLM ==========
 
     [HarmonyPatch(typeof(Msg), nameof(Msg.SayRaw), new Type[] { typeof(string) })]
     static class MsgSayRawPatch

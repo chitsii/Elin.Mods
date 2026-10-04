@@ -1,0 +1,16 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" />
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <AssemblyName>Pr8ReloadContents.Tests</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <DefineConstants>RUNTIME_TEST</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" /><Reference Include="System.Core" />
+    <Compile Include="Program.cs" />
+    <Compile Include="..\src\cases\Pr8ReloadContents.cs" Link="Pr8ReloadContents.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

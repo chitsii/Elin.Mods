@@ -190,8 +190,7 @@ namespace Elin_QuestMod.Drama
                     return false;
                 }
 
-                _ctx.PlayPcEffect(effectId);
-                return true;
+                return _ctx.PlayPcEffect(effectId);
             }
 
             string effectPart = key.Substring(fxPrefix.Length, delimiter - fxPrefix.Length);
@@ -201,8 +200,7 @@ namespace Elin_QuestMod.Drama
                 return false;
             }
 
-            _ctx.PlayPcEffect(effectPart, soundPart);
-            return true;
+            return _ctx.PlayPcEffect(effectPart, soundPart);
         }
     }
 
@@ -215,6 +213,6 @@ namespace Elin_QuestMod.Drama
         bool TryStartDramaUntilComplete(string dramaId);
         void CompleteDrama(string dramaId);
         bool RunCue(string cueKey);
-        void PlayPcEffect(string effectId, string soundId = null);
+        bool PlayPcEffect(string effectId, string soundId = null);
     }
 }

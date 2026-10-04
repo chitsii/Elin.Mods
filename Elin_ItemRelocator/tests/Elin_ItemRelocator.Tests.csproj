@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="runtime\**\*.cs" />
     <Compile Include="..\src\RelocationDecisionPolicy.cs" Link="RelocationDecisionPolicy.cs" />
     <Compile Include="..\src\Manager.cs" Link="Manager.cs" />
   </ItemGroup>

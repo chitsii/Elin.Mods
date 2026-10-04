@@ -1,3 +1,4 @@
+import ast
 import tempfile
 import unittest
 from collections import defaultdict
@@ -23,6 +24,33 @@ from tools.drama.scenarios.quest_drama_placeholder import define_quest_drama_pla
 
 
 class CommonRuntimeApiTests(unittest.TestCase):
+    @staticmethod
+    def _extract_builder_calls(source_path: str) -> list[tuple[str, list[object]]]:
+        text = Path(source_path).read_text(encoding="utf-8")
+        tree = ast.parse(text)
+        calls: list[tuple[str, list[object]]] = []
+
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+
+            func = node.func
+            if not isinstance(func, ast.Attribute):
+                continue
+            if not isinstance(func.value, ast.Name) or func.value.id != "builder":
+                continue
+
+            args: list[object] = []
+            for arg in node.args:
+                try:
+                    args.append(ast.literal_eval(arg))
+                except ValueError:
+                    args.append(ast.unparse(arg))
+
+            calls.append((func.attr, args))
+
+        return calls
+
     @staticmethod
     def _extract_step_edges(entries: list[dict]) -> dict[str, set[str]]:
         edges: dict[str, set[str]] = defaultdict(set)
@@ -372,45 +400,47 @@ class CommonRuntimeApiTests(unittest.TestCase):
             self.assertTrue(out.exists())
 
     def test_feature_showcase_uses_temp_flags_and_linear_flow(self):
-        text = Path("tools/drama/scenarios/quest_drama_feature_showcase.py").read_text(
-            encoding="utf-8"
-        )
-        self.assertIn("builder.set_flag(FlagKeys.TMP_CAN_START_FEATURE, 0)", text)
-        self.assertIn("builder.set_flag(FlagKeys.TMP_IS_DONE_FEATURE, 0)", text)
-        self.assertIn("builder.set_flag(FlagKeys.TMP_BRANCH_FEATURE, 0)", text)
-        self.assertIn("builder.set_flag(FlagKeys.TMP_COUNT_FEATURE, 0)", text)
-        self.assertIn(
-            'builder.set_flag("yourname.elin_quest_mod.flag.feature_followup.run_count", 0)',
-            text,
-        )
-        self.assertIn(
-            'builder.set_flag("yourname.elin_quest_mod.flag.feature_followup.last_advance_raw", 0)',
-            text,
-        )
-        self.assertIn(
-            'builder.set_flag("yourname.elin_quest_mod.flag.feature.branch.last_choice", 0)',
-            text,
-        )
-        self.assertIn("builder.quest_check(", text)
-        self.assertIn("builder.resolve_flag(", text)
-        self.assertIn("builder.set_flag(", text)
-        self.assertIn("builder.mod_flag(", text)
-        self.assertIn("builder.play_bgm_vanilla(", text)
-        self.assertIn("builder.scene_transition(", text)
-        self.assertIn("builder.move_next_to(", text)
-        self.assertIn("builder.move_tile(", text)
-        self.assertIn("builder.set_sprite(", text)
-        self.assertIn("builder.spawn_npc(", text)
-        self.assertIn("builder.set_portrait(", text)
-        self.assertIn("builder.play_pc_effect_with_sound(", text)
-        self.assertIn(
-            'builder.stamp_current_raw_time("yourname.elin_quest_mod.flag.feature_followup.last_advance_raw")',
-            text,
-        )
-        self.assertIn("quest_drama_feature_followup", text)
-        self.assertNotIn("builder.choice_block(", text)
-        self.assertNotIn("builder.switch_on_flag(", text)
-        self.assertNotIn('builder.quest_try_start("quest_drama_feature_showcase")', text)
+        source_path = "tools/drama/scenarios/quest_drama_feature_showcase.py"
+        text = Path(source_path).read_text(encoding="utf-8")
+        calls = self._extract_builder_calls(source_path)
+        methods = [name for name, _ in calls]
+
+        expected_calls = [
+            ("set_flag", ["FlagKeys.TMP_CAN_START_FEATURE", 0]),
+            ("set_flag", ["FlagKeys.TMP_IS_DONE_FEATURE", 0]),
+            ("set_flag", ["FlagKeys.TMP_BRANCH_FEATURE", 0]),
+            ("set_flag", ["FlagKeys.TMP_COUNT_FEATURE", 0]),
+            ("set_flag", ["yourname.elin_quest_mod.flag.feature_followup.run_count", 0]),
+            ("set_flag", ["yourname.elin_quest_mod.flag.feature_followup.last_advance_raw", 0]),
+            ("set_flag", ["yourname.elin_quest_mod.flag.feature.branch.last_choice", 0]),
+            ("stamp_current_raw_time", ["yourname.elin_quest_mod.flag.feature_followup.last_advance_raw"]),
+            ("quest_try_start_repeatable", ["quest_drama_feature_followup"]),
+        ]
+        search_from = 0
+        for expected in expected_calls:
+            next_index = calls.index(expected, search_from)
+            self.assertGreaterEqual(next_index, search_from)
+            search_from = next_index + 1
+
+        for required in [
+            "quest_check",
+            "resolve_flag",
+            "set_flag",
+            "mod_flag",
+            "play_bgm_vanilla",
+            "scene_transition",
+            "move_next_to",
+            "move_tile",
+            "set_sprite",
+            "spawn_npc",
+            "set_portrait",
+            "play_pc_effect_with_sound",
+        ]:
+            self.assertIn(required, methods)
+
+        self.assertNotIn("choice_block", methods)
+        self.assertNotIn("switch_on_flag", methods)
+        self.assertNotIn(("quest_try_start", ["quest_drama_feature_showcase"]), calls)
         self.assertNotIn("mod_invoke(", text)
         self.assertNotIn("modInvoke", text)
 

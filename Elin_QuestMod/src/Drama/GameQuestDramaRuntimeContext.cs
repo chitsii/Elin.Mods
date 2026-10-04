@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using Elin_QuestMod.Quest;
+using UnityEngine;
 
 namespace Elin_QuestMod.Drama
 {
@@ -10,6 +11,10 @@ namespace Elin_QuestMod.Drama
     public sealed class GameQuestDramaRuntimeContext : IQuestDramaRuntimeContext
     {
         private const string StartedDramaLocalPrefix = "drama.started.";
+        private static readonly Type[] PlayEffectParameterTypes =
+            new[] { typeof(string), typeof(bool), typeof(float), typeof(Vector3) };
+        private static readonly Type[] PlaySoundParameterTypes =
+            new[] { typeof(string), typeof(float), typeof(bool) };
 
         public bool CanStartDrama(string dramaId)
         {
@@ -154,18 +159,28 @@ namespace Elin_QuestMod.Drama
             }
         }
 
-        public void PlayPcEffect(string effectId, string soundId = null)
+        public bool PlayPcEffect(string effectId, string soundId = null)
         {
-            if (EClass.pc == null || string.IsNullOrEmpty(effectId))
+            if (string.IsNullOrEmpty(effectId))
             {
-                return;
+                ModLog.Warn("QuestBridge.PlayPcEffect: skipped empty effect id");
+                return false;
             }
 
-            InvokeVoidIfExists(EClass.pc, "PlayEffect", effectId);
+            if (EClass.pc == null)
+            {
+                ModLog.Warn("QuestBridge.PlayPcEffect: skipped (pc unavailable), effectId=" + effectId);
+                return false;
+            }
+
+            bool effectOk = TryPlayPcEffect(effectId);
+            bool soundOk = true;
             if (!string.IsNullOrEmpty(soundId))
             {
-                InvokeVoidIfExists(EClass.pc, "PlaySound", soundId);
+                soundOk = TryPlayPcSound(soundId);
             }
+
+            return effectOk && soundOk;
         }
 
         private static bool TryActivateDrama(string dramaId)
@@ -234,20 +249,69 @@ namespace Elin_QuestMod.Drama
             return QuestStateService.BuildFlagKey(StartedDramaLocalPrefix + dramaId);
         }
 
-        private static void InvokeVoidIfExists(object target, string methodName, params object[] args)
+        private static bool TryPlayPcEffect(string effectId)
         {
-            if (target == null || string.IsNullOrEmpty(methodName))
+            try
             {
-                return;
-            }
+                MethodInfo method = ResolveCardMethod("PlayEffect", PlayEffectParameterTypes);
+                if (method == null)
+                {
+                    ModLog.Warn("QuestBridge.PlayPcEffect: Card.PlayEffect signature unavailable");
+                    return false;
+                }
 
-            MethodInfo method = target.GetType().GetMethod(
+                method.Invoke(EClass.pc, new object[] { effectId, true, 0f, default(Vector3) });
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ModLog.Warn(
+                    "QuestBridge.PlayPcEffect: effect failed, effectId="
+                    + effectId
+                    + ", error="
+                    + GetDiagnosticException(ex));
+                return false;
+            }
+        }
+
+        private static bool TryPlayPcSound(string soundId)
+        {
+            try
+            {
+                MethodInfo method = ResolveCardMethod("PlaySound", PlaySoundParameterTypes);
+                if (method == null)
+                {
+                    ModLog.Warn("QuestBridge.PlayPcEffect: Card.PlaySound signature unavailable");
+                    return false;
+                }
+
+                method.Invoke(EClass.pc, new object[] { soundId, 1f, true });
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ModLog.Warn(
+                    "QuestBridge.PlayPcEffect: sound failed, soundId="
+                    + soundId
+                    + ", error="
+                    + GetDiagnosticException(ex));
+                return false;
+            }
+        }
+
+        private static MethodInfo ResolveCardMethod(string methodName, Type[] parameterTypes)
+        {
+            return typeof(Card).GetMethod(
                 methodName,
                 BindingFlags.Instance | BindingFlags.Public,
                 null,
-                new[] { typeof(string) },
+                parameterTypes,
                 null);
-            method?.Invoke(target, args);
+        }
+
+        private static Exception GetDiagnosticException(Exception ex)
+        {
+            return (ex as TargetInvocationException)?.InnerException ?? ex;
         }
     }
 }

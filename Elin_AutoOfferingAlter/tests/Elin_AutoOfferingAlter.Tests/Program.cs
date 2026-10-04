@@ -4,6 +4,7 @@ using System.Reflection.PortableExecutable;
 
 var tests = new (string Name, Action Run)[]
 {
+    ("scoped FX identity, bounds, nesting, exception, thread and inventory conservation", EffectScopeTests.Run),
     ("rejected split batch is returned and processing stops", Tests.RejectedSplitBatchIsReturnedAndStops),
     ("water is not split and processing continues", Tests.WaterIsNotSplitAndContinues),
     ("exception returns split batch before rethrow", Tests.ExceptionReturnsSplitBatchBeforeRethrow),

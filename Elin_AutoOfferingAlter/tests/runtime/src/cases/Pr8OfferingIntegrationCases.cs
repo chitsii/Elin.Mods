@@ -15,7 +15,7 @@ public sealed class Pr8ConsumeWaterRejectCase : Pr8OfferingCase
     public override void Execute(RuntimeTestContext ctx)
     {
         var f = ctx.Get<Pr8OfferingFixture>("pr8.fixture");
-        f.Actor.SetFaith("ehekatl");
+        f.Actor.SetFaith(f.LuckFaith);
         f.Actor.elements.SetBase(306, 100);
         f.Actor.elements.SetBase(85, 1);
         Thing water = f.Item("water", 37);
@@ -26,9 +26,12 @@ public sealed class Pr8ConsumeWaterRejectCase : Pr8OfferingCase
         rejected.elements.SetBase(764, 1);
         RuntimeAssertions.Require(f.Oracle.CanOffer(f.Actor, water), "Native water precondition failed.");
         RuntimeAssertions.Require(!f.Oracle.CanOffer(f.Actor, rejected), "Native rejection precondition failed.");
+        f.AssertInvalidWorldStopsBeforeSplit(fish);
+        f.Observer.BeforeFirstOffer = f.AssertNestedProductScope;
         int beforeExp = f.Actor.elements.GetOrCreateElement(85).vExp;
         f.LogState("before");
         Elin_AutoOfferingAlter.OfferLogic.Process(f.Box);
+        f.Observer.BeforeFirstOffer = null;
         f.LogState("after");
         f.AssertRetained(water, 37);
         RuntimeAssertions.Require(water.blessedState == BlessedState.Blessed, "Water was not natively blessed.");
@@ -40,7 +43,15 @@ public sealed class Pr8ConsumeWaterRejectCase : Pr8OfferingCase
             "Uncapped fixture piety did not change.");
         f.AssertRetained(rejected, 9);
         RuntimeAssertions.Require(f.Observer.CallsFor(rejected.uid) == 0, "Native rejected item reached OnOffer.");
-        f.Observer.AssertActorAndDeity(f.Actor.uid, "ehekatl");
+        f.Observer.AssertActorAndDeity(f.Actor.uid, f.LuckFaith.id);
+        RuntimeAssertions.Require(f.Observer.RedirectedFxCalls >= 2, "Inventory native owner FX were not redirected/executed.");
+        int previousFx = f.Observer.RedirectedFxCalls;
+        f.MoveBoxIntoToolbelt();
+        Thing nested = f.Offering("meat", 1);
+        Elin_AutoOfferingAlter.OfferLogic.Process(f.Box);
+        RuntimeAssertions.Require(nested.isDestroyed && f.Observer.RedirectedFxCalls > previousFx,
+            "Native nested toolbelt offering/FX not executed.");
+        f.AssertRetained(water, 37); f.AssertRetained(rejected, 9); f.AssertMetadata();
     }
 }
 
@@ -50,7 +61,7 @@ public sealed class Pr8SplitNonconsumeStopCase : Pr8OfferingCase
     public override void Execute(RuntimeTestContext ctx)
     {
         var f = ctx.Get<Pr8OfferingFixture>("pr8.fixture");
-        f.Actor.SetFaith("eyth");
+        f.Actor.SetFaith(f.EythFaith);
         f.Actor.elements.SetBase(1228, 0);
         Thing item = f.Offering("meat", 1);
         int batch = f.SplitSize(item);
@@ -81,7 +92,7 @@ public sealed class Pr8UnsplitNonconsumeCase : Pr8OfferingCase
     public override void Execute(RuntimeTestContext ctx)
     {
         var f = ctx.Get<Pr8OfferingFixture>("pr8.fixture");
-        f.Actor.SetFaith("eyth");
+        f.Actor.SetFaith(f.EythFaith);
         f.Actor.elements.SetBase(1228, 0);
         Thing item = f.Offering("meat", 1);
         Thing sentinel = f.Offering("meat", 3);
@@ -101,7 +112,7 @@ public abstract class Pr8ActorChangeCase : Pr8OfferingCase
     public override void Execute(RuntimeTestContext ctx)
     {
         var f = ctx.Get<Pr8OfferingFixture>("pr8.fixture");
-        f.Actor.SetFaith("ehekatl");
+        f.Actor.SetFaith(f.LuckFaith);
         Thing item = f.Offering("fish", 1);
         item.SetNum(f.SplitSize(item) * 2 + 1);
         Thing sentinel = f.Offering("meat", 3);
@@ -110,7 +121,7 @@ public abstract class Pr8ActorChangeCase : Pr8OfferingCase
         {
             if (Change == "dead") f.Actor.isDead = true;
             else if (Change == "pc") f.TestPlayer.chara = f.OtherActor;
-            else f.Actor.SetFaith("eyth");
+            else f.Actor.SetFaith(f.EythFaith);
         };
         f.LogState("before");
         Elin_AutoOfferingAlter.OfferLogic.Process(f.Box);
@@ -147,7 +158,7 @@ public sealed class Pr8ExceptionRecoveryCase : Pr8OfferingCase
     public override void Execute(RuntimeTestContext ctx)
     {
         var f = ctx.Get<Pr8OfferingFixture>("pr8.fixture");
-        f.Actor.SetFaith("ehekatl");
+        f.Actor.SetFaith(f.LuckFaith);
         Thing item = f.Offering("fish", 1);
         item.SetNum(f.SplitSize(item) * 2 + 1);
         int before = item.Num;
@@ -174,7 +185,7 @@ public sealed class Pr8SleepCompletionCase : Pr8OfferingCase
     public override void Execute(RuntimeTestContext ctx)
     {
         var f = ctx.Get<Pr8OfferingFixture>("pr8.fixture");
-        f.Actor.SetFaith("ehekatl");
+        f.Actor.SetFaith(f.LuckFaith);
         Thing fish = f.Offering("fish", 5);
         f.RemoveSleep(f.Actor, completed: false, dead: false);
         f.AssertRetained(fish, 5);

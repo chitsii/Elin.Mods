@@ -88,6 +88,20 @@ internal static class PatchRegistrationTests
                 "RecipeCard.Craft postfix was not registered exactly once.");
             var basePatches = Harmony.GetPatchInfo(baseCraft);
             Require(basePatches == null || !basePatches.Owners.Contains(owner), "Test owner unexpectedly patched base Recipe.Craft.");
+            var effect = AccessTools.DeclaredMethod(typeof(Effect), "Play", new[] { typeof(Point), typeof(float), typeof(Point), typeof(UnityEngine.Sprite) });
+            Type fxClass = product.GetType("Elin_AutoOfferingAlter.PatchOfferingEffectPosition", throwOnError: true);
+            Require(effect != null && Harmony.GetPatchInfo(effect).Prefixes.Count(p => p.owner == owner && p.PatchMethod == fxClass.GetMethod("Prefix") && p.priority == Priority.Last) == 1,
+                "Exact scoped native Effect.Play prefix not registered once.");
+            var point = (Point)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(typeof(Point));
+            point.x = -1; point.z = 0;
+            object[] fxArgs = { point };
+            fxClass.GetMethod("Prefix").Invoke(null, fxArgs);
+            Require(ReferenceEquals(fxArgs[0], point) && point.x == -1 && point.z == 0,
+                "Compiled FX prefix changed an unrelated out-of-scope actual Point.");
+            Require(fxClass.GetMethod("Prefix").GetParameters()[0].ParameterType == typeof(Point).MakeByRefType(),
+                "FX prefix does not replace the actual native from argument by reference.");
+            Console.WriteLine("PASS: compiled actual Point prefix is inert outside scope and uses ref Point");
+            Console.WriteLine("PASS: actual Harmony registers exact Effect.Play(Point,float,Point,Sprite) scope prefix");
             Console.WriteLine("PASS: actual Harmony.PatchAll registers the product assembly and both native targets; original bodies never invoked");
         }
         finally

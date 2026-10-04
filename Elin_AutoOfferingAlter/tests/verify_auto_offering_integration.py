@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,6 +22,19 @@ def test_altar_deity_is_set_before_can_offer_and_uses_actor_argument() -> None:
 
     assert "fakeAltar.CanOffer(actor, t)" in source
     assert_order(source, "fakeAltar.SetDeity(faith.id)", "fakeAltar.CanOffer(actor, t)")
+
+
+def test_fx_scope_is_bounded_and_does_not_change_inventory_position() -> None:
+    source = read_source("OfferLogic.cs")
+    context = read_source("OfferingEffectContext.cs")
+    scope = read_source("OfferingEffectScope.cs")
+    assert_order(source, "OfferingEffectContext.TryCreate", "fakeAltar.SetDeity")
+    assert 'using (effectContext.Enter())' in source and 'effectContext.IsCurrent()' in source
+    assert not re.search(r'\b(?:container|owner)\.pos\s*=(?!=)', source + context)
+    for token in ['ReferenceEquals(Point.map, map)', 'ReferenceEquals(map.cells, cells)', 'EClass.game.activeZone == zone', 'OfferingMapBounds.Contains', 'actor.pos.Copy()']:
+        assert token in context
+    assert '[ThreadStatic]' in scope and 'ReferenceEquals(from, scope.ownerPoint)' in scope
+    assert 'current = previous' in scope
 
 
 def test_sleep_postfix_skips_dead_or_incomplete_sleep_removal() -> None:
@@ -75,6 +89,7 @@ def test_custom_box_injection_avoids_reinit_duplicates_and_shared_arrays() -> No
 if __name__ == "__main__":
     tests = [
         test_altar_deity_is_set_before_can_offer_and_uses_actor_argument,
+        test_fx_scope_is_bounded_and_does_not_change_inventory_position,
         test_sleep_postfix_skips_dead_or_incomplete_sleep_removal,
         test_custom_box_identity_does_not_reuse_deity_slot,
         test_custom_box_source_patch_targets_declared_source_manager_init,

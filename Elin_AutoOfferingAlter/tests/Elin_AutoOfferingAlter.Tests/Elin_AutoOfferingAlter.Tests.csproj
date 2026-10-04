@@ -7,5 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\..\src\OfferingBatchRunner.cs" Link="OfferingBatchRunner.cs" />
+    <Compile Include="..\..\src\OfferingEffectScope.cs" Link="OfferingEffectScope.cs" />
   </ItemGroup>
 </Project>

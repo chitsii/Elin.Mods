@@ -13,6 +13,9 @@ namespace Elin_AutoOfferingAlter
             }
 
             Religion faith = actor.faith;
+            OfferingEffectContext effectContext;
+            // Validate the actual world map before any native Split or metadata changes.
+            if (!OfferingEffectContext.TryCreate(container, actor, out effectContext)) return;
 
             // Setup fake altar
             TraitAltar fakeAltar = new TraitAltar();
@@ -30,7 +33,7 @@ namespace Elin_AutoOfferingAlter
                 split: (item, amount) => item.Split(amount),
                 isDetached: item => item.parent == null,
                 returnDetached: item => container.AddThing(item),
-                canContinue: () => EClass.pc == actor && actor != null && !actor.isDead && actor.faith == faith);
+                canContinue: () => CanContinue(actor, faith) && effectContext.IsCurrent());
 
             try
             {
@@ -55,7 +58,7 @@ namespace Elin_AutoOfferingAlter
 
                 foreach (Thing t in thingsToProcess)
                 {
-                    if (!CanContinue(actor, faith) || t == null || t.isDestroyed || !fakeAltar.CanOffer(actor, t))
+                    if (!CanContinue(actor, faith) || !effectContext.IsCurrent() || t == null || t.isDestroyed || !fakeAltar.CanOffer(actor, t))
                     {
                         continue;
                     }
@@ -63,11 +66,14 @@ namespace Elin_AutoOfferingAlter
                     int unitValue = faith.GetOfferingValue(t, 1);
                     OfferingBatchResult result = batchRunner.Run(t, unitValue, itemToOffer =>
                     {
+                        // A Split callback can change the context after the pre-split gate.
+                        if (!CanContinue(actor, faith) || !effectContext.IsCurrent()) return;
                         if (ModConfig.EnableLog.Value)
                         {
                             Plugin.Log.LogInfo($"[Elin_AutoOfferingAlter] Offering item: {itemToOffer.Name} (x{itemToOffer.Num})");
                         }
-                        fakeAltar.OnOffer(actor, itemToOffer);
+                        using (effectContext.Enter())
+                            fakeAltar.OnOffer(actor, itemToOffer);
                     });
 
                     if (result == OfferingBatchResult.Stopped)

@@ -1,0 +1,16 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" />
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <AssemblyName>Pr8FixturePreservation.Tests</AssemblyName><LangVersion>latest</LangVersion><DefineConstants>RUNTIME_TEST</DefineConstants>
+    <RepositoryRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..\..\..\..'))</RepositoryRoot>
+    <ManagedDir>$(RepositoryRoot)\Elin_AutoOfferingAlter\elin_link\Elin_Data\Managed</ManagedDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" /><Reference Include="System.Core" />
+    <NativeAssembly Include="$(ManagedDir)\Elin.dll;$(ManagedDir)\Plugins.dll;$(ManagedDir)\Plugins.BaseCore.dll;$(ManagedDir)\Plugins.UI.dll;$(ManagedDir)\Plugins.Modding.dll;$(ManagedDir)\Newtonsoft.Json.dll;$(ManagedDir)\UnityEngine.dll;$(ManagedDir)\UnityEngine.CoreModule.dll" />
+    <Reference Include="@(NativeAssembly)"><Private>False</Private></Reference>
+    <Compile Include="FixturePreservationTests.cs;SharedStateOwnershipTests.cs;DiagnosticFailureTests.cs;CreationOrderTests.cs;SourceSnapshotTests.cs;..\src\cases\Pr8SourceSnapshot.cs;..\src\cases\Pr8CreationOrder.cs;..\src\cases\Pr8Diagnostic.cs;..\src\cases\Pr8PartialCleanup.cs;..\src\cases\Pr8NativeStateScope.cs;..\src\cases\Pr8OwnedTree.cs;..\src\cases\Pr8PlayerScope.cs;..\src\cases\Pr8StateDiff.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

@@ -19,7 +19,7 @@ $env:TMP = $env:TEMP
 New-Item -ItemType Directory -Force -Path $env:TEMP | Out-Null
 $productArg = @()
 if ($SleepOfferAssembly) { $productArg = @('-p:SleepOfferAssembly=' + [System.IO.Path]::GetFullPath($SleepOfferAssembly)) }
-$productDll = if ($SleepOfferAssembly) { [System.IO.Path]::GetFullPath($SleepOfferAssembly) } else { Join-Path $modRoot '_bin\Elin_AutoOfferingAlter.dll' }
+$productDll = if ($SleepOfferAssembly) { [System.IO.Path]::GetFullPath($SleepOfferAssembly) } else { Join-Path $repoRoot '.codex-build\out\task7-auto-offering-build-b\Elin_AutoOfferingAlter.dll' }
 $caseFiles = @(Get-ChildItem (Join-Path $PSScriptRoot 'src\cases') -Filter '*.cs' -File)
 $ids = @()
 foreach ($file in $caseFiles) {
@@ -29,11 +29,18 @@ foreach ($file in $caseFiles) {
 }
 if ($ids.Count -ne 11 -or @($ids | Select-Object -Unique).Count -ne 11) { throw 'Expected 11 unique PR8 case IDs.' }
 if (@($ids | Where-Object { -not $_.StartsWith('pr8.sleep.') }).Count) { throw 'Foreign case ID.' }
+& python -B (Join-Path $PSScriptRoot 'offline\verify_player_fixture.py')
+if ($LASTEXITCODE -ne 0) { throw 'Fixture Player source contract failed.' }
 $counterexampleProject = Join-Path $PSScriptRoot 'offline\Pr8ReloadContents.Tests.csproj'
 & dotnet build $counterexampleProject --no-restore '-p:UseSharedCompilation=false' ('-p:IntermediateOutputPath=' + (Join-Path $output 'reload-counterexamples-obj\')) ('-p:OutputPath=' + (Join-Path $output 'reload-counterexamples-out\'))
 if ($LASTEXITCODE -ne 0) { throw 'Reload counterexample compile failed.' }
 & (Join-Path $output 'reload-counterexamples-out\Pr8ReloadContents.Tests.exe')
 if ($LASTEXITCODE -ne 0) { throw 'Reload conservation counterexamples failed.' }
+$preservationProject = Join-Path $PSScriptRoot 'offline\FixturePreservation.Tests.csproj'
+& dotnet build $preservationProject --no-restore '-p:UseSharedCompilation=false' ('-p:IntermediateOutputPath=' + (Join-Path $output 'fixture-preservation-obj\')) ('-p:OutputPath=' + (Join-Path $output 'fixture-preservation-out\'))
+if ($LASTEXITCODE -ne 0) { throw 'Fixture preservation test compile failed.' }
+& (Join-Path $output 'fixture-preservation-out\Pr8FixturePreservation.Tests.exe') (Join-Path $modRoot 'elin_link\Elin_Data\Managed')
+if ($LASTEXITCODE -ne 0) { throw 'Native codex callback isolation/preservation counterexamples failed.' }
 $patchProject = Join-Path $PSScriptRoot 'offline\PatchRegistration.Tests.csproj'
 & dotnet build $patchProject --no-restore '-p:UseSharedCompilation=false' ('-p:IntermediateOutputPath=' + (Join-Path $output 'patch-registration-obj\')) ('-p:OutputPath=' + (Join-Path $output 'patch-registration-out\'))
 if ($LASTEXITCODE -ne 0) { throw 'Patch registration test compile failed.' }
@@ -57,4 +64,4 @@ $source = Join-Path $output 'pr8-generated-compile.cs'
 [System.IO.File]::WriteAllText($source, $adapted)
 & dotnet build $project --no-restore '-p:UseSharedCompilation=false' ('-p:GeneratedCompileSource=' + $source) ('-p:OutputPath=' + (Join-Path $output 'generated-out\')) ('-p:IntermediateOutputPath=' + (Join-Path $output 'generated-obj\')) @productArg
 if ($LASTEXITCODE -ne 0) { throw 'Generated using-stripped csx compile failed.' }
-Write-Host "PASS: product Harmony registration; reload conservation counterexamples; 11 unique guarded cases; native source and generated-source compile. Game/CWL execution not performed."
+Write-Host "PASS: native codex callback isolation/preservation counterexamples; fixture Player source contract; product Harmony registration; reload conservation counterexamples; 11 unique guarded cases; native source and generated-source compile. Game/CWL execution not performed."

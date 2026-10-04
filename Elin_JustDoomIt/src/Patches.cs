@@ -1,5 +1,4 @@
-﻿using HarmonyLib;
-using System.Collections.Generic;
+using HarmonyLib;
 
 namespace Elin_JustDoomIt
 {
@@ -8,7 +7,7 @@ namespace Elin_JustDoomIt
     {
         private const string DoomArcadeThingId = "justdoomit_arcade";
         // Elin's zone.lv is 0-based for above-ground floors: 0=1F, 1=2F, ...
-        private const int TargetFloorLv = 1;
+        private const int TargetFloorLv = DoomArcadePlacementPolicy.TargetFloorLv;
         private const int TargetX = 49;
         private const int TargetZ = 66;
 
@@ -21,25 +20,35 @@ namespace Elin_JustDoomIt
                     return;
                 }
 
-                if (!IsCasinoZone(__instance))
+                var isCasinoZone = IsCasinoZone(__instance);
+                if (!isCasinoZone)
                 {
                     return;
                 }
 
-                if (__instance.lv != TargetFloorLv)
+                var hasExistingCabinet = HasExistingArcadeCabinet(__instance);
+                var sourceReady = true;
+                if (__instance.lv == TargetFloorLv && !hasExistingCabinet)
                 {
-                    RemoveArcadesInZoneMap(__instance);
+                    sourceReady = IsArcadeSourceReady();
+                }
+
+                var decision = DoomArcadePlacementPolicy.Decide(
+                    isCasinoZone,
+                    __instance.lv,
+                    hasExistingCabinet,
+                    sourceReady);
+
+                if (decision == DoomArcadePlacementDecision.SkipMissingSource)
+                {
+                    DoomDiagnostics.Warn("[JustDoomIt] Fortune Bell placement skipped: custom source not ready. " +
+                        "id=" + DoomArcadeThingId + " zone=" + __instance.id + " lv=" + __instance.lv);
                     return;
                 }
 
-                // Idempotent placement: skip if cabinet already exists in this map.
-                foreach (Thing thing in __instance.map.things)
+                if (decision != DoomArcadePlacementDecision.PlaceNewCabinet)
                 {
-                    if (thing != null && thing.id == DoomArcadeThingId && thing.ExistsOnMap)
-                    {
-                        ApplyCasinoOwnershipFlags(thing);
-                        return;
-                    }
+                    return;
                 }
 
                 Point placePoint = FindPlacementPoint(__instance);
@@ -50,7 +59,13 @@ namespace Elin_JustDoomIt
                     return;
                 }
 
-                Card placed = __instance.AddCard(ThingGen.Create(DoomArcadeThingId), placePoint);
+                Thing arcade = CreateValidatedArcadeThing();
+                if (arcade == null)
+                {
+                    return;
+                }
+
+                Card placed = __instance.AddCard(arcade, placePoint);
                 ApplyCasinoOwnershipFlags(placed);
                 placed?.Install();
                 DoomDiagnostics.Info("[JustDoomIt] Placed arcade cabinet at " + placePoint +
@@ -67,34 +82,22 @@ namespace Elin_JustDoomIt
             return string.Equals(zone?.id, "casino", System.StringComparison.OrdinalIgnoreCase);
         }
 
-        private static void RemoveArcadesInZoneMap(Zone zone)
+        private static bool HasExistingArcadeCabinet(Zone zone)
         {
             if (zone?.map?.things == null)
             {
-                return;
+                return false;
             }
 
-            var toRemove = new List<Thing>();
             foreach (Thing thing in zone.map.things)
             {
                 if (thing != null && thing.id == DoomArcadeThingId && thing.ExistsOnMap)
                 {
-                    toRemove.Add(thing);
+                    return true;
                 }
             }
 
-            if (toRemove.Count == 0)
-            {
-                return;
-            }
-
-            for (var i = 0; i < toRemove.Count; i++)
-            {
-                toRemove[i]?.Destroy();
-            }
-
-            DoomDiagnostics.Info("[JustDoomIt] Removed " + toRemove.Count +
-                " arcade cabinet(s) from non-target casino floor. zone=" + zone.id + " lv=" + zone.lv);
+            return false;
         }
 
         private static Point FindPlacementPoint(Zone zone)
@@ -103,7 +106,7 @@ namespace Elin_JustDoomIt
             if (zone?.map != null && zone.map.bounds != null && zone.map.bounds.Contains(target))
             {
                 // Prefer exact coordinate first.
-                if (!target.IsBlocked && !target.HasChara)
+                if (IsValidPlacementPoint(target))
                 {
                     return target;
                 }
@@ -114,12 +117,56 @@ namespace Elin_JustDoomIt
                     allowChara: false,
                     allowInstalled: false,
                     ignoreCenter: true);
-                return nearest ?? target;
+                return IsValidPlacementPoint(nearest) ? nearest : null;
             }
 
             DoomDiagnostics.Warn("[JustDoomIt] Fortune Bell fixed coordinate is outside map bounds: (" +
                 TargetX + "," + TargetZ + "), zone=" + zone.id + " lv=" + zone.lv);
-            return zone.bounds?.GetCenterPos()?.GetNearestPoint(allowBlock: false, allowChara: false, allowInstalled: false);
+            var fallback = zone.bounds?.GetCenterPos()?.GetNearestPoint(allowBlock: false, allowChara: false, allowInstalled: false);
+            return IsValidPlacementPoint(fallback) ? fallback : null;
+        }
+
+        private static bool IsValidPlacementPoint(Point point)
+        {
+            return point != null &&
+                   point.IsValid &&
+                   !point.IsBlocked &&
+                   !point.HasChara &&
+                   !point.HasThing;
+        }
+
+        private static bool IsArcadeSourceReady()
+        {
+            var hasCard = EClass.sources?.cards?.map?.ContainsKey(DoomArcadeThingId) ?? false;
+            var hasThing = EClass.sources?.things?.map?.ContainsKey(DoomArcadeThingId) ?? false;
+            return hasCard && hasThing;
+        }
+
+        private static Thing CreateValidatedArcadeThing()
+        {
+            Thing arcade = ThingGen.Create(DoomArcadeThingId);
+            if (arcade == null)
+            {
+                DoomDiagnostics.Warn("[JustDoomIt] Fortune Bell placement skipped: ThingGen returned null for " + DoomArcadeThingId + ".");
+                return null;
+            }
+
+            if (!string.Equals(arcade.id, DoomArcadeThingId, System.StringComparison.OrdinalIgnoreCase))
+            {
+                DoomDiagnostics.Warn("[JustDoomIt] Fortune Bell placement skipped: generated fallback id=" + arcade.id +
+                    " expected=" + DoomArcadeThingId + ".");
+                return null;
+            }
+
+            if (!(arcade.trait is TraitJustDoomArcade))
+            {
+                var traitName = arcade.trait != null ? arcade.trait.GetType().FullName : "(null)";
+                DoomDiagnostics.Warn("[JustDoomIt] Fortune Bell placement skipped: generated trait=" + traitName +
+                    " expected=" + nameof(TraitJustDoomArcade) + ".");
+                return null;
+            }
+
+            return arcade;
         }
 
         private static void ApplyCasinoOwnershipFlags(Card card)
@@ -136,4 +183,3 @@ namespace Elin_JustDoomIt
         }
     }
 }
-

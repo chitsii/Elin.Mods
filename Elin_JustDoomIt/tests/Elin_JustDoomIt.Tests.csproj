@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <Compile Include="..\src\DoomInputBindingDefaults.cs" Link="DoomInputBindingDefaults.cs" />
+    <Compile Include="..\src\DoomArcadePlacementPolicy.cs" Link="DoomArcadePlacementPolicy.cs" />
     <Compile Include="..\src\DoomBindingToken.cs" Link="DoomBindingToken.cs" />
     <Compile Include="..\src\DoomBindingParser.cs" Link="DoomBindingParser.cs" />
     <Compile Include="..\src\DoomModEntryCore.cs" Link="DoomModEntryCore.cs" />

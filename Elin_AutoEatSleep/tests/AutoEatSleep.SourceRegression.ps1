@@ -1,9 +1,17 @@
 param(
     [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
-    [string]$ApiSurveyRoot = 'C:\Users\tishi\Documents\Codex\2026-10-04\task-2\elin-dll-api-survey\cs'
+    [string]$ApiSurveyRoot = $env:ELIN_API_SURVEY_CS
 )
 
 $ErrorActionPreference = 'Stop'
+
+if ([string]::IsNullOrWhiteSpace($ApiSurveyRoot)) {
+    throw 'ApiSurveyRoot is required. Pass -ApiSurveyRoot <path-to-elin-dll-api-survey\cs> or set ELIN_API_SURVEY_CS.'
+}
+
+if (-not (Test-Path -LiteralPath $ApiSurveyRoot -PathType Container)) {
+    throw "ApiSurveyRoot does not exist or is not a directory: $ApiSurveyRoot"
+}
 
 function Assert-Match {
     param(
@@ -50,5 +58,6 @@ Assert-NoMatch 'project does not depend on unavailable BepInEx NuGet packages' $
 Assert-Match 'project references installed BepInEx.Core from the game path' $project '<Reference\s+Include="BepInEx\.Core">'
 Assert-Match 'project references installed BepInEx.Unity from the game path' $project '<Reference\s+Include="BepInEx\.Unity">'
 Assert-NoMatch 'normal build target does not deploy into game folders' $project '<Target\s+Name="PostBuild"[\s\S]*?(BepInEx\\plugins|Package\\Elin_AutoEatSleep|xcopy)'
+Assert-NoMatch 'explicit Deploy target does not double-load through BepInEx plugins' $project 'DeployPluginPath|BepInExPath\)\\plugins|DestinationFolder="\$\(DeployPluginPath\)"'
 
 Write-Host 'AutoEatSleep source-linked regression checks passed.'

@@ -73,12 +73,10 @@
   <Target Name="Deploy" DependsOnTargets="Build" Condition="'$(DeployToGame)' == 'true'">
     <PropertyGroup>
       <DeployPackagePath Condition="'$(DeployPackagePath)' == ''">$(GamePath)\Package\$(AssemblyName)</DeployPackagePath>
-      <DeployPluginPath Condition="'$(DeployPluginPath)' == ''">$(BepInExPath)\plugins\$(AssemblyName)</DeployPluginPath>
     </PropertyGroup>
-    <MakeDir Directories="$(DeployPackagePath);$(DeployPluginPath)" />
+    <MakeDir Directories="$(DeployPackagePath)" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DeployPackagePath)" />
     <Copy SourceFiles="$(MSBuildThisFileDirectory)..\package.xml" DestinationFolder="$(DeployPackagePath)" />
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DeployPluginPath)" />
   </Target>
 
 </Project>

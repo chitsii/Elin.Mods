@@ -41,9 +41,9 @@ Elin のカスタムアーケード筐体（CWLで追加）から、オーバー
 
 ソースのリポジトリは <https://github.com/chitsii/Elin.Mods> です。上流の ManagedDoom そのものではなく、本 Mod の修正済み `vendor/ManagedDoom/src`、製品ソース、プロジェクトとビルドスクリプトを含む対応ソースを提供します。
 
-**最終リリースに対応するソースURLは未確定です。** この公開準備候補の変更は未pushであり、上記リポジトリでこの候補DLLに一致するソースがすでに公開されているとは扱いません。
+この配布候補DLLに対応するソースは、commit `11696f2f387418acfa4ca0b9a3dca69b7affabf5` に固定した <https://github.com/chitsii/Elin.Mods/tree/11696f2f387418acfa4ca0b9a3dca69b7affabf5> です。`Elin_JustDoomIt` の製品ソース、修正済み `vendor/ManagedDoom/src`、プロジェクトとビルドスクリプトを含みます。
 
-正式配布前に、互換修正のレビュー・テストを済ませた最終DLLと対応ソースを照合し、commitを固定した `https://github.com/chitsii/Elin.Mods/tree/<FINAL_RELEASE_COMMIT>` の実URLをここに記載します。対応ソースの提供先と一致確認を完了するまで、この候補は公開しません。
+このURLを固定した後続変更はREADMEの案内のみで、上記commitの製品ソース・ビルド入力および検証済みDLLは同一です。配布時はこの固定URLと同梱ライセンス文を保持してください。Workshopへの公開は別途行います。
 
 ### 2) FreeDoom WAD (game data)
 

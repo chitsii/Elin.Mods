@@ -174,6 +174,19 @@ namespace Elin_ArsMoriendi
                 new CompatMethodSignature("DamageHP", typeof(void), new[] { typeof(long), typeof(int), typeof(int), typeof(AttackSource), typeof(Card), typeof(bool), typeof(Thing), typeof(Chara) }),
             });
 
+        public static readonly CompatSymbol ActEffectGetTeleportPos = new(
+            id: "ActEffect.GetTeleportPos",
+            ownerType: typeof(ActEffect),
+            candidateNames: new[] { "GetTeleportPos" },
+            isStatic: true,
+            // Only the two reviewed contracts are safe; do not guess future arguments.
+            predicate: _ => false,
+            strictSignatures: new[]
+            {
+                new CompatMethodSignature("GetTeleportPos", typeof(Point), new[] { typeof(Point), typeof(int), typeof(Chara) }),
+                new CompatMethodSignature("GetTeleportPos", typeof(Point), new[] { typeof(Point), typeof(int) }),
+            });
+
         public static IReadOnlyList<CompatSymbol> All { get; } = new[]
         {
             CharaSetMainElement,
@@ -183,6 +196,7 @@ namespace Elin_ArsMoriendi
             ActPlanUpdate,
             PointGetNearestPoint,
             CardDamageHp,
+            ActEffectGetTeleportPos,
         };
     }
 }

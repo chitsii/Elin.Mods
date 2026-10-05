@@ -7,7 +7,7 @@ using EvilMask.Elin.ModOptions.UI;
 
 namespace Elin_LogRefined
 {
-    [BepInPlugin(ModGuid, "Log Refined", "0.23.252")]
+    [BepInPlugin(ModGuid, "Log Refined", "0.23.253")]
     [BepInDependency("evilmask.elinplugins.modoptions", BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {

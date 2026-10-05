@@ -8,7 +8,7 @@ using Elin_QuestMod.DebugTools;
 
 namespace Elin_QuestMod
 {
-    [BepInPlugin(ModGuid, "Quest Mod Skeleton", "0.1.0")]
+    [BepInPlugin(ModGuid, "Quest Mod Skeleton", "0.1.1")]
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string ModGuid = "yourname.elin_quest_mod";

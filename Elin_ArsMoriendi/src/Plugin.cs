@@ -12,7 +12,7 @@ using EvilMask.Elin.ModOptions.UI;
 
 namespace Elin_ArsMoriendi
 {
-    [BepInPlugin(ModGuid, "Ars Moriendi", "0.1.0")]
+    [BepInPlugin(ModGuid, "Ars Moriendi", "0.1.1")]
     [BepInDependency("evilmask.elinplugins.modoptions", BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {

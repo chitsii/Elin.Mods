@@ -18,7 +18,7 @@ namespace Elin_SukutsuArena;
 /// 巣窟アリーナ Mod プラグインエントリ
 /// </summary>
 [GameDependency("Reflection", "Cwl.API.Custom.CustomZone.Managed", "High", "CWL internal API, may change between CWL versions")]
-[BepInPlugin(ArenaConfig.ModGuid, "Sukutsu Arena", "0.1.0")]
+[BepInPlugin(ArenaConfig.ModGuid, "Sukutsu Arena", "0.1.1")]
 public class Plugin : BaseUnityPlugin
 {
     // ArenaConfigを参照するための便利エイリアス

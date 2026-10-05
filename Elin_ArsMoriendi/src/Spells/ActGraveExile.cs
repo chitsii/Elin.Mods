@@ -39,7 +39,7 @@ namespace Elin_ArsMoriendi
                     mapWidth * (0.30 + Math.Min(0.15, power / 5000.0)))));
 
                 Point destination = FindFarPoint(servant.pos, teleportDistance)
-                    ?? ActEffect.GetTeleportPos(servant.pos, teleportDistance);
+                    ?? TeleportPosCompat.GetTeleportPos(servant.pos, teleportDistance);
 
                 Vector3 originFxPos = servant.renderer != null
                     ? servant.renderer.PositionCenter()
@@ -52,7 +52,7 @@ namespace Elin_ArsMoriendi
                 {
                     var enemy = candidates[i];
                     var spot = FindNearbyPlacement(destination, reserved)
-                        ?? ActEffect.GetTeleportPos(destination, 6);
+                        ?? TeleportPosCompat.GetTeleportPos(destination, 6);
                     enemy.Teleport(spot, silent: true, force: true);
                     reserved.Add(spot.index);
                 }

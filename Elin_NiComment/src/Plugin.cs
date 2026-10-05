@@ -8,7 +8,7 @@ using EvilMask.Elin.ModOptions.UI;
 
 namespace Elin_NiComment
 {
-    [BepInPlugin(ModGuid, "NiComment", "0.1.0")]
+    [BepInPlugin(ModGuid, "NiComment", "0.1.1")]
     [BepInDependency("evilmask.elinplugins.modoptions", BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {

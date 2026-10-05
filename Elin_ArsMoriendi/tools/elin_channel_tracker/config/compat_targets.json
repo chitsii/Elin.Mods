@@ -95,6 +95,19 @@
         "void(System.Int64,System.Int32,System.Int32,AttackSource,Card,System.Boolean,Thing,Chara,System.Int32)",
         "void(System.Int64,System.Int32,System.Int32,AttackSource,Card,System.Boolean,Thing,Chara)"
       ]
+    },
+    {
+      "target": "ActEffect.GetTeleportPos",
+      "check_kind": "reflection",
+      "type_name": "ActEffect",
+      "canonical_name": "GetTeleportPos",
+      "candidate_names": [
+        "GetTeleportPos"
+      ],
+      "candidate_signatures": [
+        "Point(Point,System.Int32,Chara)",
+        "Point(Point,System.Int32)"
+      ]
     }
   ]
 }

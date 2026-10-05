@@ -18,7 +18,7 @@ namespace Elin_ItemRelocator {
     public class Elin_ItemRelocator : BaseUnityPlugin {
         public const string ID = "Elin_ItemRelocator";
         public const string TITLE = "Item Relocator";
-        public const string VERSION = "1.0.0";
+        public const string VERSION = "1.0.1";
 
         public static Elin_ItemRelocator Instance { get; private set; }
         internal new static ManualLogSource Logger;

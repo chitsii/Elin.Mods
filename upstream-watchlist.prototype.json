@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "mods": [
+    {
+      "id": "Elin_ArsMoriendi",
+      "files": [
+        "Elin/AI_Slaughter.cs",
+        "Elin/ActEffect.cs",
+        "Elin/ActPlan.cs",
+        "Elin/BaseGameScreen.cs",
+        "Elin/BaseListPeople.cs",
+        "Elin/Card.cs",
+        "Elin/Chara.cs",
+        "Elin/ExpeditionManager.cs",
+        "Elin/FactionBranch.cs",
+        "Elin/ListPeopleExpedition.cs",
+        "Elin/Party.cs",
+        "Elin/Point.cs",
+        "Elin/Quest.cs",
+        "Elin/QuestCompanion.cs",
+        "Elin/ShopTransaction.cs",
+        "Elin/Trait.cs",
+        "Elin/TraitToolButcher.cs",
+        "Elin/Zone.cs",
+        "Elin/ZoneEventManager.cs"
+      ],
+      "targets_file": "Elin_ArsMoriendi/tools/elin_channel_tracker/config/compat_targets.json",
+      "apis": [
+        {
+          "target": "ActEffect.GetTeleportPos",
+          "static": true
+        }
+      ]
+    },
+    {
+      "id": "Elin_AutoEatSleep",
+      "files": [
+        "Elin/AI_Eat.cs",
+        "Elin/AI_Sleep.cs",
+        "Elin/ActPlan.cs",
+        "Elin/Chara.cs",
+        "Elin/ConSleep.cs",
+        "Elin/Game.cs",
+        "Elin/HotItemActionSleep.cs",
+        "Elin/Scene.cs",
+        "Elin/SourceManager.cs",
+        "Elin/Stats.cs",
+        "Elin/Thing.cs"
+      ]
+    },
+    {
+      "id": "Elin_AutoOfferingAlter",
+      "files": [
+        "Elin/ActPlan.cs",
+        "Elin/Chara.cs",
+        "Elin/Effect.cs",
+        "Elin/RecipeCard.cs",
+        "Elin/Scene.cs",
+        "Elin/SourceManager.cs",
+        "Elin/Thing.cs",
+        "Elin/TraitAltar.cs"
+      ]
+    },
+    {
+      "id": "Elin_JustDoomIt",
+      "files": [
+        "Elin/CardActor.cs",
+        "Elin/CardRenderer.cs",
+        "Elin/Chara.cs",
+        "Elin/SourceManager.cs",
+        "Elin/Thing.cs",
+        "Elin/Zone.cs"
+      ]
+    },
+    {
+      "id": "Elin_ItemRelocator",
+      "files": [
+        "Elin/ActPlan.cs",
+        "Elin/Chara.cs",
+        "Elin/Game.cs",
+        "Elin/Scene.cs",
+        "Elin/SourceManager.cs",
+        "Elin/Thing.cs",
+        "Elin/UIInventory.cs",
+        "Elin/Zone.cs"
+      ]
+    },
+    {
+      "id": "Elin_LogRefined",
+      "files": [
+        "Elin/BaseCondition.cs",
+        "Elin/Card.cs",
+        "Elin/Chara.cs",
+        "Elin/Condition.cs",
+        "Elin/Msg.cs"
+      ]
+    },
+    {
+      "id": "Elin_NiComment",
+      "files": [
+        "Elin/Chara.cs",
+        "Elin/Msg.cs",
+        "Elin/Quest.cs"
+      ]
+    },
+    {
+      "id": "Elin_QuestMod",
+      "files": [
+        "Elin/Chara.cs",
+        "Elin/DramaManager.cs",
+        "Elin/Point.cs",
+        "Elin/Quest.cs",
+        "Elin/Zone.cs"
+      ]
+    },
+    {
+      "id": "Elin_SukutsuArena",
+      "files": [
+        "Elin/ActEffect.cs",
+        "Elin/Card.cs",
+        "Elin/Chara.cs",
+        "Elin/DramaManager.cs",
+        "Elin/LayerDrama.cs",
+        "Elin/Point.cs",
+        "Elin/Region.cs",
+        "Elin/Zone.cs"
+      ]
+    }
+  ]
+}

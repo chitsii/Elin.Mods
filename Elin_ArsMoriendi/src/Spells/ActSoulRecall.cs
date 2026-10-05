@@ -69,7 +69,7 @@ namespace Elin_ArsMoriendi
 
             while (positions.Count < count)
             {
-                positions.Add(ActEffect.GetTeleportPos(fallbackCenter, 6));
+                positions.Add(TeleportPosCompat.GetTeleportPos(fallbackCenter, 6));
             }
 
             return positions;

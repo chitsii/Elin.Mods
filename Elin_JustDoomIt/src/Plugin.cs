@@ -8,7 +8,7 @@ namespace Elin_JustDoomIt
     {
         public const string ModGuid = "chitsii.elin_justdoomit";
         public const string ModName = "Elin_JustDoomIt";
-        public const string ModVersion = "0.23.254";
+        public const string ModVersion = "0.23.255";
 
         private void Awake()
         {

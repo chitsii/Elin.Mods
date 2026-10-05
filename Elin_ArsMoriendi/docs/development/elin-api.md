@@ -12,6 +12,15 @@
 | `chara.SetSummon(duration)` | 一時召喚（ターン経過で消滅） |
 | `SpawnListChara.Get(id, filter)` | フィルタ付きスポーンリスト取得 |
 
+## `ActEffect.GetTeleportPos` の互換呼び出し
+
+- ソース確認: Stable EA23.338.2 (`35fac67c8cd3adbc145f37a55b0f04b1347dbb73`) / Nightly EA23.351.2 (`38a69bd9e976e46d5a512bb4811d586b96e70b3c`) の `Elin/ActEffect.cs`。
+- Stable は `Point GetTeleportPos(Point org, int radius = 6)`、Nightly は末尾に `Chara target = null` を追加。追加条件は `(target == null || i >= 100 || Los.IsVisible(point, target.pos))` なので、`null` なら Stable の探索条件・最終 fallback を維持する。
+- `ActGraveExile` の2箇所と `ActSoulRecall` の1箇所は `TeleportPosCompat.GetTeleportPos` を使用する。`CompatSymbol` の既知2署名を `MethodResolver` で warmup / キャッシュし、初回使用時に型付き delegate を1回だけ bind する。Nightly には明示的に `null` を渡す。
+- 未知署名への緩い fallback は行わない。解決失敗は resolver が1回ログし、binding 失敗は `Lazy` がキャッシュする。呼出し時は例外で既存の spell `Perform()` の catch に戻す。安全性不明の `origin` 等を成功位置として返さない。ゲーム側の例外は delegate から元の例外のまま伝播し、binding を失敗扱いにしない。
+- オフライン contract テスト: `dotnet test tests/Elin_ArsMoriendi.Compat.Tests/Elin_ArsMoriendi.Compat.Tests.csproj -p:TeleportContract=Stable`。`Nightly` / `Unsupported` も個別実行する。fixture のメソッド本体は上記実ソースから抽出し、map / random / LOS 境界のみ制御している。実 Nightly DLL / ゲーム内検証の代替にはならない。
+- tracker の対象には追加済み。既存の `stable_signatures.json` / `nightly_signatures.json` は過去の実DLL収集結果なので、現在版の実DLLで再収集するまで更新済みとは扱わない。ソース由来 fixture と実DLL catalog を混ぜない。
+
 ## `Card.DamageHP` の互換呼び出し（実装確認済み）
 
 - 最終確認: 2026-05-10

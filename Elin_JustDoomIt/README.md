@@ -37,9 +37,17 @@ Elin のカスタムアーケード筐体（CWLで追加）から、オーバー
 
 本 Mod は `ManagedDoom` ソースを同梱してビルドします。再配布時は GPL の条件に従い、対応するソースとライセンス文を提供してください。
 
+#### この配布候補の対応ソース
+
+ソースのリポジトリは <https://github.com/chitsii/Elin.Mods> です。上流の ManagedDoom そのものではなく、本 Mod の修正済み `vendor/ManagedDoom/src`、製品ソース、プロジェクトとビルドスクリプトを含む対応ソースを提供します。
+
+この配布候補DLLに対応するソースは、commit `11696f2f387418acfa4ca0b9a3dca69b7affabf5` に固定した <https://github.com/chitsii/Elin.Mods/tree/11696f2f387418acfa4ca0b9a3dca69b7affabf5> です。`Elin_JustDoomIt` の製品ソース、修正済み `vendor/ManagedDoom/src`、プロジェクトとビルドスクリプトを含みます。
+
+このURLを固定した後続変更はREADMEの案内のみで、上記commitの製品ソース・ビルド入力および検証済みDLLは同一です。配布時はこの固定URLと同梱ライセンス文を保持してください。Workshopへの公開は別途行います。
+
 ### 2) FreeDoom WAD (game data)
 
-- Asset: `freedoom1.wad`
+- Assets: `freedoom1.wad`, `freedoom2.wad`
 - License: `BSD 3-Clause` (FreeDoom project)
 - Distributed license text: `LICENSES/FreeDoom-BSD-3-Clause.txt`
 - Distributed credits list: `LICENSES/FreeDoom-CREDITS.txt`

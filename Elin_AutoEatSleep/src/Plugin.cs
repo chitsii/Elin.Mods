@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Elin_AutoEatSleep
 {
-    [BepInPlugin("com.elin.autoeatsleep", "Elin Auto Eat & Sleep", "1.0.0")]
+    [BepInPlugin("com.elin.autoeatsleep", "Elin Auto Eat & Sleep", "1.0.1")]
     public class Plugin : BaseUnityPlugin
     {
         public static Plugin Instance { get; private set; }

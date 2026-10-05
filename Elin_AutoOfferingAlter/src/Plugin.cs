@@ -4,7 +4,7 @@ using System;
 
 namespace Elin_AutoOfferingAlter
 {
-    [BepInPlugin("tishi.elin.auto_offering_alter", "Elin_AutoOfferingAlter", "1.0.0.0")]
+    [BepInPlugin("tishi.elin.auto_offering_alter", "Elin_AutoOfferingAlter", "1.0.0.1")]
     public class Plugin : BaseUnityPlugin
     {
         public const string ID_OFFERING_BOX = "tishi.offering_box";

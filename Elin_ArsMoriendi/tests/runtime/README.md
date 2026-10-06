@@ -1,5 +1,16 @@
 # Runtime Test (ArsMoriendi)
 
+## Stable 23.352 source initialization regression
+
+`source.characters.native_registration` is read-only and runs in the smoke suite.
+It checks all eight packaged Chara rows: non-null colorType/DefaultMaterial,
+the identical row in SourceCard.map, exactly one SourceCard.rows entry, and the
+product Harmony prefix. SourceChara existence alone is insufficient.
+
+```powershell
+.\tests\runtime\run.ps1 -Suite smoke -CaseId source.characters.native_registration
+```
+
 ArsMoriendi のランタイムテスト配置先です。  
 共通ランナーはリポジトリ直下 `runtime-test-v2/` を利用します。
 

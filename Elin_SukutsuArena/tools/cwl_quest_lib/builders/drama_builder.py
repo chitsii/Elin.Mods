@@ -966,7 +966,7 @@ class DramaBuilder:
 
     def set_background(self, bg_id: str) -> "DramaBuilder":
         """背景画像を設定"""
-        code = f'dm.imageBG.enabled = true; dm.imageBG.sprite = "{bg_id}".LoadSprite();'
+        code = f'dm.imageBG.enabled = true; dm.imageBG.sprite = ModUtil.LoadSprite("{bg_id}");'
         self.entries.append({"action": "eval", "param": code})
         return self
 

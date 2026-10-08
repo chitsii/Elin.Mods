@@ -23,6 +23,7 @@ from .signature_collector import (
     run_signature_collector,
 )
 from .target_gap_detector import detect_target_gaps
+from .upstream_watch import evaluate_watch, render_watch
 
 
 TOOL_ROOT = Path(__file__).resolve().parents[2]
@@ -53,6 +54,13 @@ def main(argv: list[str] | None = None) -> int:
             return _run_detect_target_gaps(args)
         if args.command == "verify-compat":
             return _run_verify_compat(args)
+        if args.command == "watch-upstream":
+            report = evaluate_watch(repo=Path(args.repo), watchlist=Path(args.watchlist),
+                                    accepted_ref=args.accepted_ref, candidate_ref=args.candidate_ref)
+            _write_json(Path(args.report_json), report)
+            _write_text(Path(args.report_md), render_watch(report))
+            print(f"[watch-upstream] {report['label']} ({report['status']})")
+            return report['exit_code']
     except Exception as ex:
         print(f"[error] {ex}", file=sys.stderr)
         return 2
@@ -64,6 +72,14 @@ def main(argv: list[str] | None = None) -> int:
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="elin-channel-tracker")
     subparsers = parser.add_subparsers(dest="command")
+
+    watch = subparsers.add_parser("watch-upstream", help="Local watchlist probe; no fetch or baseline advancement.")
+    watch.add_argument("--repo", required=True)
+    watch.add_argument("--watchlist", required=True)
+    watch.add_argument("--accepted-ref", required=True, help="Last human-accepted upstream commit.")
+    watch.add_argument("--candidate-ref", required=True)
+    watch.add_argument("--report-json", required=True)
+    watch.add_argument("--report-md", required=True)
 
     track = subparsers.add_parser("track-channels", help="Track stable/nightly channel heads.")
     track.add_argument("--stable-ref", default="origin/stable")

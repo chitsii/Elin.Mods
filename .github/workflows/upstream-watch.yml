@@ -19,14 +19,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          persist-credentials: false
-          sparse-checkout-cone-mode: false
-          sparse-checkout: |
-            /tools/elin_channel_tracker/
-            /upstream-watchlist.prototype.json
-            /Elin_ArsMoriendi/tools/elin_channel_tracker/config/compat_targets.json
+      # Public, exact-SHA sparse checkout. No auth/submodule cleanup traverses the
+      # existing incomplete DramaDsl gitlink; no repository settings are changed.
+      - name: Fetch required public Mod inputs
+        env:
+          MOD_COMMIT: ${{ github.sha }}
+        run: |
+          git init -q .
+          git remote add origin https://github.com/chitsii/Elin.Mods.git
+          git config remote.origin.promisor true
+          git config remote.origin.partialclonefilter blob:none
+          git fetch --filter=blob:none --depth=1 --no-tags origin "$MOD_COMMIT"
+          git config core.sparseCheckout true
+          printf '%s\n' '/tools/elin_channel_tracker/' '/upstream-watchlist.prototype.json' '/Elin_ArsMoriendi/tools/elin_channel_tracker/config/compat_targets.json' > .git/info/sparse-checkout
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$MOD_COMMIT"
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           version: '0.8.8'
@@ -47,14 +54,19 @@ jobs:
       group: upstream-watch-issues
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          persist-credentials: false
-          sparse-checkout-cone-mode: false
-          sparse-checkout: |
-            /tools/elin_channel_tracker/
-            /upstream-watchlist.prototype.json
-            /Elin_ArsMoriendi/tools/elin_channel_tracker/config/compat_targets.json
+      - name: Fetch required public Mod inputs
+        env:
+          MOD_COMMIT: ${{ github.sha }}
+        run: |
+          git init -q .
+          git remote add origin https://github.com/chitsii/Elin.Mods.git
+          git config remote.origin.promisor true
+          git config remote.origin.partialclonefilter blob:none
+          git fetch --filter=blob:none --depth=1 --no-tags origin "$MOD_COMMIT"
+          git config core.sparseCheckout true
+          printf '%s\n' '/tools/elin_channel_tracker/' '/upstream-watchlist.prototype.json' '/Elin_ArsMoriendi/tools/elin_channel_tracker/config/compat_targets.json' > .git/info/sparse-checkout
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$MOD_COMMIT"
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           version: '0.8.8'

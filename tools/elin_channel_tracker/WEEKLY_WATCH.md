@@ -11,6 +11,9 @@ are available. A Draft PR only runs the read-only unit validation job.
 No runner, PAT, service, cache/queue/database, or new secret is required.
 The Mod checkout is sparse: only this tool, the watchlist and its API contract.
 Unrelated Mod assets and the repository's incomplete DramaDsl gitlink are excluded.
+It uses anonymous public Git fetch pinned to `github.sha`. The standard checkout
+action's auth cleanup traverses that incomplete gitlink even when sparse, so this
+small Git step avoids submodule/auth handling and retains no checkout credential.
 
 ## Inputs and outputs
 

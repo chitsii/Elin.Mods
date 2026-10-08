@@ -1,5 +1,40 @@
 # Runtime Test (SukutsuArena)
 
+## Stable 23.352 regressions
+
+`source.characters.native_registration` is a read-only smoke case covering all
+25 packaged Chara rows. It requires non-null colorType/DefaultMaterial, the same
+row in SourceCard.map, exactly one SourceCard.rows entry, and the product prefix.
+
+`drama.arena.opening_native_dialogue` must run alone on a disposable RUNTIME_TEST
+save before the first Arena conversation, with no Arena NPCs or active dialogue
+on the current map. It creates native level-1 Vargus/Lily fixtures, calls the
+master's normal ShowDialog, uses native confirmation and choice callbacks, and
+checks the real arena_lobby background, both NPC portraits, and OpeningSeen=1.
+It waits up to 10 seconds for the asynchronous NPC pre-invoke to select the opening book.
+Expected dialogue NPC references follow native GetActor resolution: global NPC, then map NPC.
+Existing global NPCs are read for their portraits; they are not renamed or destroyed by the fixture.
+It follows the first available choice only; it does not cover all story branches.
+The case captures two PNGs next to result.json and rejects runtime errors or
+unexpected game/dialogue identity changes. It never skips sequence events.
+
+Opening quest/journal/flags and NPC generation have real side effects. Autosave
+is suppressed and cleanup reloads the captured dedicated save without saving.
+Use a backed-up dedicated slot, and stop after timeout/cleanup failure; the
+external operator must confirm no live coroutine, then stop/restore safely.
+Screenshots still require visual review; non-null sprites alone are insufficient.
+
+```powershell
+.\tests\runtime\run.ps1 -CaseId source.characters.native_registration
+.\tests\runtime\run.ps1 -CaseId drama.arena.opening_native_dialogue -TimeoutSeconds 180 -KeepGeneratedSource
+```
+
+Builder regression tests generate the actual opening workbook:
+
+```powershell
+python -m unittest discover -s tests -p test_drama_background.py -v
+```
+
 SukutsuArena のランタイムテスト配置先です。  
 共通ランナーはリポジトリ直下 `runtime-test-v2/` を利用します。
 

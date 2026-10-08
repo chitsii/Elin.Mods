@@ -15,7 +15,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- テスト対象: 純粋計算ロジックのみ直接コンパイル -->
+    <!-- テスト対象を直接コンパイル。ゲーム/Harmony契約はテストstubで提供 -->
+    <Compile Include="..\..\src\CharacterSourceDefaultsPatch.cs" LinkBase="Source" />
     <Compile Include="..\..\src\NecromancyCalculations.cs" LinkBase="Source" />
     <Compile Include="..\..\src\Common\DialogFlagStore.cs" LinkBase="Source" />
     <Compile Include="..\..\src\Common\ServantIntegrityRules.cs" LinkBase="Source" />

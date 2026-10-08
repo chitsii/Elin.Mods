@@ -45,6 +45,10 @@
       <HintPath>$(ManagedPath)/Plugins.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Plugins.Modding">
+      <HintPath>$(ManagedPath)/Plugins.Modding.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="Plugins.BaseCore">
       <HintPath>$(ManagedPath)/Plugins.BaseCore.dll</HintPath>
       <Private>False</Private>

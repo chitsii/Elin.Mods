@@ -9,6 +9,8 @@ Monday 00:00 UTC / 09:00 JST plus manual `workflow_dispatch` on main.
 The new workflow must be merged into the default main branch before these triggers
 are available. A Draft PR only runs the read-only unit validation job.
 No runner, PAT, service, cache/queue/database, or new secret is required.
+The Mod checkout is sparse: only this tool, the watchlist and its API contract.
+Unrelated Mod assets and the repository's incomplete DramaDsl gitlink are excluded.
 
 ## Inputs and outputs
 

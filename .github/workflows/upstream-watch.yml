@@ -1,0 +1,108 @@
+name: Upstream watch
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Monday 09:00 JST; GitHub may delay scheduled runs.
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/upstream-watch.yml'
+      - 'tools/elin_channel_tracker/**'
+      - 'upstream-watchlist.prototype.json'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Public, exact-SHA sparse checkout. No auth/submodule cleanup traverses the
+      # existing incomplete DramaDsl gitlink; no repository settings are changed.
+      - name: Fetch required public Mod inputs
+        env:
+          MOD_COMMIT: ${{ github.sha }}
+        run: |
+          git init -q .
+          git remote add origin https://github.com/chitsii/Elin.Mods.git
+          git config remote.origin.promisor true
+          git config remote.origin.partialclonefilter blob:none
+          git fetch --filter=blob:none --depth=1 --no-tags origin "$MOD_COMMIT"
+          git config core.sparseCheckout true
+          printf '%s\n' '/tools/elin_channel_tracker/' '/upstream-watchlist.prototype.json' '/Elin_ArsMoriendi/tools/elin_channel_tracker/config/compat_targets.json' > .git/info/sparse-checkout
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$MOD_COMMIT"
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          version: '0.8.8'
+          python-version: '3.11'
+          enable-cache: false
+      - name: Watch and delivery unit tests (no upstream fetch or Issue writes)
+        working-directory: tools/elin_channel_tracker
+        run: uv run --locked python -m pytest tests/test_watch_upstream.py tests/test_weekly_watch.py -q
+
+  observe:
+    if: github.event_name != 'pull_request' && github.repository == 'chitsii/Elin.Mods' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+    concurrency:
+      group: upstream-watch-issues
+      cancel-in-progress: false
+    steps:
+      - name: Fetch required public Mod inputs
+        env:
+          MOD_COMMIT: ${{ github.sha }}
+        run: |
+          git init -q .
+          git remote add origin https://github.com/chitsii/Elin.Mods.git
+          git config remote.origin.promisor true
+          git config remote.origin.partialclonefilter blob:none
+          git fetch --filter=blob:none --depth=1 --no-tags origin "$MOD_COMMIT"
+          git config core.sparseCheckout true
+          printf '%s\n' '/tools/elin_channel_tracker/' '/upstream-watchlist.prototype.json' '/Elin_ArsMoriendi/tools/elin_channel_tracker/config/compat_targets.json' > .git/info/sparse-checkout
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$MOD_COMMIT"
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          version: '0.8.8'
+          python-version: '3.11'
+          enable-cache: false
+      - name: Compare pinned source endpoints and record Issue
+        working-directory: tools/elin_channel_tracker
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WATCH_RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          PYTHONPATH: src
+          GIT_TERMINAL_PROMPT: '0'
+        run: >-
+          uv run --locked --no-dev python -m elin_channel_tracker.weekly_watch
+          --upstream "$RUNNER_TEMP/elin-upstream"
+          --mod-repo ../..
+          --watchlist ../../upstream-watchlist.prototype.json
+          --accepted-file accepted-upstream.txt
+          --output reports/weekly
+          --fetch --publish
+      - name: Summary
+        if: always()
+        run: |
+          if [ -f tools/elin_channel_tracker/reports/weekly/watch.md ]; then
+            cat tools/elin_channel_tracker/reports/weekly/watch.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo '判定不能: report missing; setup or execution failed. TOWER verification not performed.' >> "$GITHUB_STEP_SUMMARY"
+            exit 2
+          fi
+      - name: Reports only (no DLLs, saves, or game files)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: upstream-watch-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            tools/elin_channel_tracker/reports/weekly/watch.json
+            tools/elin_channel_tracker/reports/weekly/watch.md
+          if-no-files-found: error
+          retention-days: 30

@@ -4,15 +4,61 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+import shutil
 
 import openpyxl
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from arena.builders import ArenaDramaBuilder
 from cwl_quest_lib.builders.drama_builder import DramaBuilder
+from builder.validate_drama_package import OPENING, validate_package
 
 
 class DramaBackgroundTests(unittest.TestCase):
+    def make_package(self, root, code):
+        path = root / OPENING
+        path.parent.mkdir(parents=True)
+        workbook = openpyxl.Workbook()
+        workbook.active.append(["action", "param"])
+        workbook.active.append(["eval", code])
+        workbook.save(path)
+        workbook.close()
+        return path
+
+    def test_package_gate_rejects_reproduced_subscription_eval(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.make_package(root, 'dm.imageBG.sprite = "Drama/arena_lobby".LoadSprite();')
+            errors = validate_package(root)
+            self.assertTrue(any("obsolete string.LoadSprite" in error for error in errors), errors)
+
+    def test_package_gate_accepts_native_payload_and_identical_copy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source, target = root / "source", root / "target"
+            self.make_package(source, 'dm.imageBG.sprite = ModUtil.LoadSprite("Drama/arena_lobby");')
+            shutil.copytree(source, target)
+            self.assertEqual(validate_package(source), [])
+            self.assertEqual(validate_package(target, source), [])
+
+    def test_package_gate_rejects_missing_or_different_copied_workbook(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source, target = root / "source", root / "target"
+            self.make_package(source, 'dm.imageBG.sprite = ModUtil.LoadSprite("Drama/arena_lobby");')
+            self.assertTrue(any("Missing copied drama" in e for e in validate_package(target, source)))
+            self.make_package(target, 'dm.imageBG.sprite = ModUtil.LoadSprite("Drama/another");')
+            self.assertTrue(any("SHA256 differs" in e for e in validate_package(target, source)))
+
+    def test_package_gate_rejects_obsolete_extra_workbook(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source, target = root / "source", root / "target"
+            self.make_package(source, 'dm.imageBG.sprite = ModUtil.LoadSprite("Drama/arena_lobby");')
+            shutil.copytree(source, target)
+            shutil.copy2(target / OPENING, target / OPENING.parent / "drama_removed.xlsx")
+            self.assertTrue(any("Unexpected stale drama" in e for e in validate_package(target, source)))
+
     def test_background_uses_explicit_native_loader(self):
         builder = DramaBuilder()
         self.assertIs(builder.set_background("Drama/arena_lobby"), builder)

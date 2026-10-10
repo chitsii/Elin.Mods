@@ -1,5 +1,19 @@
 # Runtime Test (SukutsuArena)
 
+## Workshop LoadSprite report
+
+`report.arena.opening_background` opens the real packaged opening book using
+an existing global Arena master on backed-up `world_11` / `RUNTIME_TEST`.
+It captures the native compilation exception or actual `arena_lobby` sprite,
+plus a screenshot. It does not replace the workbook eval or create an NPC.
+The scene is closed and the dedicated save reloaded without requesting a save.
+It covers the opening background eval; full first-conversation behavior is
+covered separately by `drama.arena.opening_native_dialogue`.
+
+```powershell
+.\tests\runtime\run.ps1 -CaseId report.arena.opening_background -TimeoutSeconds 180 -KeepGeneratedSource
+```
+
 ## Stable 23.352 regressions
 
 `source.characters.native_registration` is a read-only smoke case covering all

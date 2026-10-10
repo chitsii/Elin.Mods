@@ -1,5 +1,29 @@
 ﻿# Elin_SukutsuArena 開発メモ
 
+## 配布パッケージの作成・確認
+
+会話XLSXはGit管理外の生成物です。`dotnet build`だけでは再生成されないため、
+配布前は修正を含むcheckoutで`build.bat`を実行します。
+`STEAM_PACKAGE_DIR`を指定すれば、ゲームへ配置せず出力フォルダを作成できます。
+
+```bat
+set "STEAM_PACKAGE_DIR=%CD%\tmp\release\Elin_SukutsuArena"
+call build.bat
+```
+
+`build.bat`は生成済み会話の旧`string.LoadSprite()`を拒否し、コピー後にも
+出力先の会話ファイル一覧・SHA256を生成元と照合します。
+ビルド完了後、Workshopに選択したフォルダ自体を次のコマンドで確認してください。
+コピー先の差分や古い会話ファイルを検出した場合は公開せず、出力先を確認します。
+
+```bat
+cd tools
+uv run python builder/validate_drama_package.py --package-root "配布フォルダ" --reference-root ".."
+```
+
+この確認は会話データの再生成・転送を検証します。ゲーム内の会話実行確認は
+`tests/runtime/README.md`の実機テストを使用します。
+
 ## バリデーション
 ```bash
 cd tools

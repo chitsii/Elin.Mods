@@ -69,6 +69,9 @@ namespace Elin_JustDoomIt
 
         public static DoomSessionManager Instance { get; private set; }
 
+        internal static bool OwnsInventoryInput =>
+            Instance != null && Instance._backend != null && Instance._backend.IsRunning;
+
         private ManualLogSource _logger;
         private IDoomBackend _backend;
         private DoomOverlayDisplay _overlay;

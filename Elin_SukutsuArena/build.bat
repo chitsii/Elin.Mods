@@ -430,6 +430,13 @@ REM Step 15: Deploy
 REM ============================================================
 <nul set /p "=[15/15] Deploy... "
 
+REM Validate generated evals before writing the destination package.
+pushd tools
+uv run python builder/validate_drama_package.py --package-root "%~dp0."
+set DRAMA_PACKAGE_ERROR=!ERRORLEVEL!
+popd
+if !DRAMA_PACKAGE_ERROR! NEQ 0 goto :error
+
 REM elin_link is now a junction to the game directory, so deploy only via STEAM_PACKAGE_DIR.
 
 REM Steam folder
@@ -462,6 +469,13 @@ if !ERRORLEVEL! NEQ 0 (
 REM Critical files: Data directory JSON files - use xcopy with explicit directory creation
 if not exist "%STEAM_PACKAGE_DIR%\LangMod\EN\Data" mkdir "%STEAM_PACKAGE_DIR%\LangMod\EN\Data" >nul 2>&1
 xcopy "%~dp0LangMod\EN\Data\*.*" "%STEAM_PACKAGE_DIR%\LangMod\EN\Data\" /Y /Q >nul 2>&1
+
+REM Check the actual publication/deployment folder, including failed/stale copies.
+pushd tools
+uv run python builder/validate_drama_package.py --package-root "%STEAM_PACKAGE_DIR%\." --reference-root "%~dp0."
+set DRAMA_PACKAGE_ERROR=!ERRORLEVEL!
+popd
+if !DRAMA_PACKAGE_ERROR! NEQ 0 goto :error
 echo OK
 
 REM ============================================================

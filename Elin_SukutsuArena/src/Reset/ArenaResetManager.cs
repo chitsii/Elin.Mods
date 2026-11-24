@@ -32,7 +32,7 @@ namespace Elin_SukutsuArena.Reset
         // 削除対象フィートID（カスタムフィートのみ。バニラフィートは削除しない）
         private static readonly int[] ArenaFeatIds =
         {
-            10001,  // 闘志（カスタムフィート）
+            ArenaManager.ArenaSpiritFeatId,
         };
 
         // Mod固有Conditionの型名プレフィックス
@@ -216,7 +216,7 @@ namespace Elin_SukutsuArena.Reset
         /// </summary>
         private static int ResetFeats()
         {
-            if (EClass.pc?.elements == null)
+            if (EClass.pc?.elements == null || !ArenaManager.HasArenaSpiritDefinition())
                 return 0;
 
             int removed = 0;
@@ -474,7 +474,9 @@ namespace Elin_SukutsuArena.Reset
                 // フィート数をカウント
                 if (EClass.pc?.elements != null)
                 {
-                    result.FeatsRemoved = ArenaFeatIds.Count(id => EClass.pc.elements.Has(id));
+                    result.FeatsRemoved = ArenaManager.HasArenaSpiritDefinition()
+                        ? ArenaFeatIds.Count(id => EClass.pc.elements.Has(id))
+                        : 0;
                 }
 
                 // Condition数をカウント

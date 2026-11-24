@@ -18,6 +18,17 @@ namespace Elin_SukutsuArena
     /// </summary>
     public static class ArenaManager
     {
+        internal const int ArenaSpiritFeatId = 200001;
+
+        internal static bool HasArenaSpiritDefinition()
+        {
+            var elements = EClass.sources?.elements;
+            return elements != null
+                && elements.map.TryGetValue(ArenaSpiritFeatId, out var row)
+                && row.alias == "featArenaSpirit"
+                && row.type == "FeatArenaSpirit";
+        }
+
         /// <summary>
         /// ランク情報をログに表示（CWL evalから呼び出し）
         /// </summary>
@@ -487,11 +498,15 @@ namespace Elin_SukutsuArena
 
             try
             {
-                const int featId = 10001; // featArenaSpirit
+                if (!HasArenaSpiritDefinition())
+                {
+                    Debug.LogWarning("[SukutsuArena] Arena Spirit definition missing or conflicting");
+                    return;
+                }
 
                 // フィートを設定（既存の場合はレベルアップ）
                 // SetFeatを使用することでfeat.Apply()が呼ばれ、活力ボーナスが適用される
-                pc.SetFeat(featId, level, msg: false);
+                pc.SetFeat(ArenaSpiritFeatId, level, msg: false);
 
                 // スタミナ（活力）ボーナスを計算（1レベルにつき +2）
                 int staminaBonus = level * 2;

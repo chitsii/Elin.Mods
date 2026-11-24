@@ -158,7 +158,7 @@ DEFAULTS = {
 # カスタムフィート定義（CN含む）
 CUSTOM_FEATS = [
     {
-        "id": 10001,
+        "id": 200001,
         "alias": "featArenaSpirit",
         "name_JP": "闘志",
         "name": "Arena Spirit",
